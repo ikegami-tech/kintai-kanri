@@ -1,1 +1,81 @@
-a
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勤怠管理システム</title>
+    <style>
+        /* 画面全体の基本レイアウト（左メニューと右メイン画面の分割） */
+        body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; }
+        
+        /* 左側のナビゲーションメニュー */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; padding: 20px; box-sizing: border-box; }
+        .profile { text-align: center; margin-bottom: 20px; cursor: pointer; }
+        .profile:hover { opacity: 0.8; }
+        .sidebar a { color: #ecf0f1; text-decoration: none; display: block; padding: 12px; margin-bottom: 5px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #34495e; }
+        
+        /* 右側のメイン画面 */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .btn-pdf { background-color: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        
+        /* マトリクス表 */
+        .table-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: center; font-size: 14px; }
+        th { background-color: #f8f9fa; color: #333; }
+    </style>
+</head>
+<body>
+
+    <!-- 左側：ナビゲーションメニュー -->
+    <nav class="sidebar">
+        <div class="profile" onclick="alert('マイページへ遷移します')">
+            <h3 style="margin: 0;">👤 山田 太郎</h3>
+            <span style="font-size: 12px; color: #bdc3c7;">マイページ</span>
+        </div>
+        <hr style="border-color: #7f8c8d; margin-bottom: 20px;">
+        <a href="#">📅 月別勤怠（マトリクス表）</a>
+        <a href="#">🗓️ 週別勤怠</a>
+        <a href="#">👥 従業員管理</a>
+        <a href="#">⚙️ システム設定</a>
+    </nav>
+
+    <!-- 右側：メインコンテンツ -->
+    <main class="main-content">
+        <div class="header">
+            <h2 style="margin: 0; font-size: 20px;">月別勤怠実績（2026年9月）</h2>
+            <button class="btn-pdf">📄 PDF出力</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>従業員名</th>
+                        <th>9/1 (火)</th>
+                        <th>9/2 (水)</th>
+                        <th>9/3 (木)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>山田 太郎</td>
+                        <td>09:00 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
+                        <td>08:55 - 19:30<br><small style="color: red;">(残業 1.5h)</small></td>
+                        <td>09:05 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
+                    </tr>
+                    <tr>
+                        <td>佐藤 花子</td>
+                        <td>09:00 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
+                        <td>09:00 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
+                        <td>休暇</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+</body>
+</html>
