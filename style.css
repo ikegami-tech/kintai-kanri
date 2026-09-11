@@ -836,29 +836,46 @@ body {
 
 /* メモ用の吹き出しアイコン & ツールチップ */
 .memo-icon {
-  font-size: 11px;
+  font-size: 12px;
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
   cursor: pointer;
 }
 
 .memo-icon::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: 125%;
-  right: 0;
-  background: rgba(30, 43, 55, 0.9);
+  bottom: 140%;
+  right: -10px;
+  background: rgba(20, 30, 40, 0.95);
   color: white;
-  padding: 4px 8px;
+  padding: 8px 12px;
   border-radius: 4px;
   font-size: 11px;
-  white-space: nowrap;
+  white-space: pre-line; /* 改行を有効にする */
+  text-align: left;
+  line-height: 1.5;
   display: none;
-  z-index: 20;
+  z-index: 200;
+  min-width: 100px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-.memo-icon:hover::after {
+/* ツールチップの尻尾（三角形） */
+.memo-icon::before {
+  content: '';
+  position: absolute;
+  bottom: 70%;
+  right: 4px;
+  border: 5px solid transparent;
+  border-top-color: rgba(20, 30, 40, 0.95);
+  display: none;
+  z-index: 200;
+}
+
+.memo-icon:hover::after,
+.memo-icon:hover::before {
   display: block;
 }
 
