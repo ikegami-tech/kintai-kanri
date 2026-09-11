@@ -452,13 +452,12 @@
           </div>
         </div>
 
-        <!-- 位置情報確認モーダル (仕様書要件) -->
+        <!-- 位置情報確認モーダル -->
         <div id="map-modal" class="modal-overlay hidden">
           <div class="modal-body map-modal-body">
             <h3 id="map-modal-title">打刻位置情報</h3>
             <p id="map-modal-subtitle" style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;"></p>
             
-            <!-- 擬似マップ描画エリア -->
             <div class="map-preview">
               <div class="map-pin">📍</div>
               <div class="map-watermark">Google Maps API / Location Data</div>
@@ -466,6 +465,148 @@
 
             <p id="map-modal-address" style="font-size: 13px; font-weight: bold; margin-top: 12px; color: var(--sidebar-dark);"></p>
             <button class="modal-btn" onclick="closeMapModal()">閉じる</button>
+          </div>
+        </div>
+
+        <!-- ==============================================
+             月表示セルクリックモーダル (仕様書要件)
+             ============================================== -->
+        
+        <!-- 実績 新規登録モーダル -->
+        <div id="modal-record-create" class="modal-overlay hidden">
+          <div class="record-modal-body">
+            <div class="record-modal-header">
+              <h3>実績 新規登録</h3>
+              <button class="btn-close-icon" onclick="closeRecordModal('modal-record-create')">×</button>
+            </div>
+            <div class="record-modal-content">
+              <table class="record-form-table">
+                <tr>
+                  <th>事業所名</th>
+                  <td>NEXT</td>
+                </tr>
+                <tr>
+                  <th>従業員 <span class="badge-req">必須</span></th>
+                  <td id="create-emp-name"></td>
+                </tr>
+                <tr>
+                  <th>営業日 <span class="badge-req">必須</span><br><span class="form-help">YYYY/MM/DD形式</span></th>
+                  <td><input type="text" class="form-input" id="create-date" style="width:150px;"></td>
+                </tr>
+                <tr>
+                  <th>勤務 <span class="badge-req">必須</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm"><option>09</option><option>10</option></select> :
+                    <select class="form-select-sm"><option>00</option><option>30</option></select>
+                    <span>〜</span>
+                    <select class="form-select-sm"><option>18</option><option>19</option></select> :
+                    <select class="form-select-sm"><option>00</option><option>30</option></select>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="record-modal-footer">
+              <button class="btn-cancel" onclick="closeRecordModal('modal-record-create')">キャンセル</button>
+              <button class="btn-primary" onclick="submitRecordCreate()">新規作成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 実績 編集モーダル -->
+        <div id="modal-record-edit" class="modal-overlay hidden">
+          <div class="record-modal-body">
+            <div class="record-modal-header">
+              <h3>実績 編集</h3>
+              <button class="btn-close-icon" onclick="closeRecordModal('modal-record-edit')">×</button>
+            </div>
+            <div class="record-modal-content">
+              <table class="record-form-table">
+                <tr>
+                  <th>事業所名</th>
+                  <td>NEXT</td>
+                </tr>
+                <tr>
+                  <th>従業員 <span class="badge-req">必須</span></th>
+                  <td id="edit-emp-name"></td>
+                </tr>
+                <tr>
+                  <th>営業日 <span class="badge-req">必須</span><br><span class="form-help">YYYY/MM/DD形式</span></th>
+                  <td><input type="text" class="form-input" id="edit-date" style="width:150px;"></td>
+                </tr>
+                <tr>
+                  <th>勤務 <span class="badge-req">必須</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm"><option>08</option></select> :
+                    <select class="form-select-sm"><option>48</option></select>
+                    <span>〜</span>
+                    <select class="form-select-sm"><option>20</option></select> :
+                    <select class="form-select-sm"><option>23</option></select>
+                  </td>
+                </tr>
+                <tr>
+                  <th>直行直帰</th>
+                  <td>
+                    <label><input type="checkbox"> 直行</label>
+                    <label style="margin-left:10px;"><input type="checkbox"> 直帰</label>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- アコーディオン式 送信メール内容 -->
+              <div class="accordion-mail-box">
+                <div class="accordion-mail-header" onclick="toggleMailAccordion()">
+                  送信メール内容を表示 <span id="mail-arrow">▼</span>
+                </div>
+                <div id="mail-content" class="accordion-mail-body hidden">
+                  訪問先：株式会社〇〇<br>
+                  業務内容：システム導入の打ち合わせ<br>
+                  そのまま直帰いたします。
+                </div>
+              </div>
+            </div>
+            <div class="record-modal-footer flex-space-between">
+              <button class="btn-danger" onclick="submitRecordDelete()">削除</button>
+              <div>
+                <button class="btn-cancel" onclick="closeRecordModal('modal-record-edit')">キャンセル</button>
+                <button class="btn-primary" onclick="submitRecordEdit()">更新</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 従業員メモ モーダル -->
+        <div id="modal-employee-memo" class="modal-overlay hidden">
+          <div class="record-modal-body" style="width: 500px;">
+            <div class="record-modal-header">
+              <h3>従業員メモ</h3>
+              <button class="btn-close-icon" onclick="closeRecordModal('modal-employee-memo')">×</button>
+            </div>
+            <div class="record-modal-content">
+              <table class="record-form-table">
+                <tr>
+                  <th style="width: 120px;">日付</th>
+                  <td id="memo-date"></td>
+                </tr>
+                <tr>
+                  <th>従業員名</th>
+                  <td id="memo-emp-name"></td>
+                </tr>
+                <tr>
+                  <th>事業所</th>
+                  <td>NEXT</td>
+                </tr>
+                <tr>
+                  <th style="vertical-align: top; padding-top: 15px;">メモ</th>
+                  <td>
+                    <textarea class="form-input" rows="5" placeholder="メモの内容を記入してください" style="resize: none;"></textarea>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="record-modal-footer">
+              <button class="btn-cancel" onclick="closeRecordModal('modal-employee-memo')">キャンセル</button>
+              <button class="btn-primary" onclick="submitRecordMemo()">決定</button>
+            </div>
           </div>
         </div>
 
@@ -773,6 +914,20 @@
                 <button type="submit" class="btn-save">設定を保存</button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <!-- ページ: タイムライン詳細画面 (〇月〇日の詳細へ) -->
+        <div id="page-timeline-detail" class="page-content hidden">
+          <div class="detail-header-row">
+            <button class="btn-back" onclick="switchPage('monthly', document.querySelector('.nav-item:nth-child(2)'))">＜ 月表示へ戻る</button>
+            <h2 id="timeline-title" class="detail-title">2026年09月08日(火) 詳細タイムライン</h2>
+          </div>
+          <div class="detail-content-area">
+            <div style="background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 40px; text-align: center; color: var(--text-sub);">
+              <h3>稼働状況タイムライン（ガントチャート形式）</h3>
+              <p style="margin-top: 15px;">※ ガントチャートの描画エリア（仕様書要件）</p>
+            </div>
           </div>
         </div>
 

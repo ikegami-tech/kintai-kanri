@@ -93,27 +93,80 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
   }
 });
-// セルクリック時のポップアップ制御（仕様書要件）
-let selectedTargetInfo = '';
+// ==========================================
+// セルクリック時のポップアップ＆モーダル制御（仕様書要件）
+// ==========================================
+let currentEmpName = '';
+let currentDate = '';
 
 function openCellMenu(event, empName, dateStr) {
   event.stopPropagation();
-  selectedTargetInfo = `${empName} (${dateStr})`;
+  currentEmpName = empName;
+  currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`; // YYYY/MM/DD形式へ変換
   
   const menu = document.getElementById('cell-action-menu');
-  const title = document.getElementById('cell-menu-title');
+  document.getElementById('cell-menu-title').textContent = `${empName} - ${dateStr}`;
   
-  title.textContent = selectedTargetInfo;
-  
-  // クリック位置に合わせてメニューを表示
   menu.style.left = `${event.pageX}px`;
   menu.style.top = `${event.pageY}px`;
   menu.classList.remove('hidden');
 }
 
-function handleCellAction(actionName) {
+// メニューからアクションを選択した際の振り分け
+function handleCellAction(actionType) {
   document.getElementById('cell-action-menu').classList.add('hidden');
-  showModal(actionName, `${selectedTargetInfo} の${actionName}処理画面を開きます。`);
+  
+  if (actionType === '新規作成') {
+    document.getElementById('create-emp-name').textContent = currentEmpName;
+    document.getElementById('create-date').value = currentDate;
+    document.getElementById('modal-record-create').classList.remove('hidden');
+  } 
+  else if (actionType === '編集') {
+    document.getElementById('edit-emp-name').textContent = currentEmpName;
+    document.getElementById('edit-date').value = currentDate;
+    document.getElementById('modal-record-edit').classList.remove('hidden');
+  } 
+  else if (actionType === '従業員メモ') {
+    document.getElementById('memo-emp-name').textContent = currentEmpName;
+    document.getElementById('memo-date').textContent = currentDate;
+    document.getElementById('modal-employee-memo').classList.remove('hidden');
+  } 
+  else if (actionType === '詳細へ') {
+    document.getElementById('timeline-title').textContent = `${currentDate} 詳細タイムライン`;
+    const pages = document.querySelectorAll('.page-content');
+    pages.forEach(page => page.classList.add('hidden'));
+    document.getElementById('page-timeline-detail').classList.remove('hidden');
+  }
+}
+
+// 共通モーダル閉じる処理
+function closeRecordModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
+
+// アコーディオンメール表示切替
+function toggleMailAccordion() {
+  const body = document.getElementById('mail-content');
+  const arrow = document.getElementById('mail-arrow');
+  body.classList.toggle('hidden');
+  arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
+}
+
+// 各種サブミットダミー処理
+function submitRecordCreate() { closeRecordModal('modal-record-create'); showToast('実績を新規作成しました'); }
+function submitRecordEdit() { closeRecordModal('modal-record-edit'); showToast('実績を更新しました（赤文字で表示されます）'); }
+function submitRecordDelete() { closeRecordModal('modal-record-edit'); showToast('実績を削除しました'); }
+function submitRecordMemo() { closeRecordModal('modal-employee-memo'); showToast('従業員メモを保存しました'); }
+
+function showToast(msg) {
+  const toast = document.getElementById('toast-message');
+  toast.textContent = msg;
+  toast.classList.remove('hidden');
+  toast.style.opacity = '1';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.classList.add('hidden'), 500);
+  }, 2500);
 }
 
 // 画面外クリック時にセルメニューを閉じる

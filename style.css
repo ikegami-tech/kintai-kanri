@@ -1347,3 +1347,151 @@ body {
   margin-bottom: 15px;
   font-weight: bold;
 }
+/* ==================================================
+   月表示 セルクリック モーダル専用デザイン (TOHOカラー)
+   ================================================== */
+.record-modal-body {
+  background: white;
+  border-radius: 6px;
+  width: 550px;
+  max-width: 90%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.record-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.record-modal-header h3 {
+  font-size: 16px;
+  color: var(--sidebar-dark);
+}
+
+.btn-close-icon {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+}
+
+.btn-close-icon:hover {
+  color: #333;
+}
+
+.record-modal-content {
+  padding: 20px;
+}
+
+.record-form-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.record-form-table th {
+  text-align: left;
+  padding: 12px 10px;
+  width: 140px;
+  color: var(--sidebar-dark);
+  border-bottom: 1px solid #f0f3f6;
+  font-weight: bold;
+}
+
+.record-form-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #f0f3f6;
+}
+
+.time-select-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-select-sm {
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+}
+
+/* メール内容アコーディオン */
+.accordion-mail-box {
+  margin-top: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.accordion-mail-header {
+  background: #f8fafc;
+  padding: 10px 15px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  color: var(--toho-blue);
+  display: flex;
+  justify-content: space-between;
+}
+
+.accordion-mail-header:hover {
+  background: #edf2f7;
+}
+
+.accordion-mail-body {
+  padding: 15px;
+  font-size: 13px;
+  color: var(--text-main);
+  background: white;
+  border-top: 1px solid var(--border-color);
+  line-height: 1.6;
+}
+
+/* モーダルフッター */
+.record-modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid var(--border-color);
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-radius: 0 0 6px 6px;
+}
+
+.flex-space-between {
+  justify-content: space-between;
+}
+
+.btn-cancel {
+  background: white;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-cancel:hover {
+  background: #f4f6f8;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
