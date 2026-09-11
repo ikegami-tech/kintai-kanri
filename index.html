@@ -319,10 +319,124 @@
           <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
         </div>
 
-        <!-- ページ: 週別勤怠 -->
-        <div id="page-weekly" class="page-content hidden">
-          <div style="background: white; padding: 20px; border-radius: 8px;">
-            <h3>週別勤怠一覧</h3>
+        <!-- ページ: 日表示 -->
+        <div id="page-daily" class="page-content hidden">
+          <div class="daily-container">
+            <!-- 画面上部 日付選択UI -->
+            <div class="daily-header-bar">
+              <div class="daily-date-selector">
+                <button class="btn-sub" onclick="showModal('日付変更', '前日へ移動します')">＜</button>
+                <button class="btn-sub" onclick="showModal('日付変更', 'カレンダー選択を開きます')">📅</button>
+                <button class="btn-sub" onclick="showModal('日付変更', '本日へ移動します')">今日</button>
+                <button class="btn-sub" onclick="showModal('日付変更', '翌日へ移動します')">＞</button>
+                <span class="daily-date-title">2026年09月11日(金)</span>
+              </div>
+            </div>
+
+            <!-- 出勤状況一覧テーブル -->
+            <div class="daily-table-wrapper">
+              <table class="daily-status-table">
+                <thead>
+                  <tr>
+                    <th style="width: 180px;">従業員</th>
+                    <th style="width: 120px;">予定</th>
+                    <th>実績</th>
+                    <th style="width: 140px;">打刻位置</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- 従業員 1 -->
+                  <tr>
+                    <td class="emp-name-cell">
+                      <span class="dot-status dot-working"></span> 安藤 健太郎
+                    </td>
+                    <td>09:00 - 18:00</td>
+                    <td>
+                      08:29 ～
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 通常出勤">💬</span>
+                    </td>
+                    <td>
+                      <button class="btn-map" onclick="openMapModal('安藤 健太郎', '08:29 出勤', '東京都千代田区有楽町1-1-1')">📍 地図</button>
+                    </td>
+                  </tr>
+
+                  <!-- 従業員 2 -->
+                  <tr>
+                    <td class="emp-name-cell">
+                      <span class="dot-status dot-working"></span> 五十嵐 由樹
+                    </td>
+                    <td>09:00 - 18:00</td>
+                    <td>
+                      08:52 ～
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 直行打刻">💬</span>
+                    </td>
+                    <td>
+                      <button class="btn-map" onclick="openMapModal('五十嵐 由樹', '08:52 直行出勤', '東京都新宿区西新宿2-8-1')">📍 地図</button>
+                    </td>
+                  </tr>
+
+                  <!-- 従業員 3 -->
+                  <tr>
+                    <td class="emp-name-cell">
+                      <span class="dot-status dot-working"></span> 池上 裕士
+                    </td>
+                    <td>09:00 - 18:00</td>
+                    <td>
+                      08:27 ～
+                    </td>
+                    <td>
+                      <button class="btn-map" onclick="openMapModal('池上 裕士', '08:27 出勤', '東京都中央区銀座4-1-2')">📍 地図</button>
+                    </td>
+                  </tr>
+
+                  <!-- 従業員 4 -->
+                  <tr>
+                    <td class="emp-name-cell">
+                      <span class="dot-status dot-working"></span> 石井 秀龍
+                    </td>
+                    <td>09:00 - 18:00</td>
+                    <td>
+                      08:59 ～
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 管理者修正済み">💬</span>
+                    </td>
+                    <td>
+                      <button class="btn-map" onclick="openMapModal('石井 秀龍', '08:59 出勤', '東京都港区六本木6-10-1')">📍 地図</button>
+                    </td>
+                  </tr>
+
+                  <!-- 従業員 5 (退勤済) -->
+                  <tr>
+                    <td class="emp-name-cell">
+                      <span class="dot-status dot-finished"></span> 佐藤 花子
+                    </td>
+                    <td>09:00 - 18:00</td>
+                    <td>
+                      09:00 ～ 18:00
+                    </td>
+                    <td>
+                      <button class="btn-map" onclick="openMapModal('佐藤 花子', '18:00 退勤', '東京都千代田区丸の内1-9-1')">📍 地図</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 位置情報確認モーダル (仕様書要件) -->
+        <div id="map-modal" class="modal-overlay hidden">
+          <div class="modal-body map-modal-body">
+            <h3 id="map-modal-title">打刻位置情報</h3>
+            <p id="map-modal-subtitle" style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;"></p>
+            
+            <!-- 擬似マップ描画エリア -->
+            <div class="map-preview">
+              <div class="map-pin">📍</div>
+              <div class="map-watermark">Google Maps API / Location Data</div>
+            </div>
+
+            <p id="map-modal-address" style="font-size: 13px; font-weight: bold; margin-top: 12px; color: var(--sidebar-dark);"></p>
+            <button class="modal-btn" onclick="closeMapModal()">閉じる</button>
           </div>
         </div>
 

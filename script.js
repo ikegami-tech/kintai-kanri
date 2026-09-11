@@ -123,3 +123,14 @@ document.addEventListener('click', function(e) {
     cellMenu.classList.add('hidden');
   }
 });
+// 日表示：位置情報（地図）モーダル制御 (仕様書要件)
+function openMapModal(empName, timeStr, addressStr) {
+  document.getElementById('map-modal-title').textContent = `${empName} の打刻位置`;
+  document.getElementById('map-modal-subtitle').textContent = `打刻時刻: ${timeStr}`;
+  document.getElementById('map-modal-address').textContent = `📍 取得住所: ${addressStr}`;
+  document.getElementById('map-modal').classList.remove('hidden');
+}
+
+function closeMapModal() {
+  document.getElementById('map-modal').classList.add('hidden');
+}
