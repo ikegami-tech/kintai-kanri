@@ -10,21 +10,38 @@
 
   <!-- 1. ログイン画面 -->
   <div id="login-view">
-    <div class="login-card">
-      <div class="login-logo">
-        勤怠管理 <span>TIME CARD</span>
+    <div class="login-container">
+      <div class="login-logo-title">
+        勤怠管理 <span class="badge">TIME CARD</span>
       </div>
+
+      <h2 class="login-heading">ログイン</h2>
+
       <form id="login-form">
         <div class="form-group">
-          <label>ログインID (メールアドレス)</label>
-          <input type="email" id="login-id" value="ikegami@example.com" required>
+          <input type="email" id="login-id" value="ikegami@example.com" placeholder="ログインID (メールアドレス)" required>
         </div>
         <div class="form-group">
-          <label>パスワード</label>
-          <input type="password" id="login-pw" value="password" required>
+          <input type="password" id="login-pw" value="password" placeholder="パスワード" required>
         </div>
-        <button type="submit" class="btn-login">ログイン</button>
+
+        <div class="login-action-row">
+          <button type="submit" class="btn-login">ログイン</button>
+          <div class="login-links">
+            <div><a href="#" onclick="showModal('パスワード再設定', '管理者へお問い合わせください。')">パスワードをお忘れの場合</a></div>
+            <div><a href="#" onclick="showModal('ヘルプ', 'システム管理者へご連絡ください。')">その他ログインでお困りの場合</a></div>
+          </div>
+        </div>
       </form>
+
+      <div class="login-subtext">
+        アカウントをお持ちですか？ <a href="#" style="color: #0073ea; text-decoration: none;" onclick="showModal('新規登録', '管理者にお問い合わせください。')">今すぐアカウント作成</a>
+      </div>
+
+      <div class="login-footer">
+        クラウドサービス 勤怠管理シリーズ<br>
+        © TOHO Systems Inc.
+      </div>
     </div>
   </div>
 
