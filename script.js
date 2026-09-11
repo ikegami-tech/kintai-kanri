@@ -74,3 +74,22 @@ function showModal(title, msg) {
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
 }
+
+// 従業員一覧「...」ポップオーバーメニュー制御
+function toggleEmpMenu(buttonEl) {
+  const popover = buttonEl.nextElementSibling;
+  
+  // 他の開いているポップオーバーを一旦閉じる
+  document.querySelectorAll('.emp-popover-menu').forEach(menu => {
+    if (menu !== popover) menu.classList.add('hidden');
+  });
+
+  popover.classList.toggle('hidden');
+}
+
+// 外部クリック時に操作メニューを自動で閉じる
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.emp-action-menu')) {
+    document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
+  }
+});

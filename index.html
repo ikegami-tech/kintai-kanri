@@ -168,8 +168,110 @@
 
         <!-- ページ: 従業員 -->
         <div id="page-employees" class="page-content hidden">
-          <div style="background: white; padding: 20px; border-radius: 8px;">
-            <h3>従業員一覧</h3>
+          <div class="emp-page-header">
+            <h2>従業員一覧</h2>
+            <div class="emp-btn-group">
+              <button class="btn-primary" onclick="showModal('新規作成', '新しい従業員作成画面を開きます')">＋ 新しい従業員を作成</button>
+            </div>
+          </div>
+
+          <!-- イニシャル検索・絞り込みタブ -->
+          <div class="emp-filter-card">
+            <div class="filter-row">
+              <span class="filter-label">イニシャル</span>
+              <div class="initial-tabs">
+                <button class="tab-btn active">ALL</button>
+                <button class="tab-btn">ア</button>
+                <button class="tab-btn">カ</button>
+                <button class="tab-btn">サ</button>
+                <button class="tab-btn">タ</button>
+                <button class="tab-btn">ナ</button>
+                <button class="tab-btn">ハ</button>
+                <button class="tab-btn">マ</button>
+                <button class="tab-btn">ヤ</button>
+                <button class="tab-btn">ラ</button>
+                <button class="tab-btn">ワ</button>
+                <button class="tab-btn">A-Z</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 従業員リスト一覧 -->
+          <div class="emp-list-container">
+            <!-- 従業員カード 1 -->
+            <div class="emp-card-item">
+              <div class="emp-avatar">👤</div>
+              <div class="emp-info-main">
+                <div class="emp-name-row">
+                  <a href="#" class="emp-name" onclick="showModal('詳細・編集', '阿久津 幸一 の詳細画面を表示します')">阿久津 幸一</a>
+                  <span class="badge-tag badge-admin">システム管理者</span>
+                  <span class="badge-tag badge-disabled">利用停止</span>
+                </div>
+                <div class="emp-meta-row">
+                  <span>従業員区分: 管理職</span>
+                  <span>事業所: NEXT (事業所管理者)</span>
+                  <span>従業員ID: 2</span>
+                </div>
+              </div>
+              <div class="emp-action-menu">
+                <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
+                <div class="emp-popover-menu hidden">
+                  <div onclick="showModal('コピー作成', '阿久津 幸一 の設定を引き継いで新規作成します')">コピーして新しい従業員を作成</div>
+                  <div onclick="showModal('利用再開', '従業員「阿久津 幸一」の利用を再開しますか？')">利用再開</div>
+                  <div class="text-danger" onclick="showModal('削除', '従業員「阿久津 幸一」を削除しますか？')">削除</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 従業員カード 2 -->
+            <div class="emp-card-item">
+              <div class="emp-avatar">👤</div>
+              <div class="emp-info-main">
+                <div class="emp-name-row">
+                  <a href="#" class="emp-name" onclick="showModal('詳細・編集', '安藤 健太郎 の詳細画面を表示します')">安藤 健太郎</a>
+                  <span class="badge-tag badge-regular">正社員</span>
+                </div>
+                <div class="emp-meta-row">
+                  <span>従業員区分: 正社員</span>
+                  <span>入社日: 2024年08月01日</span>
+                  <span>事業所: NEXT (従業員)</span>
+                  <span>従業員ID: 69</span>
+                </div>
+              </div>
+              <div class="emp-action-menu">
+                <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
+                <div class="emp-popover-menu hidden">
+                  <div onclick="showModal('コピー作成', '安藤 健太郎 の設定を引き継いで新規作成します')">コピーして新しい従業員を作成</div>
+                  <div onclick="showModal('利用停止', '従業員「安藤 健太郎」の利用を停止しますか？')">利用停止</div>
+                  <div class="text-danger" onclick="showModal('削除', '従業員「安藤 健太郎」を削除しますか？')">削除</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 従業員カード 3 -->
+            <div class="emp-card-item">
+              <div class="emp-avatar">👤</div>
+              <div class="emp-info-main">
+                <div class="emp-name-row">
+                  <a href="#" class="emp-name" onclick="showModal('詳細・編集', '五十嵐 由樹 の詳細画面を表示します')">五十嵐 由樹</a>
+                  <span class="badge-tag badge-regular">正社員</span>
+                </div>
+                <div class="emp-meta-row">
+                  <span>従業員区分: 正社員</span>
+                  <span>入社日: 2025年02月03日</span>
+                  <span>事業所: NEXT (従業員)</span>
+                  <span>従業員ID: 81</span>
+                </div>
+              </div>
+              <div class="emp-action-menu">
+                <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
+                <div class="emp-popover-menu hidden">
+                  <div onclick="showModal('コピー作成', '五十嵐 由樹 の設定を引き継いで新規作成します')">コピーして新しい従業員を作成</div>
+                  <div onclick="showModal('利用停止', '従業員「五十嵐 由樹」の利用を停止しますか？')">利用停止</div>
+                  <div class="text-danger" onclick="showModal('削除', '従業員「五十嵐 由樹」を削除しますか？')">削除</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
