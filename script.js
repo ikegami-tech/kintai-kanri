@@ -134,3 +134,17 @@ function openMapModal(empName, timeStr, addressStr) {
 function closeMapModal() {
   document.getElementById('map-modal').classList.add('hidden');
 }
+// 従業員詳細画面への遷移処理
+function showEmployeeDetail(empName) {
+  // 名前を詳細画面のタイトルに反映
+  document.getElementById('detail-emp-name').textContent = empName;
+  document.getElementById('val-name').textContent = empName;
+  
+  // 画面を詳細ページへ切り替え
+  const pages = document.querySelectorAll('.page-content');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('page-employee-detail').classList.remove('hidden');
+
+  // ヘッダータイトル更新
+  document.getElementById('page-title').textContent = '従業員管理';
+}

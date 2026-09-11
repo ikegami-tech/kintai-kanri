@@ -1110,3 +1110,128 @@ body {
   font-size: 10px;
   color: #777;
 }
+/* ==================================================
+   従業員詳細・編集画面デザイン (TOHOカラー)
+   ================================================== */
+.detail-header-row {
+  display: flex;
+  align-items: center;
+  padding: 15px 30px;
+  border-bottom: 1px solid var(--border-color);
+  background: #f8fafc;
+}
+
+.btn-back {
+  background: white;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--text-main);
+  margin-right: 20px;
+}
+
+.btn-back:hover {
+  background: #edf2f7;
+}
+
+.detail-title {
+  font-size: 20px;
+  color: var(--sidebar-dark);
+}
+
+.detail-tabs {
+  display: flex;
+  padding: 0 30px;
+  border-bottom: 1px solid var(--border-color);
+  background: white;
+}
+
+.detail-tab {
+  padding: 15px 20px;
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--text-sub);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+}
+
+.detail-tab.active {
+  color: var(--toho-blue);
+  border-bottom-color: var(--toho-blue);
+}
+
+.detail-content-area {
+  padding: 30px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.detail-banner {
+  background: #eef7ff;
+  border: 1px solid #bce0fd;
+  padding: 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-main);
+  margin-bottom: 30px;
+}
+
+.detail-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.detail-section-header h3 {
+  font-size: 18px;
+  color: var(--sidebar-dark);
+}
+
+.btn-primary {
+  background-color: var(--toho-blue);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: var(--toho-blue-hover);
+}
+
+.detail-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.detail-info-table th {
+  text-align: left;
+  padding: 16px 0;
+  color: var(--sidebar-dark);
+  font-weight: bold;
+  width: 250px;
+}
+
+.detail-info-table td {
+  padding: 16px 0;
+  color: var(--text-main);
+}
+
+.badge-req {
+  background: #e74c3c;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+}

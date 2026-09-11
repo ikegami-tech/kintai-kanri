@@ -469,7 +469,7 @@
           </div>
         </div>
 
-        <!-- ページ: 従業員 -->
+        <!-- ページ: 従業員一覧 -->
         <div id="page-employees" class="page-content hidden">
           <div class="emp-page-header">
             <h2>従業員一覧</h2>
@@ -478,7 +478,6 @@
             </div>
           </div>
 
-          <!-- イニシャル検索・絞り込みタブ -->
           <div class="emp-filter-card">
             <div class="filter-row">
               <span class="filter-label">イニシャル</span>
@@ -499,14 +498,13 @@
             </div>
           </div>
 
-          <!-- 従業員リスト一覧 -->
           <div class="emp-list-container">
-            <!-- 従業員カード 1 -->
+            <!-- 従業員 1 -->
             <div class="emp-card-item">
               <div class="emp-avatar">👤</div>
               <div class="emp-info-main">
                 <div class="emp-name-row">
-                  <a href="#" class="emp-name" onclick="showModal('詳細・編集', '阿久津 幸一 の詳細画面を表示します')">阿久津 幸一</a>
+                  <a href="#" class="emp-name" onclick="showEmployeeDetail('阿久津 幸一')">阿久津 幸一</a>
                   <span class="badge-tag badge-admin">システム管理者</span>
                   <span class="badge-tag badge-disabled">利用停止</span>
                 </div>
@@ -526,12 +524,12 @@
               </div>
             </div>
 
-            <!-- 従業員カード 2 -->
+            <!-- 従業員 2 -->
             <div class="emp-card-item">
               <div class="emp-avatar">👤</div>
               <div class="emp-info-main">
                 <div class="emp-name-row">
-                  <a href="#" class="emp-name" onclick="showModal('詳細・編集', '安藤 健太郎 の詳細画面を表示します')">安藤 健太郎</a>
+                  <a href="#" class="emp-name" onclick="showEmployeeDetail('安藤 健太郎')">安藤 健太郎</a>
                   <span class="badge-tag badge-regular">正社員</span>
                 </div>
                 <div class="emp-meta-row">
@@ -550,31 +548,76 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- 従業員カード 3 -->
-            <div class="emp-card-item">
-              <div class="emp-avatar">👤</div>
-              <div class="emp-info-main">
-                <div class="emp-name-row">
-                  <a href="#" class="emp-name" onclick="showModal('詳細・編集', '五十嵐 由樹 の詳細画面を表示します')">五十嵐 由樹</a>
-                  <span class="badge-tag badge-regular">正社員</span>
-                </div>
-                <div class="emp-meta-row">
-                  <span>従業員区分: 正社員</span>
-                  <span>入社日: 2025年02月03日</span>
-                  <span>事業所: NEXT (従業員)</span>
-                  <span>従業員ID: 81</span>
-                </div>
-              </div>
-              <div class="emp-action-menu">
-                <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
-                <div class="emp-popover-menu hidden">
-                  <div onclick="showModal('コピー作成', '五十嵐 由樹 の設定を引き継いで新規作成します')">コピーして新しい従業員を作成</div>
-                  <div onclick="showModal('利用停止', '従業員「五十嵐 由樹」の利用を停止しますか？')">利用停止</div>
-                  <div class="text-danger" onclick="showModal('削除', '従業員「五十嵐 由樹」を削除しますか？')">削除</div>
-                </div>
-              </div>
+        <!-- ページ: 従業員詳細 (スマレジ風) -->
+        <div id="page-employee-detail" class="page-content hidden" style="background: white;">
+          <div class="detail-header-row">
+            <button class="btn-back" onclick="switchPage('employees', document.querySelector('[onclick*=\\\'employees\\\']'))">＜ 一覧へ戻る</button>
+            <h2 id="detail-emp-name" class="detail-title">従業員名</h2>
+          </div>
+
+          <div class="detail-tabs">
+            <div class="detail-tab active">基本情報</div>
+          </div>
+
+          <div class="detail-content-area">
+            <div class="detail-banner">
+              この従業員は利用設定が「利用しない」に設定されています。<br>
+              <a href="#" style="color: var(--toho-blue);">基本情報を編集</a> より「利用する」に設定すると出退勤など機能がご利用いただけます。
             </div>
+
+            <div class="detail-section-header">
+              <h3>基本情報</h3>
+              <button class="btn-primary" onclick="showModal('設定を編集', '従業員情報の編集画面を開きます')">設定を編集</button>
+            </div>
+
+            <!-- 仕様書に沿った10項目のみを表示 -->
+            <table class="detail-info-table">
+              <tbody>
+                <tr>
+                  <th>名前 <span class="badge-req">必須</span></th>
+                  <td id="val-name">阿久津 幸一</td>
+                </tr>
+                <tr>
+                  <th>フリガナ <span class="badge-req">必須</span></th>
+                  <td id="val-kana">アクツ コウイチ</td>
+                </tr>
+                <tr>
+                  <th>性別 <span class="badge-req">必須</span></th>
+                  <td>男性</td>
+                </tr>
+                <tr>
+                  <th>生年月日</th>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <th>メールアドレス</th>
+                  <td>akutsu@toho-next.com</td>
+                </tr>
+                <tr>
+                  <th>従業員区分 <span class="badge-req">必須</span></th>
+                  <td>管理職</td>
+                </tr>
+                <tr>
+                  <th>権限 <span class="badge-req">必須</span></th>
+                  <td>システム管理者</td>
+                </tr>
+                <tr>
+                  <th>入社日</th>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <th>退職日</th>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <th>外国人 <span class="badge-req">必須</span></th>
+                  <td>該当しない</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
