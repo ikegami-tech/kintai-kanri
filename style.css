@@ -884,6 +884,9 @@ body {
   z-index: 200;
 }
 
+/* セル全体にホバーしただけでツールチップを表示 */
+td:hover .memo-icon::after,
+td:hover .memo-icon::before,
 .memo-icon:hover::after,
 .memo-icon:hover::before {
   display: block;
