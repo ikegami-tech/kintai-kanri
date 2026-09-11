@@ -48,11 +48,9 @@ function toggleAttendanceMenu() {
 function switchPage(pageId, element) {
   const sidebar = document.getElementById('sidebar');
 
-  // 同じメニューをクリックした場合はサイドバーを縮小して処理を終了
+  // 同じメニュー（アクティブな状態）をクリックした場合は、開閉を切り替える
   if (element && element.classList.contains('active')) {
-    if (!sidebar.classList.contains('collapsed')) {
-      toggleSidebar();
-    }
+    toggleSidebar();
     return;
   }
 
@@ -73,8 +71,8 @@ function switchPage(pageId, element) {
   navItems.forEach(item => item.classList.remove('active'));
   if (element) element.classList.add('active');
 
-  // メニュー選択後は画面を広く使うためサイドバーを自動で縮小する
-  if (!sidebar.classList.contains('collapsed')) {
+  // 別のメニューを選んで切り替わった場合は、サイドバーを展開して広く表示する
+  if (sidebar.classList.contains('collapsed')) {
     toggleSidebar();
   }
 }
@@ -299,17 +297,3 @@ function saveNewEmployee(event) {
     }, 500);
   }, 2500);
 }
-// ==========================================
-// 縮小時にメニューバー自体をクリックすると大きく表示する処理
-// ==========================================
-document.getElementById('sidebar').addEventListener('click', function(e) {
-  // メニュー項目をクリックした際は、ここでの展開処理をキャンセル（switchPage等に任せる）
-  if (e.target.closest('.nav-item')) {
-    return;
-  }
-  // すでに展開済みの場合、または「フッターボタン」を直接押した場合は二重起動を防ぐ
-  if (this.classList.contains('collapsed') && 
-      !e.target.closest('.sidebar-footer')) {
-    toggleSidebar();
-  }
-});
