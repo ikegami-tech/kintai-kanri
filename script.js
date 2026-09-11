@@ -284,3 +284,14 @@ function saveNewEmployee(event) {
     }, 500);
   }, 2500);
 }
+// ==========================================
+// 縮小時にメニューバー自体をクリックすると大きく表示する処理
+// ==========================================
+document.getElementById('sidebar').addEventListener('click', function(e) {
+  // すでに展開済みの場合、または「フッターボタン」「勤怠管理」を直接押した場合は二重起動を防ぐ
+  if (this.classList.contains('collapsed') && 
+      !e.target.closest('.sidebar-footer') && 
+      !e.target.closest('[onclick="toggleAttendanceMenu()"]')) {
+    toggleSidebar();
+  }
+});

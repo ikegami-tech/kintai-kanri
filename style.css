@@ -152,10 +152,15 @@ body {
   display: flex;
   height: 100vh;
   width: 100vw;
+  position: relative;
 }
 
 .sidebar {
-  width: 220px; /* デフォルトでしっかり展開 */
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 220px;
   background-color: var(--sidebar-active);
   color: #ffffff;
   display: flex;
@@ -163,8 +168,8 @@ body {
   transition: width 0.2s ease-in-out;
   overflow: hidden;
   user-select: none;
-  z-index: 100;
-  flex-shrink: 0;
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.2);
 }
 
 /* 折りたたみ時（アイコンのみ） */
@@ -304,7 +309,8 @@ body {
    3. メインコンテンツエリア
    ================================================== */
 .main-wrapper {
-  flex: 1;
+  margin-left: 60px; /* 縮小時のサイドバー幅分を確保 */
+  width: calc(100vw - 60px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

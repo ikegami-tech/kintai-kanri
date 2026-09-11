@@ -47,8 +47,8 @@
 
   <!-- 2. メインアプリ（ログイン後） -->
   <div id="app-view" class="hidden">
-    <!-- サイドバー（デフォルト展開） -->
-    <div class="sidebar" id="sidebar">
+    <!-- サイドバー（デフォルト縮小） -->
+    <div class="sidebar collapsed" id="sidebar">
       <div class="sidebar-user">
         <div class="user-icon">👤</div>
         <div class="user-info">
@@ -96,8 +96,8 @@
 
       <!-- スマレジ風 最下部折りたたみ切替ボタン -->
       <div class="sidebar-footer" onclick="toggleSidebar()">
-        <span class="nav-icon" id="collapse-icon">←</span>
-        <span class="nav-text" id="collapse-text">閉じる</span>
+        <span class="nav-icon" id="collapse-icon">→</span>
+        <span class="nav-text" id="collapse-text"></span>
       </div>
     </div>
 
