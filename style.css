@@ -1235,3 +1235,98 @@ body {
   margin-left: 8px;
   vertical-align: middle;
 }
+/* ==================================================
+   従業員編集フォーム & トースト通知 (TOHOカラー)
+   ================================================== */
+.edit-form-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.edit-form-table th {
+  text-align: left;
+  padding: 20px 0;
+  color: var(--sidebar-dark);
+  font-weight: bold;
+  width: 300px;
+  vertical-align: top;
+  border-bottom: 1px solid #f0f3f6;
+}
+
+.edit-form-table td {
+  padding: 20px 0;
+  color: var(--text-main);
+  vertical-align: top;
+  border-bottom: 1px solid #f0f3f6;
+}
+
+.form-help {
+  font-size: 11px;
+  color: var(--text-sub);
+  font-weight: normal;
+  display: block;
+  margin-top: 4px;
+}
+
+.form-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--toho-blue);
+  box-shadow: 0 0 0 2px rgba(0, 115, 234, 0.15);
+}
+
+.form-select {
+  width: 200px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-footer-action {
+  margin-top: 40px;
+  text-align: right;
+}
+
+.btn-save {
+  background-color: #27ae60; /* スマレジ風の保存緑 */
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btn-save:hover {
+  background-color: #219150;
+}
+
+/* トースト通知 (画面中央表示) */
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--toho-blue);
+  color: white;
+  padding: 15px 40px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  z-index: 2000;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}

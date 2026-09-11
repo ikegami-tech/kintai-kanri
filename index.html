@@ -554,7 +554,7 @@
         <!-- ページ: 従業員詳細 (スマレジ風) -->
         <div id="page-employee-detail" class="page-content hidden" style="background: white;">
           <div class="detail-header-row">
-            <button class="btn-back" onclick="switchPage('employees', document.querySelector('[onclick*=\\\'employees\\\']'))">＜ 一覧へ戻る</button>
+            <button class="btn-back" onclick="switchPage('employees', document.querySelector('.nav-item:nth-child(3)'))">＜ 一覧へ戻る</button>
             <h2 id="detail-emp-name" class="detail-title">従業員名</h2>
           </div>
 
@@ -563,17 +563,11 @@
           </div>
 
           <div class="detail-content-area">
-            <div class="detail-banner">
-              この従業員は利用設定が「利用しない」に設定されています。<br>
-              <a href="#" style="color: var(--toho-blue);">基本情報を編集</a> より「利用する」に設定すると出退勤など機能がご利用いただけます。
-            </div>
-
             <div class="detail-section-header">
               <h3>基本情報</h3>
-              <button class="btn-primary" onclick="showModal('設定を編集', '従業員情報の編集画面を開きます')">設定を編集</button>
+              <button class="btn-primary" onclick="openEditEmployee()">設定を編集</button>
             </div>
 
-            <!-- 仕様書に沿った10項目のみを表示 -->
             <table class="detail-info-table">
               <tbody>
                 <tr>
@@ -620,6 +614,94 @@
             </table>
           </div>
         </div>
+
+        <!-- ページ: 従業員編集 (仕様書10項目) -->
+        <div id="page-employee-edit" class="page-content hidden" style="background: white;">
+          <div class="detail-header-row">
+            <button class="btn-back" onclick="closeEditEmployee()">＜ 一覧へ戻る</button>
+            <h2 id="edit-emp-name" class="detail-title">従業員名</h2>
+          </div>
+
+          <div class="detail-tabs">
+            <div class="detail-tab active">基本情報</div>
+          </div>
+
+          <div class="detail-content-area">
+            <div class="detail-section-header">
+              <h3>基本情報</h3>
+            </div>
+
+            <form id="employee-edit-form" onsubmit="saveEmployeeEdit(event)">
+              <table class="edit-form-table">
+                <tbody>
+                  <tr>
+                    <th>名前 <span class="badge-req">必須</span><br><span class="form-help">50文字以内。例）須磨玲二</span></th>
+                    <td><input type="text" class="form-input" id="edit-name" value="阿久津 幸一" required></td>
+                  </tr>
+                  <tr>
+                    <th>フリガナ <span class="badge-req">必須</span><br><span class="form-help">50文字以内。例）スマレイジ</span></th>
+                    <td><input type="text" class="form-input" id="edit-kana" value="アクツ コウイチ" required></td>
+                  </tr>
+                  <tr>
+                    <th>性別 <span class="badge-req">必須</span></th>
+                    <td>
+                      <label><input type="radio" name="gender" value="未選択"> 未選択</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="gender" value="男性" checked> 男性</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="gender" value="女性"> 女性</label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>生年月日<br><span class="form-help">YYYY/MM/DD形式で入力。</span></th>
+                    <td><input type="text" class="form-input" style="width: 150px;"></td>
+                  </tr>
+                  <tr>
+                    <th>メールアドレス<br><span class="form-help">255文字以内。</span></th>
+                    <td>akutsu@toho-next.com<br><span class="form-help" style="display:block; margin-top:5px;">※この項目は本人のみ変更できます。</span></td>
+                  </tr>
+                  <tr>
+                    <th>従業員区分 <span class="badge-req">必須</span></th>
+                    <td>
+                      <select class="form-select">
+                        <option value="管理職" selected>管理職</option>
+                        <option value="正社員">正社員</option>
+                        <option value="パート">パート</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>権限 <span class="badge-req">必須</span></th>
+                    <td>
+                      <label><input type="radio" name="role" value="一般"> 一般</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="role" value="システム管理者" checked> システム管理者</label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>入社日<br><span class="form-help">YYYY/MM/DD形式で入力。</span></th>
+                    <td><input type="text" class="form-input" style="width: 150px;"></td>
+                  </tr>
+                  <tr>
+                    <th>退職日<br><span class="form-help">YYYY/MM/DD形式で入力。</span></th>
+                    <td><input type="text" class="form-input" style="width: 150px;"></td>
+                  </tr>
+                  <tr>
+                    <th>外国人 <span class="badge-req">必須</span><br><span class="form-help">日本国籍を持っていない場合、「該当する」を選択してください。</span></th>
+                    <td>
+                      <label><input type="radio" name="foreigner" value="該当しない" checked> 該当しない</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="foreigner" value="該当する"> 該当する</label>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="form-footer-action">
+                <button type="submit" class="btn-save">設定を保存</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- トースト通知 (保存完了メッセージ) -->
+        <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
 
         <!-- ページ: 設定 -->
         <div id="page-settings" class="page-content hidden">

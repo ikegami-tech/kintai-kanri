@@ -148,3 +148,46 @@ function showEmployeeDetail(empName) {
   // ヘッダータイトル更新
   document.getElementById('page-title').textContent = '従業員管理';
 }
+// ==========================================
+// 従業員編集画面 制御 & トースト通知
+// ==========================================
+function openEditEmployee() {
+  const currentName = document.getElementById('detail-emp-name').textContent;
+  document.getElementById('edit-emp-name').textContent = currentName;
+  document.getElementById('edit-name').value = currentName;
+  
+  const pages = document.querySelectorAll('.page-content');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('page-employee-edit').classList.remove('hidden');
+}
+
+function closeEditEmployee() {
+  const pages = document.querySelectorAll('.page-content');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('page-employee-detail').classList.remove('hidden');
+}
+
+function saveEmployeeEdit(event) {
+  event.preventDefault(); // 画面リロード防止
+  
+  // 入力された名前を詳細画面へ反映
+  const newName = document.getElementById('edit-name').value;
+  document.getElementById('detail-emp-name').textContent = newName;
+  document.getElementById('val-name').textContent = newName;
+  
+  // トースト通知を表示
+  const toast = document.getElementById('toast-message');
+  toast.classList.remove('hidden');
+  toast.style.opacity = '1';
+
+  // 一旦詳細画面へ戻す
+  closeEditEmployee();
+
+  // 2.5秒後にトーストをフェードアウトして非表示
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 500);
+  }, 2500);
+}
