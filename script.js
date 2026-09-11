@@ -46,6 +46,16 @@ function toggleAttendanceMenu() {
 
 // 5. 画面切り替え (SPA)
 function switchPage(pageId, element) {
+  const sidebar = document.getElementById('sidebar');
+
+  // 同じメニューをクリックした場合はサイドバーを縮小して処理を終了
+  if (element && element.classList.contains('active')) {
+    if (!sidebar.classList.contains('collapsed')) {
+      toggleSidebar();
+    }
+    return;
+  }
+
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-' + pageId).classList.remove('hidden');
@@ -62,6 +72,11 @@ function switchPage(pageId, element) {
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => item.classList.remove('active'));
   if (element) element.classList.add('active');
+
+  // メニュー選択後は画面を広く使うためサイドバーを自動で縮小する
+  if (!sidebar.classList.contains('collapsed')) {
+    toggleSidebar();
+  }
 }
 
 // 6. モーダル制御
