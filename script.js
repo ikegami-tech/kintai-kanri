@@ -191,3 +191,43 @@ function saveEmployeeEdit(event) {
     }, 500);
   }, 2500);
 }
+// ==========================================
+// 新規従業員作成画面 制御
+// ==========================================
+function openCreateEmployee() {
+  // フォームの内容をクリア
+  document.getElementById('employee-create-form').reset();
+  
+  const pages = document.querySelectorAll('.page-content');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('page-employee-create').classList.remove('hidden');
+}
+
+function closeCreateEmployee() {
+  // 従業員一覧画面に戻る
+  const pages = document.querySelectorAll('.page-content');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('page-employees').classList.remove('hidden');
+}
+
+function saveNewEmployee(event) {
+  event.preventDefault(); // 画面リロード防止
+  
+  // トースト通知を表示
+  const toast = document.getElementById('toast-message');
+  toast.textContent = '新しい従業員を作成しました。';
+  toast.classList.remove('hidden');
+  toast.style.opacity = '1';
+
+  // 一覧画面へ戻す
+  closeCreateEmployee();
+
+  // 2.5秒後にトーストをフェードアウト
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.textContent = '従業員を保存しました。'; // メッセージを元に戻す
+    }, 500);
+  }, 2500);
+}

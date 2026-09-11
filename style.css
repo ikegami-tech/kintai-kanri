@@ -1330,3 +1330,20 @@ body {
   opacity: 1;
   transition: opacity 0.5s ease-in-out;
 }
+/* ==================================================
+   新規従業員作成画面専用デザイン (TOHOカラー)
+   ================================================== */
+.create-page-title {
+  font-size: 22px;
+  color: var(--toho-blue);
+  border-bottom: 2px solid var(--toho-blue);
+  padding-bottom: 12px;
+  margin-bottom: 30px;
+}
+
+.create-section-title {
+  font-size: 18px;
+  color: var(--sidebar-dark);
+  margin-bottom: 15px;
+  font-weight: bold;
+}

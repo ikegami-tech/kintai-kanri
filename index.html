@@ -474,7 +474,7 @@
           <div class="emp-page-header">
             <h2>従業員一覧</h2>
             <div class="emp-btn-group">
-              <button class="btn-primary" onclick="showModal('新規作成', '新しい従業員作成画面を開きます')">＋ 新しい従業員を作成</button>
+              <button class="btn-primary" onclick="openCreateEmployee()">＋ 新しい従業員を作成</button>
             </div>
           </div>
 
@@ -693,15 +693,95 @@
                 </tbody>
               </table>
 
-              <div class="form-footer-action">
+<div class="form-footer-action">
                 <button type="submit" class="btn-save">設定を保存</button>
               </div>
             </form>
           </div>
         </div>
 
-        <!-- トースト通知 (保存完了メッセージ) -->
-        <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
+        <!-- ページ: 新規従業員作成 (仕様書10項目) -->
+        <div id="page-employee-create" class="page-content hidden" style="background: white;">
+          <div class="detail-content-area" style="max-width: 900px; margin: 0 auto; padding: 30px;">
+            <div class="create-page-title">新しい従業員を作成</div>
+            <div class="create-section-title">基本情報</div>
+
+            <form id="employee-create-form" onsubmit="saveNewEmployee(event)">
+              <table class="edit-form-table">
+                <tbody>
+                  <tr>
+                    <th>名前 <span class="badge-req">必須</span><br><span class="form-help">50文字以内。例）須磨玲二</span></th>
+                    <td><input type="text" class="form-input" placeholder="例）須磨玲二" required></td>
+                  </tr>
+                  <tr>
+                    <th>フリガナ <span class="badge-req">必須</span><br><span class="form-help">50文字以内。例）スマレイジ</span></th>
+                    <td><input type="text" class="form-input" placeholder="例）スマレイジ" required></td>
+                  </tr>
+                  <tr>
+                    <th>性別 <span class="badge-req">必須</span></th>
+                    <td>
+                      <label><input type="radio" name="new_gender" value="未選択" checked> 未選択</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="new_gender" value="男性"> 男性</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="new_gender" value="女性"> 女性</label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>生年月日<br><span class="form-help">YYYY/MM/DD形式で入力。 例)2026/09/11</span></th>
+                    <td><input type="text" class="form-input" style="width: 150px;"></td>
+                  </tr>
+                  <tr>
+                    <th>メールアドレス<br><span class="form-help">255文字以内。 例) xxxx@example.jp<br>アカウント管理、ログイン時に使用します。</span></th>
+                    <td><input type="email" class="form-input" placeholder="例) xxxx@example.jp"></td>
+                  </tr>
+                  <tr>
+                    <th>従業員区分 <span class="badge-req">必須</span></th>
+                    <td>
+                      <select class="form-select" required>
+                        <option value="正社員" selected>正社員</option>
+                        <option value="管理職">管理職</option>
+                        <option value="パート">パート</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>権限 <span class="badge-req">必須</span></th>
+                    <td>
+                      <label><input type="radio" name="new_role" value="一般" checked> 一般</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="new_role" value="システム管理者"> システム管理者</label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>入社日<br><span class="form-help">YYYY/MM/DD形式で入力。 例)2026/09/11<br>登録した入社日までは、打刻画面に従業員は表示されません。</span></th>
+                    <td><input type="text" class="form-input" style="width: 150px;"></td>
+                  </tr>
+                  <tr>
+                    <th>退職日<br><span class="form-help">YYYY/MM/DD形式で入力。 例)2026/09/11</span></th>
+                    <td><input type="text" class="form-input" style="width: 150px;"></td>
+                  </tr>
+                  <tr>
+                    <th>外国人 <span class="badge-req">必須</span><br><span class="form-help">日本国籍を持っていない場合、「該当する」を選択してください。</span></th>
+                    <td>
+                      <label><input type="radio" name="new_foreigner" value="該当しない" checked> 該当しない</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="new_foreigner" value="該当する"> 該当する</label>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="form-footer-action" style="display: flex; justify-content: space-between; margin-top: 40px;">
+                <button type="button" class="btn-back" onclick="closeCreateEmployee()">キャンセル</button>
+                <button type="submit" class="btn-save">設定を保存</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 (保存完了メッセージ) -->
+  <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
 
         <!-- ページ: 設定 -->
         <div id="page-settings" class="page-content hidden">
