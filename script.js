@@ -303,10 +303,13 @@ function saveNewEmployee(event) {
 // 縮小時にメニューバー自体をクリックすると大きく表示する処理
 // ==========================================
 document.getElementById('sidebar').addEventListener('click', function(e) {
-  // すでに展開済みの場合、または「フッターボタン」「勤怠管理」を直接押した場合は二重起動を防ぐ
+  // メニュー項目をクリックした際は、ここでの展開処理をキャンセル（switchPage等に任せる）
+  if (e.target.closest('.nav-item')) {
+    return;
+  }
+  // すでに展開済みの場合、または「フッターボタン」を直接押した場合は二重起動を防ぐ
   if (this.classList.contains('collapsed') && 
-      !e.target.closest('.sidebar-footer') && 
-      !e.target.closest('[onclick="toggleAttendanceMenu()"]')) {
+      !e.target.closest('.sidebar-footer')) {
     toggleSidebar();
   }
 });
