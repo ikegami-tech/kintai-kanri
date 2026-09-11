@@ -1,0 +1,323 @@
+/* 全体・TOHOカラー基調設計 */
+:root {
+  --bg-sidebar: #2c3e50;
+  --bg-sidebar-hover: #34495e;
+  --bg-sidebar-active: #1a252f;
+  --accent-color: #e74c3c;
+  --bg-main: #f4f6f9;
+  --text-color: #333333;
+  --border-color: #e0e0e0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-color);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 画面切替用ユーティリティ */
+.hidden {
+  display: none !important;
+}
+
+/* 1. ログイン画面 */
+#login-view {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #eaedd0;
+}
+
+.login-card {
+  background: #ffffff;
+  padding: 40px 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--bg-sidebar);
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-logo span {
+  background: #27ae60;
+  color: #fff;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 12px;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-login:hover {
+  background-color: #219150;
+}
+
+/* 2. メインアプリケーション画面 */
+#app-view {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  background-color: var(--bg-sidebar);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.profile-section {
+  padding: 20px;
+  background-color: var(--bg-sidebar-active);
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.profile-section h3 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.profile-section span {
+  font-size: 12px;
+  color: #bdc3c7;
+}
+
+.nav-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 10px;
+}
+
+.nav-item {
+  padding: 14px 20px;
+  color: #ecf0f1;
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-item:hover {
+  background-color: var(--bg-sidebar-hover);
+}
+
+.nav-item.active {
+  background-color: var(--bg-sidebar-hover);
+  border-left: 4px solid var(--accent-color);
+}
+
+.submenu {
+  background-color: var(--bg-sidebar-active);
+  display: none;
+}
+
+.submenu.open {
+  display: block;
+}
+
+.submenu .nav-item {
+  padding-left: 35px;
+  font-size: 13px;
+}
+
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  height: 60px;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.btn-logout {
+  padding: 8px 16px;
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.content-area {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+/* 3. ダッシュボードコンテンツ */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--bg-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stamp-btn-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.btn-stamp {
+  flex: 1;
+  padding: 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s;
+}
+
+.btn-stamp:active {
+  transform: scale(0.98);
+}
+
+.btn-in { background-color: #27ae60; }
+.btn-out { background-color: #e67e22; }
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.matrix-table th, .matrix-table td {
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.matrix-table th {
+  background-color: #f8f9fa;
+}
+
+.overtime {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-body {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 320px;
+  text-align: center;
+}
+
+.modal-btn {
+  margin-top: 20px;
+  padding: 8px 20px;
+  background: var(--bg-sidebar);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

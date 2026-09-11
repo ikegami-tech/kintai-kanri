@@ -1,81 +1,172 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>勤怠管理システム</title>
-    <style>
-        /* 画面全体の基本レイアウト（左メニューと右メイン画面の分割） */
-        body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; }
-        
-        /* 左側のナビゲーションメニュー */
-        .sidebar { width: 250px; background-color: #2c3e50; color: white; padding: 20px; box-sizing: border-box; }
-        .profile { text-align: center; margin-bottom: 20px; cursor: pointer; }
-        .profile:hover { opacity: 0.8; }
-        .sidebar a { color: #ecf0f1; text-decoration: none; display: block; padding: 12px; margin-bottom: 5px; border-radius: 4px; }
-        .sidebar a:hover { background-color: #34495e; }
-        
-        /* 右側のメイン画面 */
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn-pdf { background-color: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
-        
-        /* マトリクス表 */
-        .table-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: center; font-size: 14px; }
-        th { background-color: #f8f9fa; color: #333; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>勤怠管理システム</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- 左側：ナビゲーションメニュー -->
-    <nav class="sidebar">
-        <div class="profile" onclick="alert('マイページへ遷移します')">
-            <h3 style="margin: 0;">👤 山田 太郎</h3>
-            <span style="font-size: 12px; color: #bdc3c7;">マイページ</span>
+  <!-- 1. ログイン画面 -->
+  <div id="login-view">
+    <div class="login-card">
+      <div class="login-logo">
+        勤怠管理 <span>TIME CARD</span>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label>ログインID (メールアドレス)</label>
+          <input type="email" id="login-id" value="ikegami@example.com" required>
         </div>
-        <hr style="border-color: #7f8c8d; margin-bottom: 20px;">
-        <a href="#">📅 月別勤怠（マトリクス表）</a>
-        <a href="#">🗓️ 週別勤怠</a>
-        <a href="#">👥 従業員管理</a>
-        <a href="#">⚙️ システム設定</a>
-    </nav>
+        <div class="form-group">
+          <label>パスワード</label>
+          <input type="password" id="login-pw" value="password" required>
+        </div>
+        <button type="submit" class="btn-login">ログイン</button>
+      </form>
+    </div>
+  </div>
 
-    <!-- 右側：メインコンテンツ -->
-    <main class="main-content">
-        <div class="header">
-            <h2 style="margin: 0; font-size: 20px;">月別勤怠実績（2026年9月）</h2>
-            <button class="btn-pdf">📄 PDF出力</button>
+  <!-- 2. アプリ本体（ログイン後） -->
+  <div id="app-view" class="hidden">
+    <div class="sidebar">
+      <div class="profile-section" onclick="showModal('マイページ','山田 太郎 (従業員番号: 001)')">
+        <h3>👤 山田 太郎</h3>
+        <span>マイページ</span>
+      </div>
+      
+      <div class="nav-menu">
+        <div class="nav-item active" onclick="switchPage('dashboard', this)">
+          📊 ダッシュボード
         </div>
 
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>従業員名</th>
-                        <th>9/1 (火)</th>
-                        <th>9/2 (水)</th>
-                        <th>9/3 (木)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>山田 太郎</td>
-                        <td>09:00 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
-                        <td>08:55 - 19:30<br><small style="color: red;">(残業 1.5h)</small></td>
-                        <td>09:05 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
-                    </tr>
-                    <tr>
-                        <td>佐藤 花子</td>
-                        <td>09:00 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
-                        <td>09:00 - 18:00<br><small style="color: gray;">(残業 0h)</small></td>
-                        <td>休暇</td>
-                    </tr>
-                </tbody>
+        <div class="nav-item" onclick="toggleSubmenu('attendance-sub')">
+          📅 勤怠管理 <span>▼</span>
+        </div>
+        <div id="attendance-sub" class="submenu">
+          <div class="nav-item" onclick="switchPage('monthly', this)">月別勤怠 (マトリクス表)</div>
+          <div class="nav-item" onclick="switchPage('weekly', this)">週別勤怠</div>
+        </div>
+
+        <div class="nav-item" onclick="switchPage('employees', this)">
+          👥 従業員管理
+        </div>
+
+        <div class="nav-item" onclick="switchPage('settings', this)">
+          ⚙️ システム設定
+        </div>
+      </div>
+    </div>
+
+    <div class="main-wrapper">
+      <div class="header">
+        <div class="header-title" id="page-title">ダッシュボード</div>
+        <button class="btn-logout" onclick="logout()">ログアウト</button>
+      </div>
+
+      <div class="content-area">
+        <!-- ダッシュボード -->
+        <div id="page-dashboard" class="page-content">
+          <div class="dashboard-grid">
+            <div class="left-col">
+              <div class="card">
+                <div class="card-title">リアルタイム打刻</div>
+                <div style="text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0;" id="clock">00:00:00</div>
+                <div class="stamp-btn-group">
+                  <button class="btn-stamp btn-in" onclick="showModal('打刻完了', '出勤打刻を記録しました。')">出勤</button>
+                  <button class="btn-stamp btn-out" onclick="showModal('打刻完了', '退勤打刻を記録しました。')">退勤</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">本日の出退勤状況</div>
+                <p style="font-size: 14px; color: #666;">出勤中のメンバー: <strong>2名</strong> / 休暇: <strong>1名</strong></p>
+              </div>
+            </div>
+
+            <div class="right-col">
+              <div class="card">
+                <div class="card-title">お知らせ</div>
+                <ul style="font-size: 13px; line-height: 1.8; padding-left: 15px;">
+                  <li>2026/09/10: 勤怠システムの自動デプロイ設定が完了しました。</li>
+                  <li>今月の締め日は9月30日です。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 月別勤怠 (マトリクス表) -->
+        <div id="page-monthly" class="page-content hidden">
+          <div class="card">
+            <div class="card-title">
+              月別勤怠実績（2026年9月）
+              <button style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="showModal('PDF出力', 'PDFのダウンロードを開始します。')">📄 PDF出力</button>
+            </div>
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>従業員名</th>
+                  <th>9/1 (火)</th>
+                  <th>9/2 (水)</th>
+                  <th>9/3 (木)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>山田 太郎</td>
+                  <td>09:00 - 18:00<br><small>(残業 0h)</small></td>
+                  <td>08:55 - 19:30<br><small class="overtime">(残業 1.5h)</small></td>
+                  <td>09:05 - 18:00<br><small>(残業 0h)</small></td>
+                </tr>
+                <tr>
+                  <td>佐藤 花子</td>
+                  <td>09:00 - 18:00<br><small>(残業 0h)</small></td>
+                  <td>09:00 - 18:00<br><small>(残業 0h)</small></td>
+                  <td><span style="color: #7f8c8d;">休暇</span></td>
+                </tr>
+              </tbody>
             </table>
+          </div>
         </div>
-    </main>
 
+        <!-- 週別勤怠 -->
+        <div id="page-weekly" class="page-content hidden">
+          <div class="card">
+            <div class="card-title">週別勤怠一覧</div>
+            <p style="font-size: 14px; color: #666;">今週の累計勤務時間: <strong>38.5時間</strong></p>
+          </div>
+        </div>
+
+        <!-- 従業員管理 -->
+        <div id="page-employees" class="page-content hidden">
+          <div class="card">
+            <div class="card-title">従業員一覧</div>
+            <p style="font-size: 14px; color: #666;">登録中の従業員数: 2名</p>
+          </div>
+        </div>
+
+        <!-- システム設定 -->
+        <div id="page-settings" class="page-content hidden">
+          <div class="card">
+            <div class="card-title">システム設定</div>
+            <p style="font-size: 14px; color: #666;">締め日設定: 末日締め</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. モーダル -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal-body">
+      <h3 id="modal-title" style="margin-bottom: 10px;">タイトル</h3>
+      <p id="modal-msg" style="font-size: 14px; color: #555;">メッセージ</p>
+      <button class="modal-btn" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
