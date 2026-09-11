@@ -11,7 +11,23 @@ function logout() {
   document.getElementById('login-view').classList.remove('hidden');
 }
 
-// 3. 画面切替 (SPA動作)
+// 3. サイドバーの展開 / 縮小
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('expanded');
+}
+
+// 4. 勤怠管理メニュー（クリックでメニュー幅を自動拡張してアコーディオン開閉）
+function handleAttendanceMenuClick(element) {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar.classList.contains('expanded')) {
+    sidebar.classList.add('expanded');
+  }
+  const submenu = document.getElementById('attendance-sub');
+  submenu.classList.toggle('open');
+}
+
+// 5. 画面切り替え (SPA)
 function switchPage(pageId, element) {
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
@@ -31,13 +47,7 @@ function switchPage(pageId, element) {
   if (element) element.classList.add('active');
 }
 
-// 4. アコーディオンメニューの開閉
-function toggleSubmenu(id) {
-  const submenu = document.getElementById(id);
-  submenu.classList.toggle('open');
-}
-
-// 5. モーダル操作
+// 6. モーダル制御
 function showModal(title, msg) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-msg').textContent = msg;
@@ -47,13 +57,3 @@ function showModal(title, msg) {
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
 }
-
-// 6. 時計機能（ダッシュボード用）
-function updateClock() {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('ja-JP');
-  const clockEl = document.getElementById('clock');
-  if (clockEl) clockEl.textContent = timeStr;
-}
-setInterval(updateClock, 1000);
-updateClock();

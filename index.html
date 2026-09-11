@@ -45,137 +45,143 @@
     </div>
   </div>
 
-  <!-- 2. アプリ本体（ログイン後） -->
+  <!-- 2. メインアプリ（ログイン後） -->
   <div id="app-view" class="hidden">
-    <div class="sidebar">
-      <div class="profile-section" onclick="showModal('マイページ','山田 太郎 (従業員番号: 001)')">
-        <h3>👤 山田 太郎</h3>
-        <span>マイページ</span>
+    <!-- スマレジ風可変サイドバー -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-user" onclick="toggleSidebar()">
+        <div class="user-icon">👤</div>
+        <div class="user-info">
+          <div class="user-name">山田 太郎</div>
+          <div class="user-role">東宝ハウスNEXT</div>
+        </div>
       </div>
       
       <div class="nav-menu">
+        <!-- ダッシュボード -->
         <div class="nav-item active" onclick="switchPage('dashboard', this)">
-          📊 ダッシュボード
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">ダッシュボード</span>
         </div>
 
-        <div class="nav-item" onclick="toggleSubmenu('attendance-sub')">
-          📅 勤怠管理 <span>▼</span>
+        <!-- 勤怠管理 (アコーディオン) -->
+        <div class="nav-item" onclick="handleAttendanceMenuClick(this)">
+          <span class="nav-icon">🕒</span>
+          <span class="nav-text">勤怠管理</span>
+          <span class="arrow-icon">▼</span>
         </div>
         <div id="attendance-sub" class="submenu">
-          <div class="nav-item" onclick="switchPage('monthly', this)">月別勤怠 (マトリクス表)</div>
+          <div class="nav-item" onclick="switchPage('monthly', this)">月別勤怠 (マトリクス)</div>
           <div class="nav-item" onclick="switchPage('weekly', this)">週別勤怠</div>
         </div>
 
+        <!-- 従業員管理 -->
         <div class="nav-item" onclick="switchPage('employees', this)">
-          👥 従業員管理
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">従業員</span>
         </div>
 
+        <!-- システム設定 -->
         <div class="nav-item" onclick="switchPage('settings', this)">
-          ⚙️ システム設定
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">設定</span>
         </div>
       </div>
     </div>
 
+    <!-- 右側メインエリア -->
     <div class="main-wrapper">
       <div class="header">
-        <div class="header-title" id="page-title">ダッシュボード</div>
+        <div class="header-left">
+          <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <div class="header-title" id="page-title">ダッシュボード</div>
+        </div>
         <button class="btn-logout" onclick="logout()">ログアウト</button>
       </div>
 
       <div class="content-area">
-        <!-- ダッシュボード -->
+        <!-- ページ: ダッシュボード（出退勤状況のみ） -->
         <div id="page-dashboard" class="page-content">
-          <div class="dashboard-grid">
-            <div class="left-col">
-              <div class="card">
-                <div class="card-title">リアルタイム打刻</div>
-                <div style="text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0;" id="clock">00:00:00</div>
-                <div class="stamp-btn-group">
-                  <button class="btn-stamp btn-in" onclick="showModal('打刻完了', '出勤打刻を記録しました。')">出勤</button>
-                  <button class="btn-stamp btn-out" onclick="showModal('打刻完了', '退勤打刻を記録しました。')">退勤</button>
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-title">本日の出退勤状況</div>
-                <p style="font-size: 14px; color: #666;">出勤中のメンバー: <strong>2名</strong> / 休暇: <strong>1名</strong></p>
-              </div>
+          <div class="attendance-status-card">
+            <div class="card-header-bar">
+              <div class="card-header-title">出退勤状況</div>
+              <div class="date-display" id="current-date-str">2026年9月11日(金)</div>
             </div>
 
-            <div class="right-col">
-              <div class="card">
-                <div class="card-title">お知らせ</div>
-                <ul style="font-size: 13px; line-height: 1.8; padding-left: 15px;">
-                  <li>2026/09/10: 勤怠システムの自動デプロイ設定が完了しました。</li>
-                  <li>今月の締め日は9月30日です。</li>
+            <!-- 出勤中 / 退勤済 の2カラム表示 -->
+            <div class="status-grid">
+              <!-- 出勤中カラム -->
+              <div class="status-column">
+                <div class="status-column-header header-working">
+                  <span>出勤中</span>
+                  <span class="badge-count">3名</span>
+                </div>
+                <ul class="member-list">
+                  <li class="member-item">
+                    <span class="member-name"><span class="dot-status dot-working"></span>山田 太郎</span>
+                    <span class="time-text">08:55 -</span>
+                  </li>
+                  <li class="member-item">
+                    <span class="member-name"><span class="dot-status dot-working"></span>岡田 光平</span>
+                    <span class="time-text">09:00 -</span>
+                  </li>
+                  <li class="member-item">
+                    <span class="member-name"><span class="dot-status dot-working"></span>佐野 真知子</span>
+                    <span class="time-text">09:12 -</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- 退勤済カラム -->
+              <div class="status-column">
+                <div class="status-column-header header-finished">
+                  <span>退勤済</span>
+                  <span class="badge-count">1名</span>
+                </div>
+                <ul class="member-list">
+                  <li class="member-item">
+                    <span class="member-name"><span class="dot-status dot-finished"></span>佐藤 花子</span>
+                    <span class="time-text">09:00 - 18:00</span>
+                  </li>
                 </ul>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 月別勤怠 (マトリクス表) -->
+        <!-- ページ: 月別勤怠 -->
         <div id="page-monthly" class="page-content hidden">
-          <div class="card">
-            <div class="card-title">
-              月別勤怠実績（2026年9月）
-              <button style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="showModal('PDF出力', 'PDFのダウンロードを開始します。')">📄 PDF出力</button>
-            </div>
-            <table class="matrix-table">
-              <thead>
-                <tr>
-                  <th>従業員名</th>
-                  <th>9/1 (火)</th>
-                  <th>9/2 (水)</th>
-                  <th>9/3 (木)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>山田 太郎</td>
-                  <td>09:00 - 18:00<br><small>(残業 0h)</small></td>
-                  <td>08:55 - 19:30<br><small class="overtime">(残業 1.5h)</small></td>
-                  <td>09:05 - 18:00<br><small>(残業 0h)</small></td>
-                </tr>
-                <tr>
-                  <td>佐藤 花子</td>
-                  <td>09:00 - 18:00<br><small>(残業 0h)</small></td>
-                  <td>09:00 - 18:00<br><small>(残業 0h)</small></td>
-                  <td><span style="color: #7f8c8d;">休暇</span></td>
-                </tr>
-              </tbody>
-            </table>
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            <h3>月別勤怠実績（マトリクス表）</h3>
+            <p style="margin-top: 10px; color: #666;">※月別データは準備中です。</p>
           </div>
         </div>
 
-        <!-- 週別勤怠 -->
+        <!-- ページ: 週別勤怠 -->
         <div id="page-weekly" class="page-content hidden">
-          <div class="card">
-            <div class="card-title">週別勤怠一覧</div>
-            <p style="font-size: 14px; color: #666;">今週の累計勤務時間: <strong>38.5時間</strong></p>
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            <h3>週別勤怠一覧</h3>
           </div>
         </div>
 
-        <!-- 従業員管理 -->
+        <!-- ページ: 従業員 -->
         <div id="page-employees" class="page-content hidden">
-          <div class="card">
-            <div class="card-title">従業員一覧</div>
-            <p style="font-size: 14px; color: #666;">登録中の従業員数: 2名</p>
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            <h3>従業員一覧</h3>
           </div>
         </div>
 
-        <!-- システム設定 -->
+        <!-- ページ: 設定 -->
         <div id="page-settings" class="page-content hidden">
-          <div class="card">
-            <div class="card-title">システム設定</div>
-            <p style="font-size: 14px; color: #666;">締め日設定: 末日締め</p>
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            <h3>システム設定</h3>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 3. モーダル -->
+  <!-- モーダル -->
   <div id="modal" class="modal-overlay hidden">
     <div class="modal-body">
       <h3 id="modal-title" style="margin-bottom: 10px;">タイトル</h3>
