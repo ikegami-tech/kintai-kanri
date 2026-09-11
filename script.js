@@ -52,9 +52,9 @@ function switchPage(pageId, element) {
 
   const titles = {
     'dashboard': 'ダッシュボード',
-    'monthly': '月別勤怠 (マトリクス表)',
-    'weekly': '週別勤怠',
-    'employees': '従業員管理',
+    'monthly': '月表示 (マトリクス表)',
+    'daily': '日表示',
+    'employees': '従業員一覧',
     'settings': 'システム設定'
   };
   document.getElementById('page-title').textContent = titles[pageId] || '勤怠管理';
@@ -91,5 +91,35 @@ function toggleEmpMenu(buttonEl) {
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.emp-action-menu')) {
     document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
+  }
+});
+// セルクリック時のポップアップ制御（仕様書要件）
+let selectedTargetInfo = '';
+
+function openCellMenu(event, empName, dateStr) {
+  event.stopPropagation();
+  selectedTargetInfo = `${empName} (${dateStr})`;
+  
+  const menu = document.getElementById('cell-action-menu');
+  const title = document.getElementById('cell-menu-title');
+  
+  title.textContent = selectedTargetInfo;
+  
+  // クリック位置に合わせてメニューを表示
+  menu.style.left = `${event.pageX}px`;
+  menu.style.top = `${event.pageY}px`;
+  menu.classList.remove('hidden');
+}
+
+function handleCellAction(actionName) {
+  document.getElementById('cell-action-menu').classList.add('hidden');
+  showModal(actionName, `${selectedTargetInfo} の${actionName}処理画面を開きます。`);
+}
+
+// 画面外クリック時にセルメニューを閉じる
+document.addEventListener('click', function(e) {
+  const cellMenu = document.getElementById('cell-action-menu');
+  if (cellMenu && !e.target.closest('#cell-action-menu')) {
+    cellMenu.classList.add('hidden');
   }
 });

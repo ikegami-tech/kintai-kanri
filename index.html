@@ -71,8 +71,8 @@
           <span class="arrow-icon" id="attendance-arrow">▼</span>
         </div>
         <div id="attendance-sub" class="submenu">
-          <div class="nav-item" onclick="switchPage('monthly', this)">月別勤怠 (マトリクス)</div>
-          <div class="nav-item" onclick="switchPage('weekly', this)">週別勤怠</div>
+          <div class="nav-item" onclick="switchPage('monthly', this)">月表示</div>
+          <div class="nav-item" onclick="switchPage('daily', this)">日表示</div>
         </div>
 
         <!-- 従業員管理 -->
@@ -151,12 +151,172 @@
           </div>
         </div>
 
-        <!-- ページ: 月別勤怠 -->
+        <!-- ページ: 月表示 (マトリクス表) -->
         <div id="page-monthly" class="page-content hidden">
-          <div style="background: white; padding: 20px; border-radius: 8px;">
-            <h3>月別勤怠実績（マトリクス表）</h3>
-            <p style="margin-top: 10px; color: #666;">※月別データ準備中</p>
+          <div class="monthly-container">
+            <!-- 画面上部 操作パネル -->
+            <div class="monthly-header-bar">
+              <div class="month-selector">
+                <span class="current-month-title">2026年 09月度</span>
+                <div class="month-btn-group">
+                  <button class="btn-sub" onclick="showModal('対象月変更', '前月へ移動します')">＜</button>
+                  <button class="btn-sub" onclick="showModal('対象月変更', 'カレンダー選択を開きます')">📅</button>
+                  <button class="btn-sub" onclick="showModal('対象月変更', '今月へ戻ります')">今月</button>
+                  <button class="btn-sub" onclick="showModal('対象月変更', '次月へ移動します')">＞</button>
+                </div>
+                <select class="select-period">
+                  <option value="1m">1ヶ月間表示</option>
+                  <option value="2w">2週間表示</option>
+                </select>
+              </div>
+
+              <div class="monthly-actions">
+                <button class="btn-print" onclick="window.print()">📄 印刷 (実績ダウンロード)</button>
+              </div>
+            </div>
+
+            <!-- カレンダーマトリクス表 -->
+            <div class="matrix-scroll-wrapper">
+              <table class="monthly-matrix-table">
+                <thead>
+                  <tr>
+                    <th class="col-emp-name">従業員名</th>
+                    <th>1<br><small>(火)</small></th>
+                    <th>2<br><small>(水)</small></th>
+                    <th>3<br><small>(木)</small></th>
+                    <th>4<br><small>(金)</small></th>
+                    <th class="sat">5<br><small>(土)</small></th>
+                    <th class="sun">6<br><small>(日)</small></th>
+                    <th>7<br><small>(月)</small></th>
+                    <th>8<br><small>(火)</small></th>
+                    <th>9<br><small>(水)</small></th>
+                    <th>10<br><small>(木)</small></th>
+                    <th>11<br><small>(金)</small></th>
+                    <th class="sat">12<br><small>(土)</small></th>
+                    <th class="sun">13<br><small>(日)</small></th>
+                    <th>14<br><small>(月)</small></th>
+                    <th>15<br><small>(火)</small></th>
+                    <th class="col-sum">計</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- 従業員 1: 安藤 健太郎 -->
+                  <tr>
+                    <td class="col-emp-name">安藤 健太郎</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/1')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/2')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/3')">08:33<br>18:28</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/4')">08:38<br>18:16</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '安藤 健太郎', '9/5')">08:40<br>18:14</td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '安藤 健太郎', '9/6')">08:45<br>18:35</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/7')">08:32<br>18:16</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/8')">
+                      <div class="time-edited">18:28<br>21:43</div>
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 残業申請承認済み">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/9')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/10')">08:32<br>18:34</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/11')">08:29<br>-</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '安藤 健太郎', '9/12')"></td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '安藤 健太郎', '9/13')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/14')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '安藤 健太郎', '9/15')"></td>
+                    <td class="col-sum">55.85<br><small>(8日)</small></td>
+                  </tr>
+
+                  <!-- 従業員 2: 五十嵐 由樹 -->
+                  <tr>
+                    <td class="col-emp-name">五十嵐 由樹</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/1')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/2')">
+                      16:41<br>18:28
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 直帰打刻">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/3')">08:54<br>18:20</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/4')">08:59<br>19:11</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '五十嵐 由樹', '9/5')">08:56<br>18:56</td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '五十嵐 由樹', '9/6')">08:56<br>19:41</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/7')">08:48<br>20:23</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/8')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/9')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/10')">08:57<br>19:00</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/11')">08:52<br>20:06</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '五十嵐 由樹', '9/12')"></td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '五十嵐 由樹', '9/13')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/14')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '五十嵐 由樹', '9/15')"></td>
+                    <td class="col-sum">58.78<br><small>(8日)</small></td>
+                  </tr>
+
+                  <!-- 従業員 3: 池上 裕士 -->
+                  <tr>
+                    <td class="col-emp-name">池上 裕士</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/1')">08:48<br>18:03</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/2')">
+                      08:49<br>18:01
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 直行">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/3')">08:52<br>18:06</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/4')">08:40<br>18:01</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '池上 裕士', '9/5')"></td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '池上 裕士', '9/6')">
+                      08:36<br>18:01
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 休日出勤">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/7')">08:59<br>18:06</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/8')">
+                      08:52<br>18:12
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 管理者修正">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/9')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/10')">09:00<br>18:01</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/11')">08:27<br>18:01</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '池上 裕士', '9/12')"></td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '池上 裕士', '9/13')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/14')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '池上 裕士', '9/15')"></td>
+                    <td class="col-sum">65.87<br><small>(9日)</small></td>
+                  </tr>
+
+                  <!-- 従業員 4: 石井 秀龍 -->
+                  <tr>
+                    <td class="col-emp-name">石井 秀龍</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/1')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/2')">
+                      12:59<br>19:16
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 午後出勤">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/3')">08:37<br>19:01</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/4')">08:44<br>18:02</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '石井 秀龍', '9/5')">08:44<br>18:06</td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '石井 秀龍', '9/6')">14:00<br>18:00</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/7')">08:43<br>18:36</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/8')">
+                      08:52<br>18:12
+                      <span class="memo-icon" data-tooltip="[NEXTメモ] 打ち合わせ打刻">💬</span>
+                    </td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/9')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/10')">08:53<br>18:02</td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/11')">08:59<br>18:02</td>
+                    <td class="cell-click sat-bg" onclick="openCellMenu(event, '石井 秀龍', '9/12')"></td>
+                    <td class="cell-click sun-bg" onclick="openCellMenu(event, '石井 秀龍', '9/13')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/14')"></td>
+                    <td class="cell-click" onclick="openCellMenu(event, '石井 秀龍', '9/15')"></td>
+                    <td class="col-sum">60.60<br><small>(9日)</small></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+        </div>
+
+        <!-- セルクリック時の操作ポッポアップメニュー -->
+        <div id="cell-action-menu" class="cell-popover hidden">
+          <div class="popover-header" id="cell-menu-title">従業員名 - 9/1</div>
+          <div class="popover-item" onclick="handleCellAction('新規作成')">➕ 新規作成</div>
+          <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集 (管理者修正)</div>
+          <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
+          <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
         </div>
 
         <!-- ページ: 週別勤怠 -->
