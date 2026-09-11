@@ -919,15 +919,71 @@
 
         <!-- ページ: タイムライン詳細画面 (〇月〇日の詳細へ) -->
         <div id="page-timeline-detail" class="page-content hidden">
-          <div class="detail-header-row">
-            <button class="btn-back" onclick="switchPage('monthly', document.querySelector('.nav-item:nth-child(2)'))">＜ 月表示へ戻る</button>
-            <h2 id="timeline-title" class="detail-title">2026年09月08日(火) 詳細タイムライン</h2>
-          </div>
-          <div class="detail-content-area">
-            <div style="background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 40px; text-align: center; color: var(--text-sub);">
-              <h3>稼働状況タイムライン（ガントチャート形式）</h3>
-              <p style="margin-top: 15px;">※ ガントチャートの描画エリア（仕様書要件）</p>
+          <div class="daily-container">
+            
+            <!-- 上部ヘッダー・操作パネル -->
+            <div class="daily-title-row" style="display: flex; align-items: center; gap: 15px;">
+              <button class="btn-back" style="margin: 0;" onclick="switchPage('monthly', document.querySelector('.nav-item:nth-child(2)'))">＜ 一覧へ戻る</button>
+              <h2 class="daily-main-title" style="margin: 0; border: none; padding: 0;">今日の詳細実績</h2>
             </div>
+
+            <div class="daily-control-bar" style="justify-content: center; margin-bottom: 30px;">
+              <div class="control-center">
+                <span id="timeline-title" class="daily-date-text">2026年09月08日(火)</span>
+              </div>
+            </div>
+
+            <!-- ガントチャート描画エリア (仕様書要件) -->
+            <div class="gantt-wrapper">
+              <table class="gantt-table">
+                <thead>
+                  <tr>
+                    <th class="gantt-emp-col">従業員名</th>
+                    <th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th><th>24</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- 従業員1 -->
+                  <tr>
+                    <td class="gantt-emp-col">安藤 健太郎 <span class="memo-icon" data-tooltip="[NEXTメモ] 通常出勤">💬</span></td>
+                    <td colspan="22" class="gantt-track">
+                      <div class="gantt-bar" style="left: 70.4%; width: 14.7%;">18:28-21:43</div>
+                    </td>
+                  </tr>
+                  <!-- 従業員2 -->
+                  <tr>
+                    <td class="gantt-emp-col">池上 裕士 <span class="memo-icon" data-tooltip="[NEXTメモ] 休憩あり">💬</span></td>
+                    <td colspan="22" class="gantt-track">
+                      <div class="gantt-bar" style="left: 26.8%; width: 42.4%;">08:52-18:12 [休08:53-09:53]</div>
+                      <div class="gantt-bar-stripe" style="left: 26.8%; width: 4.5%;"></div>
+                    </td>
+                  </tr>
+                  <!-- 従業員3 -->
+                  <tr>
+                    <td class="gantt-emp-col">石井 秀龍 <span class="memo-icon" data-tooltip="[NEXTメモ] 修正済み">💬</span></td>
+                    <td colspan="22" class="gantt-track">
+                      <div class="gantt-bar" style="left: 26.8%; width: 42.4%;">08:52-18:12 [休08:53-09:53]</div>
+                      <div class="gantt-bar-stripe" style="left: 26.8%; width: 4.5%;"></div>
+                    </td>
+                  </tr>
+                  <!-- 従業員4 -->
+                  <tr>
+                    <td class="gantt-emp-col">岩本 勇祐</td>
+                    <td colspan="22" class="gantt-track">
+                      <div class="gantt-bar" style="left: 40.5%; width: 25.5%;">11:54-17:31</div>
+                    </td>
+                  </tr>
+                  <!-- 従業員5 -->
+                  <tr>
+                    <td class="gantt-emp-col">岡田 光平 <span class="memo-icon" data-tooltip="[NEXTメモ] 午前中のみ">💬</span></td>
+                    <td colspan="22" class="gantt-track">
+                      <div class="gantt-bar" style="left: 31.3%; width: 7.1%;">09:52-11:26</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
           </div>
         </div>
 

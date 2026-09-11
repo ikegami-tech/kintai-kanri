@@ -1495,3 +1495,92 @@ body {
 .btn-danger:hover {
   background: #c0392b;
 }
+/* ==================================================
+   詳細タイムライン (ガントチャート) デザイン (TOHOカラー)
+   ================================================== */
+.gantt-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: white;
+}
+
+.gantt-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.gantt-table th,
+.gantt-table td {
+  border: 1px solid var(--border-color);
+}
+
+.gantt-table th {
+  background-color: #f8fafc;
+  padding: 8px 0;
+  color: var(--sidebar-dark);
+  font-weight: normal;
+  text-align: center;
+}
+
+.gantt-emp-col {
+  width: 150px;
+  min-width: 150px;
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 2;
+  padding: 10px 15px !important;
+  font-weight: bold;
+  color: var(--sidebar-dark);
+}
+
+.gantt-table th.gantt-emp-col {
+  background-color: #f8fafc;
+  z-index: 3;
+}
+
+.gantt-track {
+  position: relative;
+  height: 45px;
+  padding: 0 !important;
+  /* 22列分のグリッド線を背景グラデーションで擬似描画 */
+  background-size: calc(100% / 22) 100%;
+  background-image: linear-gradient(to right, transparent 98%, #f0f3f6 100%);
+}
+
+.gantt-bar {
+  position: absolute;
+  top: 8px;
+  height: 29px;
+  background-color: var(--toho-blue);
+  color: white;
+  font-size: 11px;
+  line-height: 29px;
+  border-radius: 3px;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 4px rgba(0, 115, 234, 0.2);
+  z-index: 1;
+}
+
+.gantt-bar-stripe {
+  position: absolute;
+  top: 8px;
+  height: 29px;
+  /* 休憩時間などを表す斜めストライプ（仕様書連動イメージ） */
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.2) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+  border-radius: 3px 0 0 3px;
+  z-index: 2;
+  pointer-events: none;
+}
