@@ -86,6 +86,12 @@
           <span class="nav-icon">⚙️</span>
           <span class="nav-text">設定</span>
         </div>
+
+        <!-- ログアウト -->
+        <div class="nav-item" onclick="logout()">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-text">ログアウト</span>
+        </div>
       </div>
 
       <!-- スマレジ風 最下部折りたたみ切替ボタン -->
@@ -99,7 +105,6 @@
     <div class="main-wrapper">
       <div class="header">
         <div class="header-title" id="page-title">ダッシュボード</div>
-        <button class="btn-logout" onclick="logout()">ログアウト</button>
       </div>
 
       <div class="content-area">
@@ -345,23 +350,14 @@
                 </div>
               </div>
 
-              <div class="control-right">
-                <button class="btn-web-stamp" onclick="showModal('WEB出退勤', 'WEB打刻画面を表示します')">
-                  📱 出退勤画面を表示
-                </button>
               </div>
-            </div>
 
             <!-- テーブル (スマレジ完全再現: 写真・位置バッジ配置) -->
             <div class="daily-table-wrapper">
               <table class="daily-status-table">
                 <thead>
                   <tr>
-                    <th style="width: 200px;">
-                      従業員
-                      <button class="btn-table-filter" onclick="showModal('フィルタ', '従業員絞り込みメニュー')">フィルタ ▾</button>
-                    </th>
-                    <th style="width: 100px;">予定</th>
+                    <th style="width: 200px;">従業員</th>
                     <th style="width: 160px;">実績</th>
                     <th>写真 / 位置情報</th>
                   </tr>
@@ -373,7 +369,6 @@
                       <span class="dot-status dot-working"></span>
                       <a href="#" class="emp-link" onclick="showModal('従業員詳細', '安藤 健太郎 の詳細画面を表示')">安藤 健太郎</a>
                     </td>
-                    <td class="text-sub-col">-</td>
                     <td>
                       08:29 ～
                       <span class="memo-icon" data-tooltip="[NEXTメモ] 通常出勤">💬</span>
@@ -392,7 +387,6 @@
                       <span class="dot-status dot-working"></span>
                       <a href="#" class="emp-link" onclick="showModal('従業員詳細', '五十嵐 由樹 の詳細画面を表示')">五十嵐 由樹</a>
                     </td>
-                    <td class="text-sub-col">-</td>
                     <td>
                       08:52 ～
                       <span class="memo-icon" data-tooltip="[NEXTメモ] 直行打刻">💬</span>
@@ -411,7 +405,6 @@
                       <span class="dot-status dot-working"></span>
                       <a href="#" class="emp-link" onclick="showModal('従業員詳細', '池上 裕士 の詳細画面を表示')">池上 裕士</a>
                     </td>
-                    <td class="text-sub-col">-</td>
                     <td>08:27 ～</td>
                     <td>
                       <div class="avatar-map-box">
@@ -427,7 +420,6 @@
                       <span class="dot-status dot-working"></span>
                       <a href="#" class="emp-link" onclick="showModal('従業員詳細', '池谷 あや子 の詳細画面を表示')">池谷 あや子</a>
                     </td>
-                    <td class="text-sub-col">-</td>
                     <td>08:56 ～</td>
                     <td>
                       <div class="avatar-map-box">
@@ -443,7 +435,6 @@
                       <span class="dot-status dot-working"></span>
                       <a href="#" class="emp-link" onclick="showModal('従業員詳細', '石井 秀龍 の詳細画面を表示')">石井 秀龍</a>
                     </td>
-                    <td class="text-sub-col">-</td>
                     <td>
                       08:59 ～
                       <span class="memo-icon" data-tooltip="[NEXTメモ] 管理者修正済み">💬</span>
