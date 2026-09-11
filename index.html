@@ -47,12 +47,12 @@
 
   <!-- 2. メインアプリ（ログイン後） -->
   <div id="app-view" class="hidden">
-    <!-- スマレジ風可変サイドバー -->
+    <!-- サイドバー（デフォルト展開） -->
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-user" onclick="toggleSidebar()">
+      <div class="sidebar-user">
         <div class="user-icon">👤</div>
         <div class="user-info">
-          <div class="user-name">山田 太郎</div>
+          <div class="user-name">石井 秀龍</div>
           <div class="user-role">東宝ハウスNEXT</div>
         </div>
       </div>
@@ -65,10 +65,10 @@
         </div>
 
         <!-- 勤怠管理 (アコーディオン) -->
-        <div class="nav-item" onclick="handleAttendanceMenuClick(this)">
+        <div class="nav-item" onclick="toggleAttendanceMenu()">
           <span class="nav-icon">🕒</span>
           <span class="nav-text">勤怠管理</span>
-          <span class="arrow-icon">▼</span>
+          <span class="arrow-icon" id="attendance-arrow">▼</span>
         </div>
         <div id="attendance-sub" class="submenu">
           <div class="nav-item" onclick="switchPage('monthly', this)">月別勤怠 (マトリクス)</div>
@@ -87,20 +87,23 @@
           <span class="nav-text">設定</span>
         </div>
       </div>
+
+      <!-- スマレジ風 最下部折りたたみ切替ボタン -->
+      <div class="sidebar-footer" onclick="toggleSidebar()">
+        <span class="nav-icon" id="collapse-icon">←</span>
+        <span class="nav-text" id="collapse-text">閉じる</span>
+      </div>
     </div>
 
-    <!-- 右側メインエリア -->
+    <!-- メイン領域 -->
     <div class="main-wrapper">
       <div class="header">
-        <div class="header-left">
-          <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
-          <div class="header-title" id="page-title">ダッシュボード</div>
-        </div>
+        <div class="header-title" id="page-title">ダッシュボード</div>
         <button class="btn-logout" onclick="logout()">ログアウト</button>
       </div>
 
       <div class="content-area">
-        <!-- ページ: ダッシュボード（出退勤状況のみ） -->
+        <!-- ページ: ダッシュボード（出退勤状況） -->
         <div id="page-dashboard" class="page-content">
           <div class="attendance-status-card">
             <div class="card-header-bar">
@@ -108,9 +111,8 @@
               <div class="date-display" id="current-date-str">2026年9月11日(金)</div>
             </div>
 
-            <!-- 出勤中 / 退勤済 の2カラム表示 -->
             <div class="status-grid">
-              <!-- 出勤中カラム -->
+              <!-- 出勤中 -->
               <div class="status-column">
                 <div class="status-column-header header-working">
                   <span>出勤中</span>
@@ -132,7 +134,7 @@
                 </ul>
               </div>
 
-              <!-- 退勤済カラム -->
+              <!-- 退勤済 -->
               <div class="status-column">
                 <div class="status-column-header header-finished">
                   <span>退勤済</span>
@@ -153,7 +155,7 @@
         <div id="page-monthly" class="page-content hidden">
           <div style="background: white; padding: 20px; border-radius: 8px;">
             <h3>月別勤怠実績（マトリクス表）</h3>
-            <p style="margin-top: 10px; color: #666;">※月別データは準備中です。</p>
+            <p style="margin-top: 10px; color: #666;">※月別データ準備中</p>
           </div>
         </div>
 

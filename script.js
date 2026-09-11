@@ -11,20 +11,37 @@ function logout() {
   document.getElementById('login-view').classList.remove('hidden');
 }
 
-// 3. サイドバーの展開 / 縮小
+// 3. サイドバーの折りたたみ切替 (スマレジ風)
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  sidebar.classList.toggle('expanded');
+  const icon = document.getElementById('collapse-icon');
+  const text = document.getElementById('collapse-text');
+  
+  sidebar.classList.toggle('collapsed');
+  
+  if (sidebar.classList.contains('collapsed')) {
+    icon.textContent = '→';
+    text.textContent = '';
+  } else {
+    icon.textContent = '←';
+    text.textContent = '閉じる';
+  }
 }
 
-// 4. 勤怠管理メニュー（クリックでメニュー幅を自動拡張してアコーディオン開閉）
-function handleAttendanceMenuClick(element) {
+// 4. 勤怠管理アコーディオン切替
+function toggleAttendanceMenu() {
   const sidebar = document.getElementById('sidebar');
-  if (!sidebar.classList.contains('expanded')) {
-    sidebar.classList.add('expanded');
+  
+  // 折りたたみ中にクリックされたら自動で展開する
+  if (sidebar.classList.contains('collapsed')) {
+    toggleSidebar();
   }
+
   const submenu = document.getElementById('attendance-sub');
+  const arrow = document.getElementById('attendance-arrow');
+
   submenu.classList.toggle('open');
+  arrow.classList.toggle('open');
 }
 
 // 5. 画面切り替え (SPA)
