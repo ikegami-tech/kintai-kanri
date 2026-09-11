@@ -769,23 +769,26 @@ body {
 
 .monthly-matrix-table {
   width: 100%;
+  table-layout: fixed; /* テーブル幅を均等割りに強制 */
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 11px;
   text-align: center;
-  white-space: nowrap;
+  word-wrap: break-word; /* はみ出し防止で折り返しを許可 */
 }
 
 .monthly-matrix-table th, 
 .monthly-matrix-table td {
   border: 1px solid var(--border-color);
-  padding: 8px 6px;
+  padding: 4px 2px; /* 余白を最小化して横幅を節約 */
   vertical-align: middle;
+  line-height: 1.2;
 }
 
 .monthly-matrix-table th {
   background-color: #f8fafc;
   font-weight: bold;
   color: var(--sidebar-dark);
+  font-size: 10px; /* 曜日のフォントサイズを縮小 */
 }
 
 .monthly-matrix-table th.sat, 
@@ -805,23 +808,24 @@ body {
   font-weight: bold;
   z-index: 2;
   text-align: left;
-  padding-left: 12px !important;
-  min-width: 110px;
+  padding-left: 8px !important;
+  width: 100px; /* 名前列の幅を固定 */
   color: var(--toho-blue);
+  font-size: 12px;
 }
 
 .col-sum {
   background-color: #f8fafc;
   font-weight: bold;
   color: var(--text-sub);
+  width: 40px; /* 計の列を少し狭く設定 */
 }
 
 .cell-click {
   cursor: pointer;
   position: relative;
-  min-width: 55px;
-  height: 48px;
-  line-height: 1.3;
+  height: 45px;
+  font-size: 10px; /* 打刻時間のフォントを縮小 */
 }
 
 .cell-click:hover {
