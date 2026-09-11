@@ -797,14 +797,19 @@ body {
   font-size: 10px; /* 曜日のフォントサイズを縮小 */
 }
 
-.monthly-matrix-table th.sat, 
-.monthly-matrix-table td.sat-bg {
+.monthly-matrix-table th.sat {
   color: #0073ea;
 }
 
-.monthly-matrix-table th.sun, 
-.monthly-matrix-table td.sun-bg {
+.monthly-matrix-table th.sun {
   color: #e74c3c;
+}
+
+/* 土日のセル内文字色は通常（黒）に戻し、背景色だけわずかに変える */
+.monthly-matrix-table td.sat-bg,
+.monthly-matrix-table td.sun-bg {
+  color: var(--text-main);
+  background-color: #f8fafc;
 }
 
 .col-emp-name {
