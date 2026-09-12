@@ -668,26 +668,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderEmployees();
 });
 // ==========================================
-// 7. 対象月変更専用モーダル機能
+// 7. スマレジ風 対象月変更専用モーダル機能
 // ==========================================
-let currentPickerTarget = ''; // 'matrix' または 'overtime'
+let currentPickerTarget = ''; 
+let pickerSelectedYear = 2026;
 
 function openMonthPicker(target) {
   currentPickerTarget = target;
-  const input = document.getElementById('month-picker-input');
   
-  // 現在表示されている月を取得して初期値としてセット
-  let targetDate;
-  if (target === 'matrix') {
-    targetDate = currentMatrixDate;
-  } else if (target === 'overtime') {
-    targetDate = currentOvertimeDate;
+  let targetDate = (target === 'matrix') ? currentMatrixDate : currentOvertimeDate;
+  pickerSelectedYear = targetDate.getFullYear();
+
+  // 年セレクトボックスの生成（前後5年分）
+  const yearSelect = document.getElementById('smaregi-picker-year');
+  let yearHtml = '';
+  for (let y = pickerSelectedYear - 5; y <= pickerSelectedYear + 5; y++) {
+    yearHtml += `<option value="${y}" ${y === pickerSelectedYear ? 'selected' : ''}>${y}</option>`;
   }
-  
-  const yyyy = targetDate.getFullYear();
-  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-  input.value = `${yyyy}-${mm}`;
-  
+  yearSelect.innerHTML = yearHtml;
+
+  renderMonthButtons();
   document.getElementById('modal-month-picker').classList.remove('hidden');
 }
 
@@ -695,15 +695,34 @@ function closeMonthPicker() {
   document.getElementById('modal-month-picker').classList.add('hidden');
 }
 
-function applyMonthSelection() {
-  const inputVal = document.getElementById('month-picker-input').value;
-  if (!inputVal) return;
+function changePickerYear(offset) {
+  const select = document.getElementById('smaregi-picker-year');
+  let newYear = parseInt(select.value) + offset;
+  select.value = newYear;
+  renderMonthButtons();
+}
+
+function renderMonthButtons() {
+  const year = parseInt(document.getElementById('smaregi-picker-year').value);
+  const grid = document.getElementById('smaregi-month-grid');
   
-  // YYYY-MM 形式の文字列を Date オブジェクトに変換
-  const [yyyy, mm] = inputVal.split('-');
-  const newDate = new Date(parseInt(yyyy), parseInt(mm) - 1, 1);
+  let activeMonth = -1;
+  let targetDate = (currentPickerTarget === 'matrix') ? currentMatrixDate : currentOvertimeDate;
+  if (targetDate.getFullYear() === year) {
+    activeMonth = targetDate.getMonth() + 1;
+  }
+
+  let html = '';
+  for (let m = 1; m <= 12; m++) {
+    const activeClass = (m === activeMonth) ? 'active' : '';
+    html += `<button class="smaregi-month-btn ${activeClass}" onclick="selectSmaregiMonth(${year}, ${m})">${m}月</button>`;
+  }
+  grid.innerHTML = html;
+}
+
+function selectSmaregiMonth(year, month) {
+  const newDate = new Date(year, month - 1, 1);
   
-  // 対象の画面に合わせてカレンダーを更新
   if (currentPickerTarget === 'matrix') {
     currentMatrixDate = newDate;
     renderMatrixTable();

@@ -1797,3 +1797,86 @@ td:hover .memo-icon::before,
     padding: 2px !important;
   }
 }
+/* ==================================================
+   スマレジ風 年月選択ポップアップ デザイン
+   ================================================== */
+.smaregi-picker-card {
+  background: #f4f6f8;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 12px;
+  width: 280px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.smaregi-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.smaregi-arrow-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.smaregi-arrow-btn:hover {
+  color: #000;
+}
+
+.smaregi-year-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.smaregi-year-select-wrapper select {
+  font-size: 15px;
+  font-weight: bold;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 2px 6px;
+  outline: none;
+  background: #f8fafc;
+}
+
+.smaregi-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.smaregi-month-btn {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 10px 0;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: all 0.15s;
+}
+
+.smaregi-month-btn:hover {
+  background: #eef7ff;
+  border-color: var(--toho-blue);
+  color: var(--toho-blue);
+}
+
+.smaregi-month-btn.active {
+  background: var(--toho-blue);
+  color: white;
+  border-color: var(--toho-blue);
+  font-weight: bold;
+}
