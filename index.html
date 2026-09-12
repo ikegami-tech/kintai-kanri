@@ -149,7 +149,7 @@
                 <span class="current-month-title" id="matrix-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
                   <button class="btn-sub" onclick="changeMatrixMonth(-1)">＜</button>
-                  <button class="btn-sub" onclick="showModal('対象月変更', 'カレンダー選択を開きます')">📅</button>
+                  <button class="btn-sub" onclick="openMonthPicker('matrix')">📅</button>
                   <button class="btn-sub" onclick="changeMatrixMonth(0)">今月</button>
                   <button class="btn-sub" onclick="changeMatrixMonth(1)">＞</button>
                 </div>
@@ -252,7 +252,7 @@
                 <span class="current-month-title" id="overtime-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
                   <button class="btn-sub" onclick="changeOvertimeMonth(-1)">＜</button>
-                  <button class="btn-sub" onclick="showModal('対象月変更', 'カレンダー選択を開きます')">📅</button>
+                  <button class="btn-sub" onclick="openMonthPicker('overtime')">📅</button>
                   <button class="btn-sub" onclick="changeOvertimeMonth(0)">今月</button>
                   <button class="btn-sub" onclick="changeOvertimeMonth(1)">＞</button>
                 </div>
@@ -731,6 +731,18 @@
 
   <!-- トースト通知 (保存完了メッセージ) -->
   <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
+
+  <!-- 対象月変更専用モーダル -->
+  <div id="modal-month-picker" class="modal-overlay hidden">
+    <div class="modal-body" style="padding: 30px; width: 320px;">
+      <h3 style="margin-bottom: 20px; color: var(--sidebar-dark); font-size: 16px;">対象月変更</h3>
+      <input type="month" id="month-picker-input" class="form-input" style="width: 100%; margin-bottom: 25px; font-size: 16px;">
+      <div style="display: flex; justify-content: center; gap: 15px;">
+        <button class="btn-cancel" onclick="closeMonthPicker()">キャンセル</button>
+        <button class="btn-primary" onclick="applyMonthSelection()">決定</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 汎用モーダル -->
   <div id="modal" class="modal-overlay hidden">

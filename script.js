@@ -667,3 +667,50 @@ document.addEventListener('DOMContentLoaded', () => {
   renderOvertimeTable();
   renderEmployees();
 });
+// ==========================================
+// 7. 対象月変更専用モーダル機能
+// ==========================================
+let currentPickerTarget = ''; // 'matrix' または 'overtime'
+
+function openMonthPicker(target) {
+  currentPickerTarget = target;
+  const input = document.getElementById('month-picker-input');
+  
+  // 現在表示されている月を取得して初期値としてセット
+  let targetDate;
+  if (target === 'matrix') {
+    targetDate = currentMatrixDate;
+  } else if (target === 'overtime') {
+    targetDate = currentOvertimeDate;
+  }
+  
+  const yyyy = targetDate.getFullYear();
+  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+  input.value = `${yyyy}-${mm}`;
+  
+  document.getElementById('modal-month-picker').classList.remove('hidden');
+}
+
+function closeMonthPicker() {
+  document.getElementById('modal-month-picker').classList.add('hidden');
+}
+
+function applyMonthSelection() {
+  const inputVal = document.getElementById('month-picker-input').value;
+  if (!inputVal) return;
+  
+  // YYYY-MM 形式の文字列を Date オブジェクトに変換
+  const [yyyy, mm] = inputVal.split('-');
+  const newDate = new Date(parseInt(yyyy), parseInt(mm) - 1, 1);
+  
+  // 対象の画面に合わせてカレンダーを更新
+  if (currentPickerTarget === 'matrix') {
+    currentMatrixDate = newDate;
+    renderMatrixTable();
+  } else if (currentPickerTarget === 'overtime') {
+    currentOvertimeDate = newDate;
+    renderOvertimeTable();
+  }
+  
+  closeMonthPicker();
+}
