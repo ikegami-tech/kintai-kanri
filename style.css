@@ -869,52 +869,59 @@ body {
   font-weight: bold;
 }
 
-/* メモ用の吹き出しアイコン & ツールチップ */
+/* メモ用の吹き出しアイコン & ツールチップ (スマレジ完全再現) */
 .memo-icon {
   font-size: 12px;
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 3px;
+  right: 3px;
   cursor: pointer;
+  z-index: 5;
+}
+
+/* 💬 アイコン自体のホバー時のみ吹き出しを表示 */
+.memo-icon:hover::after,
+.memo-icon:hover::before {
+  display: block !important;
 }
 
 .memo-icon::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: 140%;
-  right: -10px;
-  background: rgba(20, 30, 40, 0.95);
-  color: white;
-  padding: 8px 12px;
+  top: 100%;                  /* 💬アイコンのすぐ下に配置 */
+  left: 50%;
+  transform: translateX(-50%); /* アイコンの中央に揃える */
+  margin-top: 6px;
+  background: #111111;
+  color: #ffffff;
+  padding: 6px 10px;
   border-radius: 4px;
   font-size: 11px;
-  white-space: pre-line; /* 改行を有効にする */
+  font-weight: normal;
+  white-space: pre-line;
   text-align: left;
-  line-height: 1.5;
+  line-height: 1.4;
   display: none;
-  z-index: 200;
-  min-width: 100px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  z-index: 3000;              /* 最前面に表示 */
+  width: max-content;
+  max-width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  pointer-events: none;       /* マウスカーソルの邪魔をしない設定 */
 }
 
-/* ツールチップの尻尾（三角形） */
+/* 吹き出しの三角形（上向き） */
 .memo-icon::before {
   content: '';
   position: absolute;
-  bottom: 70%;
-  right: 4px;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: -4px;
   border: 5px solid transparent;
-  border-top-color: rgba(20, 30, 40, 0.95);
+  border-bottom-color: #111111;
   display: none;
-  z-index: 200;
-}
-
-/* セル全体にホバーしただけでツールチップを表示 */
-td:hover .memo-icon::after,
-td:hover .memo-icon::before,
-.memo-icon:hover::after,
-.memo-icon:hover::before {
-  display: block;
+  z-index: 3001;
+  pointer-events: none;
 }
 
 /* セルポップオーバーメニュー */
