@@ -526,13 +526,13 @@
 
           <div class="emp-list-container">
             <!-- 従業員 1 -->
-            <div class="emp-card-item">
+            <div class="emp-card-item" id="emp-card-2">
               <div class="emp-avatar">👤</div>
               <div class="emp-info-main">
                 <div class="emp-name-row">
                   <a href="#" class="emp-name" onclick="showEmployeeDetail('阿久津 幸一')">阿久津 幸一</a>
                   <span class="badge-tag badge-admin">システム管理者</span>
-                  <span class="badge-tag badge-disabled">利用停止</span>
+                  <span class="badge-tag badge-disabled" id="emp-status-2">利用停止</span>
                 </div>
                 <div class="emp-meta-row">
                   <span>従業員区分: 管理職</span>
@@ -543,20 +543,21 @@
               <div class="emp-action-menu">
                 <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
                 <div class="emp-popover-menu hidden">
-                  <div onclick="showModal('コピー作成', '阿久津 幸一 の設定を引き継いで新規作成します')">コピーして新しい従業員を作成</div>
-                  <div onclick="showModal('利用再開', '従業員「阿久津 幸一」の利用を再開しますか？')">利用再開</div>
-                  <div class="text-danger" onclick="showModal('削除', '従業員「阿久津 幸一」を削除しますか？')">削除</div>
+                  <div onclick="handleEmpAction('copy', 2, '阿久津 幸一')">コピーして新しい従業員を作成</div>
+                  <div onclick="handleEmpAction('toggle', 2, '阿久津 幸一', '再開')">利用再開</div>
+                  <div class="text-danger" onclick="handleEmpAction('delete', 2, '阿久津 幸一')">削除</div>
                 </div>
               </div>
             </div>
 
             <!-- 従業員 2 -->
-            <div class="emp-card-item">
+            <div class="emp-card-item" id="emp-card-69">
               <div class="emp-avatar">👤</div>
               <div class="emp-info-main">
                 <div class="emp-name-row">
                   <a href="#" class="emp-name" onclick="showEmployeeDetail('安藤 健太郎')">安藤 健太郎</a>
                   <span class="badge-tag badge-regular">正社員</span>
+                  <span class="badge-tag badge-disabled hidden" id="emp-status-69">利用停止</span>
                 </div>
                 <div class="emp-meta-row">
                   <span>従業員区分: 正社員</span>
@@ -568,9 +569,9 @@
               <div class="emp-action-menu">
                 <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
                 <div class="emp-popover-menu hidden">
-                  <div onclick="showModal('コピー作成', '安藤 健太郎 の設定を引き継いで新規作成します')">コピーして新しい従業員を作成</div>
-                  <div onclick="showModal('利用停止', '従業員「安藤 健太郎」の利用を停止しますか？')">利用停止</div>
-                  <div class="text-danger" onclick="showModal('削除', '従業員「安藤 健太郎」を削除しますか？')">削除</div>
+                  <div onclick="handleEmpAction('copy', 69, '安藤 健太郎')">コピーして新しい従業員を作成</div>
+                  <div onclick="handleEmpAction('toggle', 69, '安藤 健太郎', '停止')">利用停止</div>
+                  <div class="text-danger" onclick="handleEmpAction('delete', 69, '安藤 健太郎')">削除</div>
                 </div>
               </div>
             </div>
@@ -895,12 +896,23 @@
   <!-- トースト通知 (保存完了メッセージ) -->
   <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
 
-  <!-- モーダル -->
+  <!-- 汎用モーダル -->
   <div id="modal" class="modal-overlay hidden">
     <div class="modal-body">
       <h3 id="modal-title" style="margin-bottom: 10px;">タイトル</h3>
       <p id="modal-msg" style="font-size: 14px; color: #555;">メッセージ</p>
       <button class="modal-btn" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 従業員操作専用モーダル (仕様書要件) -->
+  <div id="modal-emp-action" class="modal-overlay hidden">
+    <div class="modal-body" style="padding: 40px 30px;">
+      <p id="emp-action-msg" style="font-size: 16px; font-weight: bold; margin-bottom: 30px;"></p>
+      <div style="display: flex; justify-content: center; gap: 15px;">
+        <button class="btn-cancel" onclick="closeEmpActionModal()">キャンセル</button>
+        <button id="emp-action-execute-btn" class="btn-primary" onclick="executeEmpAction()">はい</button>
+      </div>
     </div>
   </div>
 

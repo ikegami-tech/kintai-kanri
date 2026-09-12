@@ -397,3 +397,80 @@ function changeMatrixMonth(offset) {
 document.addEventListener('DOMContentLoaded', () => {
   renderMatrixTable();
 });
+// ==========================================
+// 従業員一覧 操作系機能 (API連携想定)
+// ==========================================
+let currentEmpAction = null;
+let currentEmpTargetId = null;
+let currentEmpTargetName = '';
+
+function handleEmpAction(action, empId, empName, toggleType = '') {
+  // ポップオーバーを閉じる
+  document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
+
+  // コピー作成: バックエンドから設定値を取得し、新規作成画面へ遷移・反映する想定
+  if (action === 'copy') {
+    console.log(`[API MOCK] GET /api/employees/${empId} (既存設定の取得)`);
+    openCreateEmployee();
+    
+    // UIモック: 名前欄にコピー元をセット
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('#employee-create-form .form-input');
+      if (inputs.length > 0) inputs[0].value = `${empName} (コピー)`;
+    }, 100);
+    return;
+  }
+
+  // ステータス変更・削除: 専用モーダルの表示設定 (仕様書要件)
+  currentEmpAction = action;
+  currentEmpTargetId = empId;
+  currentEmpTargetName = empName;
+
+  const modal = document.getElementById('modal-emp-action');
+  const msgEl = document.getElementById('emp-action-msg');
+  const btnEl = document.getElementById('emp-action-execute-btn');
+
+  if (action === 'toggle') {
+    msgEl.textContent = `従業員『${empName}』の利用を${toggleType}しますか？`;
+    msgEl.style.color = 'var(--text-main)';
+    btnEl.textContent = 'はい';
+    btnEl.className = 'btn-primary';
+  } else if (action === 'delete') {
+    msgEl.textContent = `従業員『${empName}』を削除しますか？`;
+    msgEl.style.color = '#e74c3c'; // 赤色テキスト指定
+    btnEl.textContent = '削除';
+    btnEl.className = 'btn-danger';
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeEmpActionModal() {
+  document.getElementById('modal-emp-action').classList.add('hidden');
+  currentEmpAction = null;
+  currentEmpTargetId = null;
+}
+
+// モーダルで「はい / 削除」を押した際の実行処理
+async function executeEmpAction() {
+  if (currentEmpAction === 'toggle') {
+    // API送信想定: const response = await fetch(`/api/employees/${currentEmpTargetId}/status`, { method: 'PATCH' });
+    console.log(`[API MOCK] PATCH /api/employees/${currentEmpTargetId}/status`);
+    showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
+    
+    // フロントエンドUIへの即時反映 (モック)
+    const statusBadge = document.getElementById(`emp-status-${currentEmpTargetId}`);
+    if (statusBadge) statusBadge.classList.toggle('hidden');
+    
+  } else if (currentEmpAction === 'delete') {
+    // API送信想定: const response = await fetch(`/api/employees/${currentEmpTargetId}`, { method: 'DELETE' });
+    console.log(`[API MOCK] DELETE /api/employees/${currentEmpTargetId}`);
+    showToast(`従業員『${currentEmpTargetName}』を削除しました。`);
+    
+    // フロントエンドUIへの即時反映 (DOMからカードを削除)
+    const cardEl = document.getElementById(`emp-card-${currentEmpTargetId}`);
+    if (cardEl) cardEl.remove();
+  }
+
+  closeEmpActionModal();
+}
