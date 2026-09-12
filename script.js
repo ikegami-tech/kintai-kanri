@@ -676,8 +676,17 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentPickerTarget = ''; 
 let pickerSelectedYear = 2026;
 
-function openMonthPicker(event, target) {
-  event.stopPropagation();
+function openMonthPicker(e, target) {
+  if (e && e.stopPropagation) {
+    e.stopPropagation();
+  }
+  
+  // 引数が1つだけ渡された場合のフォールバック処理
+  if (typeof e === 'string' && !target) {
+    target = e;
+    e = window.event;
+  }
+
   currentPickerTarget = target;
   
   let targetDate = (target === 'matrix') ? currentMatrixDate : currentOvertimeDate;
@@ -695,10 +704,13 @@ function openMonthPicker(event, target) {
 
   // クリックされた📅ボタンの直下にポップオーバーを配置
   const picker = document.getElementById('modal-month-picker');
-  const btnRect = event.currentTarget.getBoundingClientRect();
-  
-  picker.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
-  picker.style.left = `${btnRect.left + window.scrollX - 100}px`; // 位置をボタン中央付近に合わせる
+  const targetEl = (e && e.currentTarget) ? e.currentTarget : (e && e.target ? e.target : null);
+
+  if (targetEl && targetEl.getBoundingClientRect) {
+    const btnRect = targetEl.getBoundingClientRect();
+    picker.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
+    picker.style.left = `${btnRect.left + window.scrollX - 100}px`;
+  }
   
   picker.classList.remove('hidden');
 }
