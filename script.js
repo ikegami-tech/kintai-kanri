@@ -119,6 +119,7 @@ function switchPage(pageId, element) {
     'dashboard': 'ダッシュボード',
     'monthly': '月表示 (マトリクス表)',
     'daily': '日表示',
+    'overtime': '残業時間集計',
     'employees': '従業員一覧',
     'settings': 'システム設定'
   };
@@ -751,11 +752,104 @@ async function renderTimeline(dateStr) {
   }).join('');
 }
 
-// 既存のDOMContentLoadedイベントにダッシュボードの描画を追加
-// (すでに存在する場合は中身に `renderDashboard();` を追記してください)
+// --- 5. 残業時間集計表のモックとソート・集計ロジック ---
+let currentOvertimeDate = new Date(2026, 8, 1);
+let overtimeSortKey = 'name';
+let overtimeSortAsc = true;
+
+const overtimeDataMock = [
+  { id: 1, name: '安藤 健太郎', weekdayDays: 20, weekendDays: 1, totalHours: 165.5, overtimeHours: 15.5 },
+  { id: 2, name: '五十嵐 由樹', weekdayDays: 19, weekendDays: 0, totalHours: 155.0, overtimeHours: 5.0 },
+  { id: 3, name: '池上 裕士', weekdayDays: 22, weekendDays: 2, totalHours: 190.0, overtimeHours: 30.0 },
+  { id: 4, name: '池谷 あや子', weekdayDays: 20, weekendDays: 0, totalHours: 160.0, overtimeHours: 10.0 },
+  { id: 5, name: '石井 秀龍', weekdayDays: 21, weekendDays: 1, totalHours: 175.5, overtimeHours: 20.5 }
+];
+
+async function renderOvertimeTable() {
+  console.log(`[API MOCK] GET /api/attendance/overtime?year=${currentOvertimeDate.getFullYear()}&month=${currentOvertimeDate.getMonth() + 1}`);
+  
+  const year = currentOvertimeDate.getFullYear();
+  const month = currentOvertimeDate.getMonth() + 1;
+  document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
+
+  // ソート処理
+  const sortedData = [...overtimeDataMock].sort((a, b) => {
+    let valA = a[overtimeSortKey];
+    let valB = b[overtimeSortKey];
+    if (typeof valA === 'string') {
+      return overtimeSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      return overtimeSortAsc ? valA - valB : valB - valA;
+    }
+  });
+
+  // ソートアイコン更新
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
+  document.getElementById(`sort-${overtimeSortKey}`).textContent = overtimeSortAsc ? '▲' : '▼';
+
+  // tbody描画
+  document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => `
+    <tr>
+      <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
+        <a href="#" onclick="showModal('従業員詳細', '${emp.name} の詳細画面を表示')" style="color:inherit; text-decoration:none;">${emp.name}</a>
+      </td>
+      <td>${emp.weekdayDays}日</td>
+      <td>${emp.weekendDays}日</td>
+      <td>${emp.totalHours.toFixed(1)}h</td>
+      <td>${emp.overtimeHours.toFixed(1)}h</td>
+    </tr>
+  `).join('');
+
+  // tfoot描画（合計・平均）
+  const count = sortedData.length;
+  const sumWeekday = sortedData.reduce((sum, emp) => sum + emp.weekdayDays, 0);
+  const sumWeekend = sortedData.reduce((sum, emp) => sum + emp.weekendDays, 0);
+  const sumTotal = sortedData.reduce((sum, emp) => sum + emp.totalHours, 0);
+  const sumOvertime = sortedData.reduce((sum, emp) => sum + emp.overtimeHours, 0);
+
+  document.getElementById('overtime-tfoot').innerHTML = `
+    <tr class="summary-row">
+      <td style="text-align:left;">合計 (${count}名)</td>
+      <td>${sumWeekday}日</td>
+      <td>${sumWeekend}日</td>
+      <td>${sumTotal.toFixed(1)}h</td>
+      <td>${sumOvertime.toFixed(1)}h</td>
+    </tr>
+    <tr class="summary-row">
+      <td style="text-align:left;">全体平均 (1人あたり)</td>
+      <td>${(sumWeekday / count).toFixed(1)}日</td>
+      <td>${(sumWeekend / count).toFixed(1)}日</td>
+      <td>${(sumTotal / count).toFixed(1)}h</td>
+      <td>${(sumOvertime / count).toFixed(1)}h</td>
+    </tr>
+  `;
+}
+
+function sortOvertime(key) {
+  if (overtimeSortKey === key) {
+    overtimeSortAsc = !overtimeSortAsc;
+  } else {
+    overtimeSortKey = key;
+    overtimeSortAsc = true;
+  }
+  renderOvertimeTable();
+}
+
+function changeOvertimeMonth(offset) {
+  if (offset === 0) {
+    const now = new Date();
+    currentOvertimeDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else {
+    currentOvertimeDate.setMonth(currentOvertimeDate.getMonth() + offset);
+  }
+  renderOvertimeTable();
+}
+
+// ページ読み込み時に各レンダリングを実行
 document.addEventListener('DOMContentLoaded', () => {
   renderMatrixTable();
   renderDailyTable();
   renderEmployees();
-  renderDashboard(); // ←これを追加
+  renderDashboard();
+  renderOvertimeTable(); // ← 追加
 });

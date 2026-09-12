@@ -1690,3 +1690,59 @@ td:hover .memo-icon::before,
   z-index: 2;
   pointer-events: none;
 }
+
+/* ==================================================
+   残業時間集計表 デザイン
+   ================================================== */
+#page-overtime {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.overtime-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: center;
+  background: white;
+}
+
+.overtime-table th {
+  background-color: #edf2f7;
+  color: var(--sidebar-dark);
+  font-weight: bold;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.overtime-table th:hover {
+  background-color: #e2e8f0;
+}
+
+.overtime-table td {
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.overtime-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.summary-row {
+  background-color: #eef7ff;
+  font-weight: bold;
+}
+
+.summary-row td {
+  color: var(--toho-blue);
+}
+
+.sort-icon {
+  font-size: 11px;
+  color: var(--toho-blue);
+  margin-left: 6px;
+}

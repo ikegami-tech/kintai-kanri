@@ -73,6 +73,7 @@
         <div id="attendance-sub" class="submenu">
           <div class="nav-item" onclick="switchPage('monthly', this)">月表示</div>
           <div class="nav-item" onclick="switchPage('daily', this)">日表示</div>
+          <div class="nav-item" onclick="switchPage('overtime', this)">残業集計</div>
         </div>
 
         <!-- 従業員管理 -->
@@ -231,19 +232,63 @@
           </div>
         </div>
 
-        <!-- 位置情報確認モーダル -->
+<!-- 位置情報確認モーダル -->
         <div id="map-modal" class="modal-overlay hidden">
           <div class="modal-body map-modal-body">
             <h3 id="map-modal-title">打刻位置情報</h3>
             <p id="map-modal-subtitle" style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;"></p>
-            
             <div class="map-preview">
               <div class="map-pin">📍</div>
               <div class="map-watermark">Google Maps API / Location Data</div>
             </div>
-
             <p id="map-modal-address" style="font-size: 13px; font-weight: bold; margin-top: 12px; color: var(--sidebar-dark);"></p>
             <button class="modal-btn" onclick="closeMapModal()">閉じる</button>
+          </div>
+        </div>
+
+        <!-- ページ: 残業時間集計表 (仕様書要件) -->
+        <div id="page-overtime" class="page-content hidden">
+          <div class="monthly-container">
+            <!-- 画面上部 操作パネル -->
+            <div class="monthly-header-bar">
+              <div class="month-selector">
+                <span class="current-month-title" id="overtime-month-title">2026年 09月度</span>
+                <div class="month-btn-group">
+                  <button class="btn-sub" onclick="changeOvertimeMonth(-1)">＜</button>
+                  <button class="btn-sub" onclick="showModal('対象月変更', 'カレンダー選択を開きます')">📅</button>
+                  <button class="btn-sub" onclick="changeOvertimeMonth(0)">今月</button>
+                  <button class="btn-sub" onclick="changeOvertimeMonth(1)">＞</button>
+                </div>
+              </div>
+              <div class="monthly-actions">
+                <button class="btn-print" onclick="window.print()">📄 印刷 (実績ダウンロード)</button>
+              </div>
+            </div>
+
+            <div class="daily-title-row">
+              <h2 class="daily-main-title">残業時間集計表</h2>
+            </div>
+
+            <!-- 集計テーブル -->
+            <div class="matrix-scroll-wrapper">
+              <table class="overtime-table">
+                <thead>
+                  <tr>
+                    <th onclick="sortOvertime('name')">スタッフ名 <span class="sort-icon" id="sort-name"></span></th>
+                    <th onclick="sortOvertime('weekdayDays')">平日出勤日数 <span class="sort-icon" id="sort-weekdayDays"></span></th>
+                    <th onclick="sortOvertime('weekendDays')">休日出勤日数 <span class="sort-icon" id="sort-weekendDays"></span></th>
+                    <th onclick="sortOvertime('totalHours')">総実労働時間 <span class="sort-icon" id="sort-totalHours"></span></th>
+                    <th onclick="sortOvertime('overtimeHours')">総残業時間 <span class="sort-icon" id="sort-overtimeHours"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="overtime-tbody">
+                  <!-- JSで動的に生成 -->
+                </tbody>
+                <tfoot id="overtime-tfoot">
+                  <!-- JSで動的に生成 -->
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
 
