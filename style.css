@@ -1106,13 +1106,60 @@ td:hover .memo-icon::before,
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  border: 1px solid #cbd5e0;
-  background-color: #f7fafc;
+  border: 1px solid #27ae60;
+  background-color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  color: #a0aec0;
+}
+
+.avatar-circle svg {
+  width: 26px;
+  height: 26px;
+  stroke: #27ae60;
+}
+
+/* アイコンホバー時のツールチップ表示 */
+.avatar-circle.has-tooltip {
+  position: relative;
+  cursor: pointer;
+}
+
+.avatar-circle.has-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 30, 40, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-line;
+  text-align: center;
+  line-height: 1.5;
+  display: none;
+  z-index: 200;
+  width: max-content;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.avatar-circle.has-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: calc(120% - 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(20, 30, 40, 0.95);
+  display: none;
+  z-index: 200;
+}
+
+.avatar-circle.has-tooltip:hover::after,
+.avatar-circle.has-tooltip:hover::before {
+  display: block;
 }
 
 .btn-map-badge {
