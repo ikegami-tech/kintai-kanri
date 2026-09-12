@@ -576,7 +576,7 @@ async function renderOvertimeTable() {
   document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => `
     <tr>
       <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
-        <a href="#" onclick="showModal('従業員詳細', '${emp.name} の詳細画面を表示')" style="color:inherit; text-decoration:none;">${emp.name}</a>
+        <a href="#" onclick="showEmployeeDetail('${emp.name}')" style="color:inherit; text-decoration:none;">${emp.name}</a>
       </td>
       <td>${emp.weekdayDays}日</td>
       <td>${emp.weekendDays}日</td>
