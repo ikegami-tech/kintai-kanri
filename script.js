@@ -116,6 +116,13 @@ document.addEventListener('click', function(e) {
   if (!e.target.closest('#modal-month-picker') && !e.target.closest('.btn-sub')) {
     closeMonthPicker();
   }
+  // サイドバー外のどこかをクリックした際に自動で折りたたむ
+  if (!e.target.closest('#sidebar')) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && !sidebar.classList.contains('collapsed')) {
+      sidebar.classList.add('collapsed');
+    }
+  }
 });
 
 function toggleMailAccordion() {
