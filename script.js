@@ -513,7 +513,7 @@ async function renderDailyTable() {
       <tr>
         <td class="emp-name-cell">
           <span class="dot-status dot-working"></span>
-          <a href="#" class="emp-link" onclick="showModal('従業員詳細', '${emp.name} の詳細画面を表示')">${emp.name}</a>
+          <a href="#" class="emp-link" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
         </td>
         <td>${emp.time} ${memoHtml}</td>
         <td>
