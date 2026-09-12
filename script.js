@@ -136,6 +136,12 @@ function openMapModal(empName, timeStr, addressStr) {
   document.getElementById('map-modal-title').textContent = `${empName} の打刻位置`;
   document.getElementById('map-modal-subtitle').textContent = `打刻時刻: ${timeStr}`;
   document.getElementById('map-modal-address').textContent = `📍 取得住所: ${addressStr}`;
+  
+  const mapIframe = document.getElementById('map-iframe');
+  if (mapIframe) {
+    mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(addressStr)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  }
+
   document.getElementById('map-modal').classList.remove('hidden');
 }
 
