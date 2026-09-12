@@ -283,6 +283,16 @@
               <h2 class="daily-main-title">残業時間集計表</h2>
             </div>
 
+            <!-- タイトル下線と表の間に配置 -->
+            <div style="margin-top: 15px; margin-bottom: 15px;">
+              <select id="overtime-dept-filter" class="form-select" style="width: 130px; padding: 6px 10px; font-size: 13px;" onchange="renderOvertimeTable()">
+                <option value="ALL">全体表示</option>
+                <option value="課">課</option>
+                <option value="課長">課長</option>
+                <option value="営業">営業</option>
+              </select>
+            </div>
+
             <!-- 集計テーブル -->
             <div class="matrix-scroll-wrapper">
               <table class="overtime-table">
