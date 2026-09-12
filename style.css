@@ -34,7 +34,7 @@ body {
 /* ==================================================
    1. ログイン画面
    ================================================== */
-#login-view {
+#login-view, #password-setup-view {
   display: flex;
   flex-direction: column;
   justify-content: center;

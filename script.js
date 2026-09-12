@@ -359,6 +359,12 @@ async function saveNewEmployee(event) {
   closeCreateEmployee();
   btn.textContent = '設定を保存';
   btn.disabled = false;
+
+  // メールアドレスが入力されていればパスワード設定メールを送信
+  const newEmail = document.getElementById('new-email').value;
+  if (newEmail) {
+    sendPwSetupEmail(newEmail);
+  }
 }
 // ==========================================
 // 5. データモックとレンダリング関数 (API連携想定)
@@ -816,3 +822,61 @@ function selectSmaregiMonth(year, month) {
   
   closeMonthPicker();
 }
+
+// ==========================================
+// パスワード設定メール送信機能 (バックエンド連携モック)
+// ==========================================
+function sendPwSetupEmail(emailAddress) {
+  if (!emailAddress || emailAddress === '-' || emailAddress.trim() === '') {
+    showToast('メールアドレスが登録されていません。');
+    return;
+  }
+  
+  // バックエンドAPIへの送信リクエストを想定
+  console.log(`[API MOCK] POST /api/auth/send-setup-email`, { email: emailAddress });
+  
+  // UI上で送信されたメール内容を確認できるプレビューモーダルを表示
+  document.getElementById('email-preview-to').textContent = emailAddress;
+  document.getElementById('modal-email-preview').classList.remove('hidden');
+}
+
+function closeEmailPreview() {
+  document.getElementById('modal-email-preview').classList.add('hidden');
+}
+
+function openPasswordSetup() {
+  // デモ用：メール内のURLをクリックした想定で設定画面へ遷移
+  closeEmailPreview();
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('password-setup-view').classList.remove('hidden');
+}
+
+// パスワード設定完了処理
+document.getElementById('password-setup-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const pw1 = document.getElementById('setup-pw1').value;
+  const pw2 = document.getElementById('setup-pw2').value;
+  
+  if (pw1 !== pw2) {
+    showModal('エラー', 'パスワードが一致しません。');
+    return;
+  }
+  
+  const btn = this.querySelector('.btn-login');
+  btn.textContent = '設定中...';
+  btn.disabled = true;
+
+  // パスワード更新APIへの送信を想定
+  console.log('[API MOCK] POST /api/auth/setup-password', { password: pw1 });
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // ログイン後のメイン画面へ自動遷移
+  document.getElementById('password-setup-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  this.reset();
+  
+  btn.textContent = '設定してログイン';
+  btn.disabled = false;
+  showToast('パスワードを設定し、ログインしました。');
+});
