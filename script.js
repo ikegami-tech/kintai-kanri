@@ -795,8 +795,8 @@ async function renderOvertimeTable() {
       </td>
       <td>${emp.weekdayDays}日</td>
       <td>${emp.weekendDays}日</td>
-      <td>${emp.totalHours.toFixed(1)}h</td>
-      <td>${emp.overtimeHours.toFixed(1)}h</td>
+      <td>${emp.totalHours.toFixed(1)}時間</td>
+      <td>${emp.overtimeHours.toFixed(1)}時間</td>
     </tr>
   `).join('');
 
@@ -812,15 +812,15 @@ async function renderOvertimeTable() {
       <td style="text-align:left;">合計 (${count}名)</td>
       <td>${sumWeekday}日</td>
       <td>${sumWeekend}日</td>
-      <td>${sumTotal.toFixed(1)}h</td>
-      <td>${sumOvertime.toFixed(1)}h</td>
+      <td>${sumTotal.toFixed(1)}時間</td>
+      <td>${sumOvertime.toFixed(1)}時間</td>
     </tr>
     <tr class="summary-row">
       <td style="text-align:left;">全体平均 (1人あたり)</td>
       <td>${(sumWeekday / count).toFixed(1)}日</td>
       <td>${(sumWeekend / count).toFixed(1)}日</td>
-      <td>${(sumTotal / count).toFixed(1)}h</td>
-      <td>${(sumOvertime / count).toFixed(1)}h</td>
+      <td>${(sumTotal / count).toFixed(1)}時間</td>
+      <td>${(sumOvertime / count).toFixed(1)}時間</td>
     </tr>
   `;
 }

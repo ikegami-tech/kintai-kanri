@@ -1746,3 +1746,54 @@ td:hover .memo-icon::before,
   color: var(--toho-blue);
   margin-left: 6px;
 }
+/* ==================================================
+   印刷用スタイル設定
+   ================================================== */
+@media print {
+  /* 用紙をデフォルトで横向きに設定 */
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  /* 印刷時に不要なUI（サイドバー、ヘッダー、ボタン類）を隠す */
+  .sidebar,
+  .header,
+  .month-btn-group,
+  .btn-print,
+  .toast,
+  .modal-overlay {
+    display: none !important;
+  }
+
+  /* 画面全体の余白をリセットして、紙面を広く使う */
+  .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .content-area {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* 表をスクロールバーなしで全開にする */
+  .matrix-scroll-wrapper {
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  .monthly-container,
+  #page-overtime {
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* 印刷用のフォントサイズ微調整 */
+  .monthly-matrix-table th, 
+  .monthly-matrix-table td {
+    font-size: 8pt !important;
+    padding: 2px !important;
+  }
+}
