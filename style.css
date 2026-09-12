@@ -879,18 +879,19 @@ body {
   z-index: 5;
 }
 
-/* 💬 アイコン自体のホバー時のみ吹き出しを表示 */
-.memo-icon:hover::after,
-.memo-icon:hover::before {
+/* セル（td）にホバーした時点で吹き出しを表示 */
+td:hover .memo-icon::after,
+td:hover .memo-icon::before {
   display: block !important;
 }
 
+/* 吹き出し本体（💬アイコンのすぐ下へ配置） */
 .memo-icon::after {
   content: attr(data-tooltip);
   position: absolute;
-  top: 100%;                  /* 💬アイコンのすぐ下に配置 */
+  top: 100%;                  /* アイコンの直下に表示 */
   left: 50%;
-  transform: translateX(-50%); /* アイコンの中央に揃える */
+  transform: translateX(-50%); /* アイコン中央揃え */
   margin-top: 6px;
   background: #111111;
   color: #ffffff;
@@ -902,11 +903,11 @@ body {
   text-align: left;
   line-height: 1.4;
   display: none;
-  z-index: 3000;              /* 最前面に表示 */
+  z-index: 3000;              /* テーブルや他の要素より最前面へ */
   width: max-content;
   max-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  pointer-events: none;       /* マウスカーソルの邪魔をしない設定 */
+  pointer-events: none;       /* マウスカーソルのホバーを妨げない */
 }
 
 /* 吹き出しの三角形（上向き） */
