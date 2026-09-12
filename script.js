@@ -132,10 +132,9 @@ function toggleMailAccordion() {
   arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
 }
 
-function openMapModal(empName, timeStr, addressStr) {
-  // 打刻種別（出勤、直行出勤など）を取得してタイトルにセット
-  const actionName = timeStr.split(' ')[1] || '出勤';
-  document.getElementById('map-modal-title').textContent = actionName;
+function openMapModal(empName, actionStr, addressStr) {
+  // 打刻種別（出勤、直行出勤など）をそのままタイトルに設定
+  document.getElementById('map-modal-title').textContent = actionStr || '出勤';
   document.getElementById('map-modal-address').textContent = `住所: ${addressStr}`;
   
   const mapIframe = document.getElementById('map-iframe');
@@ -557,7 +556,7 @@ async function renderDailyTable() {
             <div class="avatar-circle has-tooltip" data-tooltip="${emp.action}\n${emp.fullTime}\n住所:${emp.address}">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
-            <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${emp.time} ${emp.action}', '${emp.address}')">📍地図</button>
+            <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${emp.action}', '${emp.address}')">📍地図</button>
           </div>
         </td>
       </tr>
