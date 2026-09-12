@@ -500,3 +500,99 @@ async function executeEmpAction() {
 
   closeEmpActionModal();
 }
+// ==========================================
+// バックエンド連携想定: データ配列と動的レンダリング
+// ==========================================
+
+// --- 1. 日表示データのモック ---
+const dailyData = [
+  { id: 1, name: '安藤 健太郎', time: '08:29 ～', memo: '[NEXTメモ]\n通常出勤', action: '出勤', fullTime: '9/11 08:29:00', address: '東京都千代田区有楽町1-1-1' },
+  { id: 2, name: '五十嵐 由樹', time: '08:52 ～', memo: '[NEXTメモ]\n直行打刻', action: '直行出勤', fullTime: '9/11 08:52:14', address: '東京都新宿区西新宿2-8-1' },
+  { id: 3, name: '池上 裕士', time: '08:27 ～', memo: '', action: '出勤', fullTime: '9/11 08:27:45', address: '東京都中央区銀座4-1-2' },
+  { id: 4, name: '池谷 あや子', time: '08:56 ～', memo: '', action: '出勤', fullTime: '9/11 08:56:22', address: '東京都港区南青山3-1-1' },
+  { id: 5, name: '石井 秀龍', time: '08:59 ～', memo: '[NEXTメモ]\n管理者修正済み', action: '出勤', fullTime: '9/11 08:59:10', address: '東京都港区六本木6-10-1' }
+];
+
+async function renderDailyTable() {
+  console.log('[API MOCK] GET /api/attendance/daily?date=2026-09-11');
+  // const dailyData = await fetch(...).then(res => res.json());
+
+  const tbody = document.getElementById('daily-tbody');
+  let html = '';
+  
+  dailyData.forEach(emp => {
+    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
+    html += `
+      <tr>
+        <td class="emp-name-cell">
+          <span class="dot-status dot-working"></span>
+          <a href="#" class="emp-link" onclick="showModal('従業員詳細', '${emp.name} の詳細画面を表示')">${emp.name}</a>
+        </td>
+        <td>${emp.time} ${memoHtml}</td>
+        <td>
+          <div class="avatar-map-box">
+            <div class="avatar-circle has-tooltip" data-tooltip="${emp.action}\n${emp.fullTime}\n住所:${emp.address}">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${emp.time} ${emp.action}', '${emp.address}')">📍地図</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+// --- 2. 従業員データのモック ---
+const employeesData = [
+  { id: 2, name: '阿久津 幸一', role: 'システム管理者', roleClass: 'badge-admin', status: '利用停止', empType: '管理職', office: 'NEXT (事業所管理者)', joinDate: '-' },
+  { id: 69, name: '安藤 健太郎', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2024年08月01日' },
+  { id: 81, name: '五十嵐 由樹', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2025年02月03日' }
+];
+
+async function renderEmployees() {
+  console.log('[API MOCK] GET /api/employees');
+  // const employeesData = await fetch(...).then(res => res.json());
+
+  const container = document.getElementById('emp-list-container');
+  let html = '';
+
+  employeesData.forEach(emp => {
+    const statusClass = emp.status === '利用停止' ? '' : 'hidden';
+    const toggleAction = emp.status === '利用停止' ? '再開' : '停止';
+    
+    html += `
+      <div class="emp-card-item" id="emp-card-${emp.id}">
+        <div class="emp-avatar">👤</div>
+        <div class="emp-info-main">
+          <div class="emp-name-row">
+            <a href="#" class="emp-name" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
+            <span class="badge-tag ${emp.roleClass}">${emp.role}</span>
+            <span class="badge-tag badge-disabled ${statusClass}" id="emp-status-${emp.id}">利用停止</span>
+          </div>
+          <div class="emp-meta-row">
+            <span>従業員区分: ${emp.empType}</span>
+            ${emp.joinDate !== '-' ? `<span>入社日: ${emp.joinDate}</span>` : ''}
+            <span>事業所: ${emp.office}</span>
+            <span>従業員ID: ${emp.id}</span>
+          </div>
+        </div>
+        <div class="emp-action-menu">
+          <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
+          <div class="emp-popover-menu hidden">
+            <div onclick="handleEmpAction('copy', ${emp.id}, '${emp.name}')">コピーして新しい従業員を作成</div>
+            <div onclick="handleEmpAction('toggle', ${emp.id}, '${emp.name}', '${toggleAction}')">利用${toggleAction}</div>
+            <div class="text-danger" onclick="handleEmpAction('delete', ${emp.id}, '${emp.name}')">削除</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+// ページ読み込み時に各レンダリングを実行
+document.addEventListener('DOMContentLoaded', () => {
+  renderDailyTable();
+  renderEmployees();
+});
