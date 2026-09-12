@@ -1543,6 +1543,7 @@ td:hover .memo-icon::before {
   border-radius: 4px;
   font-size: 13px;
   outline: none;
+  max-height: 120px; /* 約4つ分の高さに制限 */
 }
 
 /* メール内容アコーディオン */
