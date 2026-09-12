@@ -757,3 +757,24 @@ function selectSmaregiMonth(year, month) {
   
   closeMonthPicker();
 }
+// ==========================================
+// 8. 時間選択ドロップダウンのコンパクト表示(スクロール)制御
+// ==========================================
+document.addEventListener('focusin', function(e) {
+  if (e.target && e.target.classList.contains('form-select-sm')) {
+    e.target.size = 5; // クリック時に5項目分だけ表示
+  }
+});
+
+document.addEventListener('focusout', function(e) {
+  if (e.target && e.target.classList.contains('form-select-sm')) {
+    e.target.size = 1; // 離れたら元に戻す
+  }
+});
+
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.classList.contains('form-select-sm')) {
+    e.target.size = 1; // 選択したら元に戻す
+    e.target.blur();
+  }
+});

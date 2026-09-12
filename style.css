@@ -1537,13 +1537,27 @@ td:hover .memo-icon::before {
   gap: 6px;
 }
 
+.time-select-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
 .form-select-sm {
   padding: 6px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
-  max-height: 120px; /* 約4つ分の高さに制限 */
+  background: white;
+}
+
+/* スクロール展開時に他の要素を押し下げないよう最前面化 */
+.form-select-sm:focus {
+  position: absolute;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 /* メール内容アコーディオン */
