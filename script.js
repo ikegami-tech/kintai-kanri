@@ -133,9 +133,10 @@ function toggleMailAccordion() {
 }
 
 function openMapModal(empName, timeStr, addressStr) {
-  document.getElementById('map-modal-title').textContent = `${empName} の打刻位置`;
-  document.getElementById('map-modal-subtitle').textContent = `打刻時刻: ${timeStr}`;
-  document.getElementById('map-modal-address').textContent = `📍 取得住所: ${addressStr}`;
+  // 打刻種別（出勤、直行出勤など）を取得してタイトルにセット
+  const actionName = timeStr.split(' ')[1] || '出勤';
+  document.getElementById('map-modal-title').textContent = actionName;
+  document.getElementById('map-modal-address').textContent = `住所: ${addressStr}`;
   
   const mapIframe = document.getElementById('map-iframe');
   if (mapIframe) {
