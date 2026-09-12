@@ -1,9 +1,39 @@
-// 1. ログイン処理
-document.getElementById('login-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  document.getElementById('login-view').classList.add('hidden');
-  document.getElementById('app-view').classList.remove('hidden');
-});
+// 各種サブミット処理 (API連携想定: async/await)
+async function submitRecordCreate() {
+  const date = document.getElementById('create-date').value;
+  console.log(`[API MOCK] POST /api/attendance`, { empName: currentEmpName, date: date, action: 'create' });
+  // await fetch('/api/attendance', { method: 'POST', ... });
+  
+  closeRecordModal('modal-record-create');
+  showToast('実績を新規作成しました');
+}
+
+async function submitRecordEdit() {
+  const date = document.getElementById('edit-date').value;
+  console.log(`[API MOCK] PUT /api/attendance/${currentEmpName}/${date}`);
+  // await fetch(`/api/attendance/${currentEmpName}/${date}`, { method: 'PUT', ... });
+  
+  closeRecordModal('modal-record-edit');
+  showToast('実績を更新しました（赤文字で表示されます）');
+}
+
+async function submitRecordDelete() {
+  const date = document.getElementById('edit-date').value;
+  console.log(`[API MOCK] DELETE /api/attendance/${currentEmpName}/${date}`);
+  // await fetch(`/api/attendance/${currentEmpName}/${date}`, { method: 'DELETE' });
+  
+  closeRecordModal('modal-record-edit');
+  showToast('実績を削除しました');
+}
+
+async function submitRecordMemo() {
+  const date = document.getElementById('memo-date').textContent;
+  console.log(`[API MOCK] POST /api/attendance/${currentEmpName}/${date}/memo`);
+  // await fetch(`/api/attendance/${currentEmpName}/${date}/memo`, { method: 'POST', ... });
+  
+  closeRecordModal('modal-employee-memo');
+  showToast('従業員メモを保存しました');
+}
 
 // 2. ログアウト処理
 function logout() {
@@ -233,69 +263,65 @@ function closeEditEmployee() {
   document.getElementById('page-employee-detail').classList.remove('hidden');
 }
 
-function saveEmployeeEdit(event) {
-  event.preventDefault(); // 画面リロード防止
+async function saveEmployeeEdit(event) {
+  event.preventDefault();
+  const btn = event.target.querySelector('.btn-save');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+
+  // FormDataを用いたAPI送信ペイロードの生成想定
+  const formData = new FormData(event.target);
+  const payload = Object.fromEntries(formData.entries());
+  console.log(`[API MOCK] PUT /api/employees/${currentEmpTargetId || 'current'}`, payload);
   
-  // 入力された名前を詳細画面へ反映
+  // 実際の通信想定: await fetch(`/api/employees/...`, { method: 'PUT', body: JSON.stringify(payload) });
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   const newName = document.getElementById('edit-name').value;
   document.getElementById('detail-emp-name').textContent = newName;
   document.getElementById('val-name').textContent = newName;
   
-  // トースト通知を表示
-  const toast = document.getElementById('toast-message');
-  toast.classList.remove('hidden');
-  toast.style.opacity = '1';
-
-  // 一旦詳細画面へ戻す
+  showToast('従業員情報を保存しました。');
   closeEditEmployee();
 
-  // 2.5秒後にトーストをフェードアウトして非表示
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => {
-      toast.classList.add('hidden');
-    }, 500);
-  }, 2500);
+  btn.textContent = '設定を保存';
+  btn.disabled = false;
 }
+
 // ==========================================
 // 新規従業員作成画面 制御
 // ==========================================
 function openCreateEmployee() {
-  // フォームの内容をクリア
   document.getElementById('employee-create-form').reset();
-  
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-employee-create').classList.remove('hidden');
 }
 
 function closeCreateEmployee() {
-  // 従業員一覧画面に戻る
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-employees').classList.remove('hidden');
 }
 
-function saveNewEmployee(event) {
-  event.preventDefault(); // 画面リロード防止
-  
-  // トースト通知を表示
-  const toast = document.getElementById('toast-message');
-  toast.textContent = '新しい従業員を作成しました。';
-  toast.classList.remove('hidden');
-  toast.style.opacity = '1';
+async function saveNewEmployee(event) {
+  event.preventDefault();
+  const btn = event.target.querySelector('.btn-save');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
 
-  // 一覧画面へ戻す
+  const formData = new FormData(event.target);
+  const payload = Object.fromEntries(formData.entries());
+  console.log(`[API MOCK] POST /api/employees`, payload);
+
+  // 実際の通信想定: await fetch(`/api/employees`, { method: 'POST', body: JSON.stringify(payload) });
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  showToast('新しい従業員を作成しました。');
   closeCreateEmployee();
 
-  // 2.5秒後にトーストをフェードアウト
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => {
-      toast.classList.add('hidden');
-      toast.textContent = '従業員を保存しました。'; // メッセージを元に戻す
-    }, 500);
-  }, 2500);
+  btn.textContent = '設定を保存';
+  btn.disabled = false;
 }
 // ==========================================
 // 月表示（マトリクス表）のカレンダー動的生成
