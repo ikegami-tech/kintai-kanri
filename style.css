@@ -349,6 +349,11 @@ body {
 }
 
 /* ダッシュボード 出退勤状況カード */
+#page-dashboard {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
 .attendance-status-card {
   background: var(--card-bg);
   border-radius: 8px;
