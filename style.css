@@ -988,12 +988,22 @@ td:hover .memo-icon::before {
 }
 
 .daily-control-bar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   margin-bottom: 20px;
-  flex-wrap: wrap;
   gap: 15px;
+}
+
+.control-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.control-right {
+  /* 空要素で中央寄せのバランスを維持 */
 }
 
 .btn-office-select {
