@@ -1,4 +1,31 @@
+// ==========================================
+// 1. ログイン処理 (API連携想定: async/await)
+// ==========================================
+document.getElementById('login-form').addEventListener('submit', async function(e) {
+  e.preventDefault(); // フォームの標準送信を防ぎ、403エラーを回避します
+
+  const btn = this.querySelector('.btn-login');
+  btn.textContent = 'ログイン中...';
+  btn.disabled = true;
+
+  const loginId = document.getElementById('login-id').value;
+  const loginPw = document.getElementById('login-pw').value;
+
+  console.log('[API MOCK] POST /api/auth/login', { loginId, loginPw });
+  
+  // 通信遅延モック（0.6秒待機してAPI通信を疑似再現）
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+
+  btn.textContent = 'ログイン';
+  btn.disabled = false;
+});
+
+// ==========================================
 // 各種サブミット処理 (API連携想定: async/await)
+// ==========================================
 async function submitRecordCreate() {
   const date = document.getElementById('create-date').value;
   console.log(`[API MOCK] POST /api/attendance`, { empName: currentEmpName, date: date, action: 'create' });
