@@ -1775,9 +1775,15 @@ td:hover .memo-icon::before {
 }
 
 .sort-icon {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--toho-blue);
-  margin-left: 6px;
+  margin-left: 4px;
+  display: inline-block;
+  transition: opacity 0.15s;
+}
+
+.overtime-table th:hover .sort-icon {
+  opacity: 1 !important;
 }
 /* ==================================================
    印刷用スタイル設定

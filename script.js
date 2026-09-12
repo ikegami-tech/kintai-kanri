@@ -559,8 +559,19 @@ async function renderOvertimeTable() {
     }
   });
 
-  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
-  document.getElementById(`sort-${overtimeSortKey}`).textContent = overtimeSortAsc ? '▲' : '▼';
+  const sortKeys = ['name', 'weekdayDays', 'weekendDays', 'totalHours', 'overtimeHours'];
+  sortKeys.forEach(k => {
+    const el = document.getElementById(`sort-${k}`);
+    if (el) {
+      if (k === overtimeSortKey) {
+        el.textContent = overtimeSortAsc ? ' ▲' : ' ▼';
+        el.style.opacity = '1';
+      } else {
+        el.textContent = ' ↕';
+        el.style.opacity = '0.35';
+      }
+    }
+  });
 
   document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => `
     <tr>
