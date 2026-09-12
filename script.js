@@ -30,18 +30,7 @@ function logout() {
 // ==========================================
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  const icon = document.getElementById('collapse-icon');
-  const text = document.getElementById('collapse-text');
-  
   sidebar.classList.toggle('collapsed');
-  
-  if (sidebar.classList.contains('collapsed')) {
-    icon.textContent = '→';
-    text.textContent = '';
-  } else {
-    icon.textContent = '←';
-    text.textContent = '閉じる';
-  }
 }
 
 function toggleAttendanceMenu() {
@@ -71,8 +60,7 @@ function switchPage(pageId, element) {
     'monthly': '月表示 (マトリクス表)',
     'daily': '日表示',
     'overtime': '残業時間集計',
-    'employees': '従業員一覧',
-    'settings': 'システム設定'
+    'employees': '従業員一覧'
   };
   document.getElementById('page-title').textContent = titles[pageId] || '勤怠管理';
 
