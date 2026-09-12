@@ -204,12 +204,12 @@
               </div>
 
               <div class="control-center">
-                <span class="daily-date-text">2026年09月11日(金)</span>
+                <span class="daily-date-text" id="daily-date-title">2026年09月11日(金)</span>
                 <div class="month-btn-group">
-                  <button class="btn-sub" onclick="showModal('日付変更', '前日へ移動します')">＜</button>
-                  <button class="btn-sub" onclick="showModal('日付変更', 'カレンダー表示')">📅</button>
-                  <button class="btn-sub" onclick="showModal('日付変更', '本日へ移動します')">今日</button>
-                  <button class="btn-sub" onclick="showModal('日付変更', '翌日へ移動します')">＞</button>
+                  <button class="btn-sub" onclick="changeDailyDate(-1)">＜</button>
+                  <button class="btn-sub" onclick="openMonthPicker(event, 'daily')">📅</button>
+                  <button class="btn-sub" onclick="changeDailyDate(0)">今日</button>
+                  <button class="btn-sub" onclick="changeDailyDate(1)">＞</button>
                 </div>
               </div>
 

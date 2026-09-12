@@ -503,6 +503,17 @@ async function renderTimeline(dateStr) {
 }
 
 // --- 日表示 ---
+let currentDailyDate = new Date(2026, 8, 11);
+
+function changeDailyDate(offset) {
+  if (offset === 0) {
+    currentDailyDate = new Date(2026, 8, 11); // 本日（初期値）へリセット
+  } else {
+    currentDailyDate.setDate(currentDailyDate.getDate() + offset);
+  }
+  renderDailyTable();
+}
+
 const dailyData = [
   { id: 1, name: '安藤 健太郎', time: '08:29 ～', memo: '[NEXTメモ]\n通常出勤', action: '出勤', fullTime: '9/11 08:29:00', address: '東京都千代田区有楽町1-1-1' },
   { id: 2, name: '五十嵐 由樹', time: '08:52 ～', memo: '[NEXTメモ]\n直行打刻', action: '直行出勤', fullTime: '9/11 08:52:14', address: '東京都新宿区西新宿2-8-1' },
@@ -512,7 +523,18 @@ const dailyData = [
 ];
 
 async function renderDailyTable() {
-  console.log('[API MOCK] GET /api/attendance/daily?date=2026-09-11');
+  const year = currentDailyDate.getFullYear();
+  const month = currentDailyDate.getMonth() + 1;
+  const date = currentDailyDate.getDate();
+  const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
+  const dayOfWeek = daysStr[currentDailyDate.getDay()];
+  
+  const titleEl = document.getElementById('daily-date-title');
+  if (titleEl) {
+    titleEl.textContent = `${year}年${String(month).padStart(2, '0')}月${String(date).padStart(2, '0')}日(${dayOfWeek})`;
+  }
+
+  console.log(`[API MOCK] GET /api/attendance/daily?date=${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`);
   const tbody = document.getElementById('daily-tbody');
   tbody.innerHTML = dailyData.map(emp => {
     const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
@@ -707,7 +729,9 @@ function openMonthPicker(e, target) {
 
   currentPickerTarget = target;
   
-  let targetDate = (target === 'matrix') ? currentMatrixDate : currentOvertimeDate;
+  let targetDate = currentMatrixDate;
+  if (target === 'overtime') targetDate = currentOvertimeDate;
+  if (target === 'daily') targetDate = currentDailyDate;
   pickerSelectedYear = targetDate.getFullYear();
 
   // 年セレクトボックスの生成
@@ -771,6 +795,9 @@ function selectSmaregiMonth(year, month) {
   } else if (currentPickerTarget === 'overtime') {
     currentOvertimeDate = newDate;
     renderOvertimeTable();
+  } else if (currentPickerTarget === 'daily') {
+    currentDailyDate = newDate;
+    renderDailyTable();
   }
   
   closeMonthPicker();
