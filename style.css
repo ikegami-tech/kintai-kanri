@@ -947,6 +947,11 @@ td:hover .memo-icon::before,
 /* ==================================================
    日表示デザイン (スマレジ1枚目完全再現 × TOHOカラー)
    ================================================== */
+#page-daily {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
 .daily-container {
   background: white;
   border-radius: 8px;
@@ -1062,9 +1067,16 @@ td:hover .memo-icon::before,
 
 .emp-name-cell {
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+}
+
+.emp-name-cell .dot-status {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.emp-name-cell .emp-link {
+  vertical-align: middle;
 }
 
 .emp-link {
