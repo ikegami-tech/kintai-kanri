@@ -494,11 +494,18 @@ body {
 /* ==================================================
    従業員一覧用デザイン (スマレジ再現 × TOHOカラー)
    ================================================== */
+#page-employees {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
 .emp-page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--toho-blue);
 }
 
 .emp-btn-group .btn-primary {
