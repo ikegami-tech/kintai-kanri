@@ -871,12 +871,17 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   console.log('[API MOCK] POST /api/auth/setup-password', { password: pw1 });
   await new Promise(resolve => setTimeout(resolve, 800));
 
-  // ログイン後のメイン画面へ自動遷移
+  // 完了画面へ遷移
   document.getElementById('password-setup-view').classList.add('hidden');
-  document.getElementById('app-view').classList.remove('hidden');
+  document.getElementById('password-complete-view').classList.remove('hidden');
   this.reset();
   
-  btn.textContent = '設定してログイン';
+  btn.textContent = '設定する';
   btn.disabled = false;
-  showToast('パスワードを設定し、ログインしました。');
 });
+
+// 完了画面からログイン画面へ戻る処理
+function goToLoginFromComplete() {
+  document.getElementById('password-complete-view').classList.add('hidden');
+  document.getElementById('login-view').classList.remove('hidden');
+}

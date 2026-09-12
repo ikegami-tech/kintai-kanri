@@ -61,9 +61,26 @@
           <input type="password" id="setup-pw2" placeholder="パスワード(確認用)" required>
         </div>
         <div class="login-action-row" style="justify-content: center;">
-          <button type="submit" class="btn-login" style="width: 100%;">設定してログイン</button>
+          <button type="submit" class="btn-login" style="width: 100%;">設定する</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 新規追加：パスワード設定完了画面 -->
+  <div id="password-complete-view" class="hidden">
+    <div class="login-container">
+      <div class="login-logo-title">
+        勤怠管理 <span class="badge">TIME CARD</span>
+      </div>
+      <h2 class="login-heading">パスワード設定完了</h2>
+      <p style="font-size: 14px; color: var(--text-main); margin-bottom: 30px; line-height: 1.6;">
+        パスワードの設定が完了しました。<br>
+        新しいパスワードでログインしてください。
+      </p>
+      <div class="login-action-row" style="justify-content: center;">
+        <button type="button" class="btn-login" style="width: 100%;" onclick="goToLoginFromComplete()">ログイン画面へ戻る</button>
+      </div>
     </div>
   </div>
 
