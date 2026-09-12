@@ -145,13 +145,17 @@
           <div class="monthly-container">
             <!-- 画面上部 操作パネル -->
             <div class="monthly-header-bar">
+              <div class="monthly-actions-left">
+                <!-- 左側の空きスペース確保用 -->
+              </div>
+
               <div class="month-selector">
                 <span class="current-month-title" id="matrix-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
-                  <button class="btn-sub" onclick="changeOvertimeMonth(-1)">＜</button>
+                  <button class="btn-sub" onclick="changeMatrixMonth(-1)">＜</button>
                   <button class="btn-sub" onclick="openMonthPicker(event, 'matrix')">📅</button>
-                  <button class="btn-sub" onclick="changeOvertimeMonth(0)">今月</button>
-                  <button class="btn-sub" onclick="changeOvertimeMonth(1)">＞</button>
+                  <button class="btn-sub" onclick="changeMatrixMonth(0)">今月</button>
+                  <button class="btn-sub" onclick="changeMatrixMonth(1)">＞</button>
                 </div>
               </div>
 
@@ -248,6 +252,10 @@
           <div class="monthly-container">
             <!-- 画面上部 操作パネル -->
             <div class="monthly-header-bar">
+              <div class="monthly-actions-left">
+                <!-- 左側の空きスペース確保用 -->
+              </div>
+
               <div class="month-selector">
                 <span class="current-month-title" id="overtime-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
@@ -257,6 +265,7 @@
                   <button class="btn-sub" onclick="changeOvertimeMonth(1)">＞</button>
                 </div>
               </div>
+
               <div class="monthly-actions">
                 <button class="btn-print" onclick="window.print()">📄 印刷 (実績ダウンロード)</button>
               </div>
