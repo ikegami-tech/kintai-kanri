@@ -570,21 +570,29 @@ let overtimeSortKey = 'name';
 let overtimeSortAsc = true;
 
 const overtimeDataMock = [
-  { id: 1, name: '安藤 健太郎', weekdayDays: 20, weekendDays: 1, totalHours: 165.5, overtimeHours: 15.5 },
-  { id: 2, name: '五十嵐 由樹', weekdayDays: 19, weekendDays: 0, totalHours: 155.0, overtimeHours: 5.0 },
-  { id: 3, name: '池上 裕士', weekdayDays: 22, weekendDays: 2, totalHours: 190.0, overtimeHours: 30.0 },
-  { id: 4, name: '池谷 あや子', weekdayDays: 20, weekendDays: 0, totalHours: 160.0, overtimeHours: 10.0 },
-  { id: 5, name: '石井 秀龍', weekdayDays: 21, weekendDays: 1, totalHours: 175.5, overtimeHours: 20.5 }
+  { id: 1, name: '安藤 健太郎', dept: '営業', weekdayDays: 20, weekendDays: 1, totalHours: 165.5, overtimeHours: 15.5 },
+  { id: 2, name: '五十嵐 由樹', dept: '課長', weekdayDays: 19, weekendDays: 0, totalHours: 155.0, overtimeHours: 5.0 },
+  { id: 3, name: '池上 裕士', dept: '課', weekdayDays: 22, weekendDays: 2, totalHours: 190.0, overtimeHours: 30.0 },
+  { id: 4, name: '池谷 あや子', dept: '営業', weekdayDays: 20, weekendDays: 0, totalHours: 160.0, overtimeHours: 10.0 },
+  { id: 5, name: '石井 秀龍', dept: '課', weekdayDays: 21, weekendDays: 1, totalHours: 175.5, overtimeHours: 20.5 }
 ];
 
 async function renderOvertimeTable() {
-  console.log(`[API MOCK] GET /api/attendance/overtime?year=${currentOvertimeDate.getFullYear()}&month=${currentOvertimeDate.getMonth() + 1}`);
+  const filterEl = document.getElementById('overtime-dept-filter');
+  const selectedDept = filterEl ? filterEl.value : 'ALL';
+  console.log(`[API MOCK] GET /api/attendance/overtime?year=${currentOvertimeDate.getFullYear()}&month=${currentOvertimeDate.getMonth() + 1}&dept=${selectedDept}`);
   
   const year = currentOvertimeDate.getFullYear();
   const month = currentOvertimeDate.getMonth() + 1;
   document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  const sortedData = [...overtimeDataMock].sort((a, b) => {
+  // 選択された区分（課/課長/営業）で絞り込み
+  let displayData = overtimeDataMock;
+  if (selectedDept !== 'ALL') {
+    displayData = overtimeDataMock.filter(emp => emp.dept === selectedDept);
+  }
+
+  const sortedData = [...displayData].sort((a, b) => {
     let valA = a[overtimeSortKey];
     let valB = b[overtimeSortKey];
     if (typeof valA === 'string') {

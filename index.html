@@ -256,7 +256,12 @@
             <!-- 画面上部 操作パネル -->
             <div class="monthly-header-bar">
               <div class="monthly-actions-left">
-                <!-- 左側の空きスペース確保用 -->
+                <select id="overtime-dept-filter" class="form-select" style="width: 130px; padding: 6px 10px; font-size: 13px;" onchange="renderOvertimeTable()">
+                  <option value="ALL">全体表示</option>
+                  <option value="課">課</option>
+                  <option value="課長">課長</option>
+                  <option value="営業">営業</option>
+                </select>
               </div>
 
               <div class="month-selector">
