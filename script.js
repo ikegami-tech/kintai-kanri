@@ -708,7 +708,7 @@ function openMonthPicker(e, target) {
 
   if (targetEl && targetEl.getBoundingClientRect) {
     const btnRect = targetEl.getBoundingClientRect();
-    picker.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
+    picker.style.top = `${btnRect.bottom + window.scrollY + 8}px`;
     picker.style.left = `${btnRect.left + window.scrollX - 100}px`;
   }
   
