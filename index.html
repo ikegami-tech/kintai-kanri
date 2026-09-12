@@ -148,10 +148,10 @@
               <div class="month-selector">
                 <span class="current-month-title" id="matrix-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
-                  <button class="btn-sub" onclick="changeMatrixMonth(-1)">＜</button>
-                  <button class="btn-sub" onclick="openMonthPicker('matrix')">📅</button>
-                  <button class="btn-sub" onclick="changeMatrixMonth(0)">今月</button>
-                  <button class="btn-sub" onclick="changeMatrixMonth(1)">＞</button>
+                  <button class="btn-sub" onclick="changeOvertimeMonth(-1)">＜</button>
+                  <button class="btn-sub" onclick="openMonthPicker('overtime')">📅</button>
+                  <button class="btn-sub" onclick="changeOvertimeMonth(0)">今月</button>
+                  <button class="btn-sub" onclick="changeOvertimeMonth(1)">＞</button>
                 </div>
               </div>
 
@@ -732,24 +732,22 @@
   <!-- トースト通知 (保存完了メッセージ) -->
   <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
 
-  <!-- スマレジ風 年月選択ポップアップモーダル -->
-  <div id="modal-month-picker" class="modal-overlay hidden" onclick="closeMonthPicker()">
-    <div class="smaregi-picker-card" onclick="event.stopPropagation()">
-      <!-- 年選択ヘッダー -->
-      <div class="smaregi-picker-header">
-        <button class="smaregi-arrow-btn" onclick="changePickerYear(-1)">◀</button>
-        <div class="smaregi-year-select-wrapper">
-          <select id="smaregi-picker-year" onchange="renderMonthButtons()">
-            <!-- JSで動的に年要素を生成 -->
-          </select>
-          <span>年</span>
-        </div>
-        <button class="smaregi-arrow-btn" onclick="changePickerYear(1)">▶</button>
+  <!-- スマレジ風 年月選択ポップオーバー -->
+  <div id="modal-month-picker" class="smaregi-picker-card hidden" onclick="event.stopPropagation()">
+    <!-- 年選択ヘッダー -->
+    <div class="smaregi-picker-header">
+      <button class="smaregi-arrow-btn" onclick="changePickerYear(-1)">◀</button>
+      <div class="smaregi-year-select-wrapper">
+        <select id="smaregi-picker-year" onchange="renderMonthButtons()">
+          <!-- JSで動的に年要素を生成 -->
+        </select>
+        <span>年</span>
       </div>
-      <!-- 1月〜12月ボタン（4列×3行） -->
-      <div class="smaregi-month-grid" id="smaregi-month-grid">
-        <!-- JSで動的に1月〜12月ボタンを生成 -->
-      </div>
+      <button class="smaregi-arrow-btn" onclick="changePickerYear(1)">▶</button>
+    </div>
+    <!-- 1月〜12月ボタン（4列×3行） -->
+    <div class="smaregi-month-grid" id="smaregi-month-grid">
+      <!-- JSで動的に1月〜12月ボタンを生成 -->
     </div>
   </div>
 

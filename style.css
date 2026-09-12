@@ -1801,12 +1801,14 @@ td:hover .memo-icon::before,
    スマレジ風 年月選択ポップアップ デザイン
    ================================================== */
 .smaregi-picker-card {
+  position: absolute;
+  z-index: 1000;
   background: #f4f6f8;
   border: 1px solid #d0d7de;
   border-radius: 6px;
   padding: 12px;
   width: 280px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
 .smaregi-picker-header {

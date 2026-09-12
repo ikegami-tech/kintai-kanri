@@ -113,6 +113,9 @@ document.addEventListener('click', function(e) {
     const cellMenu = document.getElementById('cell-action-menu');
     if (cellMenu) cellMenu.classList.add('hidden');
   }
+  if (!e.target.closest('#modal-month-picker') && !e.target.closest('.btn-sub')) {
+    closeMonthPicker();
+  }
 });
 
 function toggleMailAccordion() {
@@ -673,13 +676,14 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentPickerTarget = ''; 
 let pickerSelectedYear = 2026;
 
-function openMonthPicker(target) {
+function openMonthPicker(event, target) {
+  event.stopPropagation();
   currentPickerTarget = target;
   
   let targetDate = (target === 'matrix') ? currentMatrixDate : currentOvertimeDate;
   pickerSelectedYear = targetDate.getFullYear();
 
-  // 年セレクトボックスの生成（前後5年分）
+  // 年セレクトボックスの生成
   const yearSelect = document.getElementById('smaregi-picker-year');
   let yearHtml = '';
   for (let y = pickerSelectedYear - 5; y <= pickerSelectedYear + 5; y++) {
@@ -688,7 +692,15 @@ function openMonthPicker(target) {
   yearSelect.innerHTML = yearHtml;
 
   renderMonthButtons();
-  document.getElementById('modal-month-picker').classList.remove('hidden');
+
+  // クリックされた📅ボタンの直下にポップオーバーを配置
+  const picker = document.getElementById('modal-month-picker');
+  const btnRect = event.currentTarget.getBoundingClientRect();
+  
+  picker.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
+  picker.style.left = `${btnRect.left + window.scrollX - 100}px`; // 位置をボタン中央付近に合わせる
+  
+  picker.classList.remove('hidden');
 }
 
 function closeMonthPicker() {
