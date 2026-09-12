@@ -1545,12 +1545,16 @@ td:hover .memo-icon::before {
 }
 
 .form-select-sm {
-  padding: 6px;
+  width: 68px;
+  height: 34px;
+  padding: 4px 22px 4px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
-  background: white;
+  background-color: #ffffff;
+  cursor: pointer;
+  text-align: center;
 }
 
 /* スクロール展開時に他の要素を押し下げないよう最前面化 */
