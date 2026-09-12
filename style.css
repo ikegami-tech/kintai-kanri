@@ -885,14 +885,14 @@ td:hover .memo-icon::before {
   display: block !important;
 }
 
-/* 吹き出し本体（💬アイコンのすぐ下へ配置） */
+/* 吹き出し本体（💬アイコンの上方向へ配置） */
 .memo-icon::after {
   content: attr(data-tooltip);
   position: absolute;
-  top: 100%;                  /* アイコンの直下に表示 */
+  bottom: 100%;                /* 💬アイコンの上方向に配置 */
   left: 50%;
-  transform: translateX(-50%); /* アイコン中央揃え */
-  margin-top: 6px;
+  transform: translateX(-50%); /* アイコン水平中央揃え */
+  margin-bottom: 8px;          /* 打刻文字やカーソルと被らない隙間を確保 */
   background: #111111;
   color: #ffffff;
   padding: 6px 10px;
@@ -907,19 +907,19 @@ td:hover .memo-icon::before {
   width: max-content;
   max-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  pointer-events: none;       /* マウスカーソルのホバーを妨げない */
+  pointer-events: none;       /* マウスカーソルが通過・ホバーしても干渉しない設定 */
 }
 
-/* 吹き出しの三角形（上向き） */
+/* 吹き出しの三角形（下向き） */
 .memo-icon::before {
   content: '';
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: -4px;
+  margin-bottom: -2px;
   border: 5px solid transparent;
-  border-bottom-color: #111111;
+  border-top-color: #111111;
   display: none;
   z-index: 3001;
   pointer-events: none;
