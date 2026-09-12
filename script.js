@@ -1,19 +1,16 @@
 // ==========================================
-// 1. ログイン処理 (API連携想定: async/await)
+// 1. ログイン・ログアウト処理
 // ==========================================
 document.getElementById('login-form').addEventListener('submit', async function(e) {
-  e.preventDefault(); // フォームの標準送信を防ぎ、403エラーを回避します
-
+  e.preventDefault();
   const btn = this.querySelector('.btn-login');
   btn.textContent = 'ログイン中...';
   btn.disabled = true;
 
   const loginId = document.getElementById('login-id').value;
   const loginPw = document.getElementById('login-pw').value;
-
   console.log('[API MOCK] POST /api/auth/login', { loginId, loginPw });
   
-  // 通信遅延モック（0.6秒待機してAPI通信を疑似再現）
   await new Promise(resolve => setTimeout(resolve, 600));
 
   document.getElementById('login-view').classList.add('hidden');
@@ -23,52 +20,14 @@ document.getElementById('login-form').addEventListener('submit', async function(
   btn.disabled = false;
 });
 
-// ==========================================
-// 各種サブミット処理 (API連携想定: async/await)
-// ==========================================
-async function submitRecordCreate() {
-  const date = document.getElementById('create-date').value;
-  console.log(`[API MOCK] POST /api/attendance`, { empName: currentEmpName, date: date, action: 'create' });
-  // await fetch('/api/attendance', { method: 'POST', ... });
-  
-  closeRecordModal('modal-record-create');
-  showToast('実績を新規作成しました');
-}
-
-async function submitRecordEdit() {
-  const date = document.getElementById('edit-date').value;
-  console.log(`[API MOCK] PUT /api/attendance/${currentEmpName}/${date}`);
-  // await fetch(`/api/attendance/${currentEmpName}/${date}`, { method: 'PUT', ... });
-  
-  closeRecordModal('modal-record-edit');
-  showToast('実績を更新しました（赤文字で表示されます）');
-}
-
-async function submitRecordDelete() {
-  const date = document.getElementById('edit-date').value;
-  console.log(`[API MOCK] DELETE /api/attendance/${currentEmpName}/${date}`);
-  // await fetch(`/api/attendance/${currentEmpName}/${date}`, { method: 'DELETE' });
-  
-  closeRecordModal('modal-record-edit');
-  showToast('実績を削除しました');
-}
-
-async function submitRecordMemo() {
-  const date = document.getElementById('memo-date').textContent;
-  console.log(`[API MOCK] POST /api/attendance/${currentEmpName}/${date}/memo`);
-  // await fetch(`/api/attendance/${currentEmpName}/${date}/memo`, { method: 'POST', ... });
-  
-  closeRecordModal('modal-employee-memo');
-  showToast('従業員メモを保存しました');
-}
-
-// 2. ログアウト処理
 function logout() {
   document.getElementById('app-view').classList.add('hidden');
   document.getElementById('login-view').classList.remove('hidden');
 }
 
-// 3. サイドバーの折りたたみ切替 (スマレジ風)
+// ==========================================
+// 2. UI制御 (サイドバー・SPA画面切り替え)
+// ==========================================
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const icon = document.getElementById('collapse-icon');
@@ -85,27 +44,19 @@ function toggleSidebar() {
   }
 }
 
-// 4. 勤怠管理アコーディオン切替
 function toggleAttendanceMenu() {
   const sidebar = document.getElementById('sidebar');
-  
-  // 折りたたみ中にクリックされたら自動で展開する
   if (sidebar.classList.contains('collapsed')) {
     toggleSidebar();
   }
-
   const submenu = document.getElementById('attendance-sub');
   const arrow = document.getElementById('attendance-arrow');
-
   submenu.classList.toggle('open');
   arrow.classList.toggle('open');
 }
 
-// 5. 画面切り替え (SPA)
 function switchPage(pageId, element) {
   const sidebar = document.getElementById('sidebar');
-
-  // 同じメニュー（アクティブな状態）をクリックした場合は、開閉を切り替える
   if (element && element.classList.contains('active')) {
     toggleSidebar();
     return;
@@ -129,13 +80,14 @@ function switchPage(pageId, element) {
   navItems.forEach(item => item.classList.remove('active'));
   if (element) element.classList.add('active');
 
-  // 別のメニューを選んで切り替わった場合は、サイドバーを展開して広く表示する
   if (sidebar.classList.contains('collapsed')) {
     toggleSidebar();
   }
 }
 
-// 6. モーダル制御
+// ==========================================
+// 3. モーダル・ポップオーバー・トースト共通制御
+// ==========================================
 function showModal(title, msg) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-msg').textContent = msg;
@@ -145,90 +97,6 @@ function showModal(title, msg) {
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
 }
-
-// 従業員一覧「...」ポップオーバーメニュー制御
-function toggleEmpMenu(buttonEl) {
-  const popover = buttonEl.nextElementSibling;
-  
-  // 他の開いているポップオーバーを一旦閉じる
-  document.querySelectorAll('.emp-popover-menu').forEach(menu => {
-    if (menu !== popover) menu.classList.add('hidden');
-  });
-
-  popover.classList.toggle('hidden');
-}
-
-// 外部クリック時に操作メニューを自動で閉じる
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.emp-action-menu')) {
-    document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
-  }
-});
-// ==========================================
-// セルクリック時のポップアップ＆モーダル制御（仕様書要件）
-// ==========================================
-let currentEmpName = '';
-let currentDate = '';
-
-function openCellMenu(event, empName, dateStr) {
-  event.stopPropagation();
-  currentEmpName = empName;
-  currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`; // YYYY/MM/DD形式へ変換
-  
-  const menu = document.getElementById('cell-action-menu');
-  document.getElementById('cell-menu-title').textContent = `${empName} - ${dateStr}`;
-  
-  menu.style.left = `${event.pageX}px`;
-  menu.style.top = `${event.pageY}px`;
-  menu.classList.remove('hidden');
-}
-
-// メニューからアクションを選択した際の振り分け
-function handleCellAction(actionType) {
-  document.getElementById('cell-action-menu').classList.add('hidden');
-  
-  if (actionType === '新規作成') {
-    document.getElementById('create-emp-name').textContent = currentEmpName;
-    document.getElementById('create-date').value = currentDate;
-    document.getElementById('modal-record-create').classList.remove('hidden');
-  } 
-  else if (actionType === '編集') {
-    document.getElementById('edit-emp-name').textContent = currentEmpName;
-    document.getElementById('edit-date').value = currentDate;
-    document.getElementById('modal-record-edit').classList.remove('hidden');
-  } 
-  else if (actionType === '従業員メモ') {
-    document.getElementById('memo-emp-name').textContent = currentEmpName;
-    document.getElementById('memo-date').textContent = currentDate;
-    document.getElementById('modal-employee-memo').classList.remove('hidden');
-  } 
-  else if (actionType === '詳細へ') {
-    document.getElementById('timeline-title').textContent = `${currentDate} 詳細タイムライン`;
-    renderTimeline(currentDate); // API呼び出しと描画を実行
-    const pages = document.querySelectorAll('.page-content');
-    pages.forEach(page => page.classList.add('hidden'));
-    document.getElementById('page-timeline-detail').classList.remove('hidden');
-  }
-}
-
-// 共通モーダル閉じる処理
-function closeRecordModal(modalId) {
-  document.getElementById(modalId).classList.add('hidden');
-}
-
-// アコーディオンメール表示切替
-function toggleMailAccordion() {
-  const body = document.getElementById('mail-content');
-  const arrow = document.getElementById('mail-arrow');
-  body.classList.toggle('hidden');
-  arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
-}
-
-// 各種サブミットダミー処理
-function submitRecordCreate() { closeRecordModal('modal-record-create'); showToast('実績を新規作成しました'); }
-function submitRecordEdit() { closeRecordModal('modal-record-edit'); showToast('実績を更新しました（赤文字で表示されます）'); }
-function submitRecordDelete() { closeRecordModal('modal-record-edit'); showToast('実績を削除しました'); }
-function submitRecordMemo() { closeRecordModal('modal-employee-memo'); showToast('従業員メモを保存しました'); }
 
 function showToast(msg) {
   const toast = document.getElementById('toast-message');
@@ -241,14 +109,31 @@ function showToast(msg) {
   }, 2500);
 }
 
-// 画面外クリック時にセルメニューを閉じる
+function toggleEmpMenu(buttonEl) {
+  const popover = buttonEl.nextElementSibling;
+  document.querySelectorAll('.emp-popover-menu').forEach(menu => {
+    if (menu !== popover) menu.classList.add('hidden');
+  });
+  popover.classList.toggle('hidden');
+}
+
 document.addEventListener('click', function(e) {
-  const cellMenu = document.getElementById('cell-action-menu');
-  if (cellMenu && !e.target.closest('#cell-action-menu')) {
-    cellMenu.classList.add('hidden');
+  if (!e.target.closest('.emp-action-menu')) {
+    document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
+  }
+  if (!e.target.closest('#cell-action-menu') && !e.target.closest('.cell-click')) {
+    const cellMenu = document.getElementById('cell-action-menu');
+    if (cellMenu) cellMenu.classList.add('hidden');
   }
 });
-// 日表示：位置情報（地図）モーダル制御 (仕様書要件)
+
+function toggleMailAccordion() {
+  const body = document.getElementById('mail-content');
+  const arrow = document.getElementById('mail-arrow');
+  body.classList.toggle('hidden');
+  arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
+}
+
 function openMapModal(empName, timeStr, addressStr) {
   document.getElementById('map-modal-title').textContent = `${empName} の打刻位置`;
   document.getElementById('map-modal-subtitle').textContent = `打刻時刻: ${timeStr}`;
@@ -259,28 +144,155 @@ function openMapModal(empName, timeStr, addressStr) {
 function closeMapModal() {
   document.getElementById('map-modal').classList.add('hidden');
 }
-// 従業員詳細画面への遷移処理
+
+// ==========================================
+// 4. アクション・APIモック処理 (セルクリック・従業員操作など)
+// ==========================================
+let currentEmpName = '';
+let currentDate = '';
+
+function openCellMenu(event, empName, dateStr) {
+  event.stopPropagation();
+  currentEmpName = empName;
+  currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
+  
+  const menu = document.getElementById('cell-action-menu');
+  document.getElementById('cell-menu-title').textContent = `${empName} - ${dateStr}`;
+  menu.style.left = `${event.pageX}px`;
+  menu.style.top = `${event.pageY}px`;
+  menu.classList.remove('hidden');
+}
+
+function handleCellAction(actionType) {
+  document.getElementById('cell-action-menu').classList.add('hidden');
+  
+  if (actionType === '新規作成') {
+    document.getElementById('create-emp-name').textContent = currentEmpName;
+    document.getElementById('create-date').value = currentDate;
+    document.getElementById('modal-record-create').classList.remove('hidden');
+  } else if (actionType === '編集') {
+    document.getElementById('edit-emp-name').textContent = currentEmpName;
+    document.getElementById('edit-date').value = currentDate;
+    document.getElementById('modal-record-edit').classList.remove('hidden');
+  } else if (actionType === '従業員メモ') {
+    document.getElementById('memo-emp-name').textContent = currentEmpName;
+    document.getElementById('memo-date').textContent = currentDate;
+    document.getElementById('modal-employee-memo').classList.remove('hidden');
+  } else if (actionType === '詳細へ') {
+    document.getElementById('timeline-title').textContent = `${currentDate} 詳細タイムライン`;
+    renderTimeline(currentDate);
+    const pages = document.querySelectorAll('.page-content');
+    pages.forEach(page => page.classList.add('hidden'));
+    document.getElementById('page-timeline-detail').classList.remove('hidden');
+  }
+}
+
+function closeRecordModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
+
+async function submitRecordCreate() {
+  const date = document.getElementById('create-date').value;
+  console.log(`[API MOCK] POST /api/attendance`, { empName: currentEmpName, date: date, action: 'create' });
+  closeRecordModal('modal-record-create');
+  showToast('実績を新規作成しました');
+}
+
+async function submitRecordEdit() {
+  const date = document.getElementById('edit-date').value;
+  console.log(`[API MOCK] PUT /api/attendance/${currentEmpName}/${date}`);
+  closeRecordModal('modal-record-edit');
+  showToast('実績を更新しました（赤文字で表示されます）');
+}
+
+async function submitRecordDelete() {
+  const date = document.getElementById('edit-date').value;
+  console.log(`[API MOCK] DELETE /api/attendance/${currentEmpName}/${date}`);
+  closeRecordModal('modal-record-edit');
+  showToast('実績を削除しました');
+}
+
+async function submitRecordMemo() {
+  const date = document.getElementById('memo-date').textContent;
+  console.log(`[API MOCK] POST /api/attendance/${currentEmpName}/${date}/memo`);
+  closeRecordModal('modal-employee-memo');
+  showToast('従業員メモを保存しました');
+}
+
+// 従業員操作関連
+let currentEmpAction = null;
+let currentEmpTargetId = null;
+let currentEmpTargetName = '';
+
+function handleEmpAction(action, empId, empName, toggleType = '') {
+  document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
+
+  if (action === 'copy') {
+    console.log(`[API MOCK] GET /api/employees/${empId} (既存設定の取得)`);
+    openCreateEmployee();
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('#employee-create-form .form-input');
+      if (inputs.length > 0) inputs[0].value = `${empName} (コピー)`;
+    }, 100);
+    return;
+  }
+
+  currentEmpAction = action;
+  currentEmpTargetId = empId;
+  currentEmpTargetName = empName;
+
+  const modal = document.getElementById('modal-emp-action');
+  const msgEl = document.getElementById('emp-action-msg');
+  const btnEl = document.getElementById('emp-action-execute-btn');
+
+  if (action === 'toggle') {
+    msgEl.textContent = `従業員『${empName}』の利用を${toggleType}しますか？`;
+    msgEl.style.color = 'var(--text-main)';
+    btnEl.textContent = 'はい';
+    btnEl.className = 'btn-primary';
+  } else if (action === 'delete') {
+    msgEl.textContent = `従業員『${empName}』を削除しますか？`;
+    msgEl.style.color = '#e74c3c';
+    btnEl.textContent = '削除';
+    btnEl.className = 'btn-danger';
+  }
+  modal.classList.remove('hidden');
+}
+
+function closeEmpActionModal() {
+  document.getElementById('modal-emp-action').classList.add('hidden');
+  currentEmpAction = null;
+  currentEmpTargetId = null;
+}
+
+async function executeEmpAction() {
+  if (currentEmpAction === 'toggle') {
+    console.log(`[API MOCK] PATCH /api/employees/${currentEmpTargetId}/status`);
+    showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
+    const statusBadge = document.getElementById(`emp-status-${currentEmpTargetId}`);
+    if (statusBadge) statusBadge.classList.toggle('hidden');
+  } else if (currentEmpAction === 'delete') {
+    console.log(`[API MOCK] DELETE /api/employees/${currentEmpTargetId}`);
+    showToast(`従業員『${currentEmpTargetName}』を削除しました。`);
+    const cardEl = document.getElementById(`emp-card-${currentEmpTargetId}`);
+    if (cardEl) cardEl.remove();
+  }
+  closeEmpActionModal();
+}
+
 function showEmployeeDetail(empName) {
-  // 名前を詳細画面のタイトルに反映
   document.getElementById('detail-emp-name').textContent = empName;
   document.getElementById('val-name').textContent = empName;
-  
-  // 画面を詳細ページへ切り替え
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-employee-detail').classList.remove('hidden');
-
-  // ヘッダータイトル更新
   document.getElementById('page-title').textContent = '従業員管理';
 }
-// ==========================================
-// 従業員編集画面 制御 & トースト通知
-// ==========================================
+
 function openEditEmployee() {
   const currentName = document.getElementById('detail-emp-name').textContent;
   document.getElementById('edit-emp-name').textContent = currentName;
   document.getElementById('edit-name').value = currentName;
-  
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-employee-edit').classList.remove('hidden');
@@ -298,12 +310,10 @@ async function saveEmployeeEdit(event) {
   btn.textContent = '保存中...';
   btn.disabled = true;
 
-  // FormDataを用いたAPI送信ペイロードの生成想定
   const formData = new FormData(event.target);
   const payload = Object.fromEntries(formData.entries());
   console.log(`[API MOCK] PUT /api/employees/${currentEmpTargetId || 'current'}`, payload);
   
-  // 実際の通信想定: await fetch(`/api/employees/...`, { method: 'PUT', body: JSON.stringify(payload) });
   await new Promise(resolve => setTimeout(resolve, 500));
 
   const newName = document.getElementById('edit-name').value;
@@ -312,14 +322,10 @@ async function saveEmployeeEdit(event) {
   
   showToast('従業員情報を保存しました。');
   closeEditEmployee();
-
   btn.textContent = '設定を保存';
   btn.disabled = false;
 }
 
-// ==========================================
-// 新規従業員作成画面 制御
-// ==========================================
 function openCreateEmployee() {
   document.getElementById('employee-create-form').reset();
   const pages = document.querySelectorAll('.page-content');
@@ -343,21 +349,50 @@ async function saveNewEmployee(event) {
   const payload = Object.fromEntries(formData.entries());
   console.log(`[API MOCK] POST /api/employees`, payload);
 
-  // 実際の通信想定: await fetch(`/api/employees`, { method: 'POST', body: JSON.stringify(payload) });
   await new Promise(resolve => setTimeout(resolve, 500));
 
   showToast('新しい従業員を作成しました。');
   closeCreateEmployee();
-
   btn.textContent = '設定を保存';
   btn.disabled = false;
 }
 // ==========================================
-// 月表示（マトリクス表）のカレンダー動的生成
+// 5. データモックとレンダリング関数 (API連携想定)
 // ==========================================
-let currentMatrixDate = new Date(2026, 8, 1); // 初期表示: 2026年9月
 
-// これまでのダミーデータをJS配列として保持
+// --- ダッシュボード ---
+async function renderDashboard() {
+  console.log('[API MOCK] GET /api/dashboard/status');
+  const data = {
+    working: [
+      { name: '山田 太郎', time: '08:55 -' },
+      { name: '岡田 光平', time: '09:00 -' },
+      { name: '佐野 真知子', time: '09:12 -' }
+    ],
+    finished: [
+      { name: '佐藤 花子', time: '09:00 - 18:00' }
+    ]
+  };
+
+  document.getElementById('dash-working-count').textContent = `${data.working.length}名`;
+  document.getElementById('dash-working-list').innerHTML = data.working.map(emp => `
+    <li class="member-item">
+      <span class="member-name"><span class="dot-status dot-working"></span>${emp.name}</span>
+      <span class="time-text">${emp.time}</span>
+    </li>
+  `).join('');
+
+  document.getElementById('dash-finished-count').textContent = `${data.finished.length}名`;
+  document.getElementById('dash-finished-list').innerHTML = data.finished.map(emp => `
+    <li class="member-item">
+      <span class="member-name"><span class="dot-status dot-finished"></span>${emp.name}</span>
+      <span class="time-text">${emp.time}</span>
+    </li>
+  `).join('');
+}
+
+// --- 月表示 (マトリクス表) ---
+let currentMatrixDate = new Date(2026, 8, 1);
 const matrixData = [
   {
     name: '安藤 健太郎', sum: '55.85<br><small>(8日)</small>',
@@ -390,12 +425,9 @@ function renderMatrixTable() {
   const month = currentMatrixDate.getMonth() + 1;
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // タイトル更新
   document.getElementById('matrix-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
   const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
-
-  // thead生成 (その月の日数に応じて列を自動生成)
   let theadHtml = `
     <tr>
       <th rowspan="2" class="col-emp-name">従業員名</th>
@@ -413,7 +445,6 @@ function renderMatrixTable() {
   theadHtml += `</tr>`;
   document.getElementById('matrix-thead').innerHTML = theadHtml;
 
-  // tbody生成
   let tbodyHtml = '';
   matrixData.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
@@ -429,18 +460,15 @@ function renderMatrixTable() {
       
       tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
     }
-    // 月が9月以外の場合は、合計値を一旦ダミー（-）にする
     const sumVal = (year === 2026 && month === 9) ? emp.sum : '-';
     tbodyHtml += `<td class="col-sum">${sumVal}</td></tr>`;
   });
-  
   document.getElementById('matrix-tbody').innerHTML = tbodyHtml;
 }
 
-// 月の切り替え関数
 function changeMatrixMonth(offset) {
   if (offset === 0) {
-    const now = new Date(); // 現在日時に戻る
+    const now = new Date();
     currentMatrixDate = new Date(now.getFullYear(), now.getMonth(), 1);
   } else {
     currentMatrixDate.setMonth(currentMatrixDate.getMonth() + offset);
@@ -448,92 +476,35 @@ function changeMatrixMonth(offset) {
   renderMatrixTable();
 }
 
-// 初期ロード時に描画を実行
-document.addEventListener('DOMContentLoaded', () => {
-  renderMatrixTable();
-});
-// ==========================================
-// 従業員一覧 操作系機能 (API連携想定)
-// ==========================================
-let currentEmpAction = null;
-let currentEmpTargetId = null;
-let currentEmpTargetName = '';
+// --- 詳細タイムライン (ガントチャート) ---
+async function renderTimeline(dateStr) {
+  console.log(`[API MOCK] GET /api/attendance/timeline?date=${dateStr}`);
+  const data = [
+    { name: '安藤 健太郎', memo: '[NEXTメモ]\n休日出勤', barLeft: '70.4%', barWidth: '14.7%', timeText: '18:28-21:43', hasRest: false },
+    { name: '五十嵐 由樹', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
+    { name: '池上 裕士', memo: '[NEXTメモ]\n休憩あり', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
+    { name: '池谷 あや子', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
+    { name: '石井 秀龍', memo: '[NEXTメモ]\n修正済み', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
+    { name: '岩本 勇祐', memo: '[NEXTメモ]\n午後出勤', barLeft: '40.5%', barWidth: '25.5%', timeText: '11:54-17:31', hasRest: false },
+    { name: '岡田 光平', memo: '[NEXTメモ]\n午前中のみ', barLeft: '31.3%', barWidth: '7.1%', timeText: '09:52-11:26', hasRest: false }
+  ];
 
-function handleEmpAction(action, empId, empName, toggleType = '') {
-  // ポップオーバーを閉じる
-  document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
-
-  // コピー作成: バックエンドから設定値を取得し、新規作成画面へ遷移・反映する想定
-  if (action === 'copy') {
-    console.log(`[API MOCK] GET /api/employees/${empId} (既存設定の取得)`);
-    openCreateEmployee();
-    
-    // UIモック: 名前欄にコピー元をセット
-    setTimeout(() => {
-      const inputs = document.querySelectorAll('#employee-create-form .form-input');
-      if (inputs.length > 0) inputs[0].value = `${empName} (コピー)`;
-    }, 100);
-    return;
-  }
-
-  // ステータス変更・削除: 専用モーダルの表示設定 (仕様書要件)
-  currentEmpAction = action;
-  currentEmpTargetId = empId;
-  currentEmpTargetName = empName;
-
-  const modal = document.getElementById('modal-emp-action');
-  const msgEl = document.getElementById('emp-action-msg');
-  const btnEl = document.getElementById('emp-action-execute-btn');
-
-  if (action === 'toggle') {
-    msgEl.textContent = `従業員『${empName}』の利用を${toggleType}しますか？`;
-    msgEl.style.color = 'var(--text-main)';
-    btnEl.textContent = 'はい';
-    btnEl.className = 'btn-primary';
-  } else if (action === 'delete') {
-    msgEl.textContent = `従業員『${empName}』を削除しますか？`;
-    msgEl.style.color = '#e74c3c'; // 赤色テキスト指定
-    btnEl.textContent = '削除';
-    btnEl.className = 'btn-danger';
-  }
-
-  modal.classList.remove('hidden');
+  document.getElementById('gantt-tbody').innerHTML = data.map(emp => {
+    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
+    const barHtml = emp.barWidth !== '0' ? `
+      <div class="gantt-bar" style="left: ${emp.barLeft}; width: ${emp.barWidth};">${emp.timeText}</div>
+      ${emp.hasRest ? `<div class="gantt-bar-stripe" style="left: ${emp.barLeft}; width: 4.5%;"></div>` : ''}
+    ` : '';
+    return `
+      <tr>
+        <td class="gantt-emp-col">${emp.name} ${memoHtml}</td>
+        <td colspan="22" class="gantt-track">${barHtml}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
-function closeEmpActionModal() {
-  document.getElementById('modal-emp-action').classList.add('hidden');
-  currentEmpAction = null;
-  currentEmpTargetId = null;
-}
-
-// モーダルで「はい / 削除」を押した際の実行処理
-async function executeEmpAction() {
-  if (currentEmpAction === 'toggle') {
-    // API送信想定: const response = await fetch(`/api/employees/${currentEmpTargetId}/status`, { method: 'PATCH' });
-    console.log(`[API MOCK] PATCH /api/employees/${currentEmpTargetId}/status`);
-    showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
-    
-    // フロントエンドUIへの即時反映 (モック)
-    const statusBadge = document.getElementById(`emp-status-${currentEmpTargetId}`);
-    if (statusBadge) statusBadge.classList.toggle('hidden');
-    
-  } else if (currentEmpAction === 'delete') {
-    // API送信想定: const response = await fetch(`/api/employees/${currentEmpTargetId}`, { method: 'DELETE' });
-    console.log(`[API MOCK] DELETE /api/employees/${currentEmpTargetId}`);
-    showToast(`従業員『${currentEmpTargetName}』を削除しました。`);
-    
-    // フロントエンドUIへの即時反映 (DOMからカードを削除)
-    const cardEl = document.getElementById(`emp-card-${currentEmpTargetId}`);
-    if (cardEl) cardEl.remove();
-  }
-
-  closeEmpActionModal();
-}
-// ==========================================
-// バックエンド連携想定: データ配列と動的レンダリング
-// ==========================================
-
-// --- 1. 日表示データのモック ---
+// --- 日表示 ---
 const dailyData = [
   { id: 1, name: '安藤 健太郎', time: '08:29 ～', memo: '[NEXTメモ]\n通常出勤', action: '出勤', fullTime: '9/11 08:29:00', address: '東京都千代田区有楽町1-1-1' },
   { id: 2, name: '五十嵐 由樹', time: '08:52 ～', memo: '[NEXTメモ]\n直行打刻', action: '直行出勤', fullTime: '9/11 08:52:14', address: '東京都新宿区西新宿2-8-1' },
@@ -544,14 +515,10 @@ const dailyData = [
 
 async function renderDailyTable() {
   console.log('[API MOCK] GET /api/attendance/daily?date=2026-09-11');
-  // const dailyData = await fetch(...).then(res => res.json());
-
   const tbody = document.getElementById('daily-tbody');
-  let html = '';
-  
-  dailyData.forEach(emp => {
+  tbody.innerHTML = dailyData.map(emp => {
     const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
-    html += `
+    return `
       <tr>
         <td class="emp-name-cell">
           <span class="dot-status dot-working"></span>
@@ -568,191 +535,10 @@ async function renderDailyTable() {
         </td>
       </tr>
     `;
-  });
-  tbody.innerHTML = html;
-}
-
-// --- 2. 従業員データのモック ---
-const employeesData = [
-  { id: 2, name: '阿久津 幸一', role: 'システム管理者', roleClass: 'badge-admin', status: '利用停止', empType: '管理職', office: 'NEXT (事業所管理者)', joinDate: '-' },
-  { id: 69, name: '安藤 健太郎', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2024年08月01日' },
-  { id: 81, name: '五十嵐 由樹', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2025年02月03日' }
-];
-
-async function renderEmployees() {
-  console.log('[API MOCK] GET /api/employees');
-  // const employeesData = await fetch(...).then(res => res.json());
-
-  const container = document.getElementById('emp-list-container');
-  let html = '';
-
-  employeesData.forEach(emp => {
-    const statusClass = emp.status === '利用停止' ? '' : 'hidden';
-    const toggleAction = emp.status === '利用停止' ? '再開' : '停止';
-    
-    html += `
-      <div class="emp-card-item" id="emp-card-${emp.id}">
-        <div class="emp-avatar">👤</div>
-        <div class="emp-info-main">
-          <div class="emp-name-row">
-            <a href="#" class="emp-name" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
-            <span class="badge-tag ${emp.roleClass}">${emp.role}</span>
-            <span class="badge-tag badge-disabled ${statusClass}" id="emp-status-${emp.id}">利用停止</span>
-          </div>
-          <div class="emp-meta-row">
-            <span>従業員区分: ${emp.empType}</span>
-            ${emp.joinDate !== '-' ? `<span>入社日: ${emp.joinDate}</span>` : ''}
-            <span>事業所: ${emp.office}</span>
-            <span>従業員ID: ${emp.id}</span>
-          </div>
-        </div>
-        <div class="emp-action-menu">
-          <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
-          <div class="emp-popover-menu hidden">
-            <div onclick="handleEmpAction('copy', ${emp.id}, '${emp.name}')">コピーして新しい従業員を作成</div>
-            <div onclick="handleEmpAction('toggle', ${emp.id}, '${emp.name}', '${toggleAction}')">利用${toggleAction}</div>
-            <div class="text-danger" onclick="handleEmpAction('delete', ${emp.id}, '${emp.name}')">削除</div>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-  container.innerHTML = html;
-}
-
-// --- 3. ダッシュボードデータのモック ---
-async function renderDashboard() {
-  console.log('[API MOCK] GET /api/dashboard/status');
-  // const data = await fetch('/api/dashboard/status').then(res => res.json());
-
-  const data = {
-    working: [
-      { name: '山田 太郎', time: '08:55 -' },
-      { name: '岡田 光平', time: '09:00 -' },
-      { name: '佐野 真知子', time: '09:12 -' }
-    ],
-    finished: [
-      { name: '佐藤 花子', time: '09:00 - 18:00' }
-    ]
-  };
-
-  document.getElementById('dash-working-count').textContent = `${data.working.length}名`;
-  document.getElementById('dash-working-list').innerHTML = data.working.map(emp => `
-    <li class="member-item">
-      <span class="member-name"><span class="dot-status dot-working"></span>${emp.name}</span>
-      <span class="time-text">${emp.time}</span>
-    </li>
-  `).join('');
-
-  document.getElementById('dash-finished-count').textContent = `${data.finished.length}名`;
-  document.getElementById('dash-finished-list').innerHTML = data.finished.map(emp => `
-    <li class="member-item">
-      <span class="member-name"><span class="dot-status dot-finished"></span>${emp.name}</span>
-      <span class="time-text">${emp.time}</span>
-    </li>
-  `).join('');
-}
-
-// --- 4. タイムライン(ガントチャート)データのモック ---
-async function renderTimeline(dateStr) {
-  console.log(`[API MOCK] GET /api/attendance/timeline?date=${dateStr}`);
-  // const data = await fetch(`/api/attendance/timeline?date=${dateStr}`).then(res => res.json());
-
-  const data = [
-    { name: '安藤 健太郎', memo: '[NEXTメモ]\n休日出勤', barLeft: '70.4%', barWidth: '14.7%', timeText: '18:28-21:43', hasRest: false },
-    { name: '五十嵐 由樹', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
-    { name: '池上 裕士', memo: '[NEXTメモ]\n休憩あり', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
-    { name: '池谷 あや子', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
-    { name: '石井 秀龍', memo: '[NEXTメモ]\n修正済み', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
-    { name: '岩本 勇祐', memo: '[NEXTメモ]\n午後出勤', barLeft: '40.5%', barWidth: '25.5%', timeText: '11:54-17:31', hasRest: false },
-    { name: '岡田 光平', memo: '[NEXTメモ]\n午前中のみ', barLeft: '31.3%', barWidth: '7.1%', timeText: '09:52-11:26', hasRest: false }
-  ];
-
-  document.getElementById('gantt-tbody').innerHTML = data.map(emp => {
-    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
-    const barHtml = emp.barWidth !== '0' ? `
-      <div class="gantt-bar" style="left: ${emp.barLeft}; width: ${emp.barWidth};">${emp.timeText}</div>
-      ${emp.hasRest ? `<div class="gantt-bar-stripe" style="left: ${emp.barLeft}; width: 4.5%;"></div>` : ''}
-    ` : '';
-    return `
-      <tr>
-        <td class="gantt-emp-col">${emp.name} ${memoHtml}</td>
-        <td colspan="22" class="gantt-track">${barHtml}</td>
-      </tr>
-    `;
   }).join('');
 }
 
-// ページ読み込み時に各レンダリングを実行
-document.addEventListener('DOMContentLoaded', () => {
-  renderDailyTable();
-  renderEmployees();
-  renderDashboard(); // ダッシュボード初期描画
-});
-// --- 3. ダッシュボードデータのモック ---
-async function renderDashboard() {
-  console.log('[API MOCK] GET /api/dashboard/status');
-  // const data = await fetch('/api/dashboard/status').then(res => res.json());
-
-  const data = {
-    working: [
-      { name: '山田 太郎', time: '08:55 -' },
-      { name: '岡田 光平', time: '09:00 -' },
-      { name: '佐野 真知子', time: '09:12 -' }
-    ],
-    finished: [
-      { name: '佐藤 花子', time: '09:00 - 18:00' }
-    ]
-  };
-
-  document.getElementById('dash-working-count').textContent = `${data.working.length}名`;
-  document.getElementById('dash-working-list').innerHTML = data.working.map(emp => `
-    <li class="member-item">
-      <span class="member-name"><span class="dot-status dot-working"></span>${emp.name}</span>
-      <span class="time-text">${emp.time}</span>
-    </li>
-  `).join('');
-
-  document.getElementById('dash-finished-count').textContent = `${data.finished.length}名`;
-  document.getElementById('dash-finished-list').innerHTML = data.finished.map(emp => `
-    <li class="member-item">
-      <span class="member-name"><span class="dot-status dot-finished"></span>${emp.name}</span>
-      <span class="time-text">${emp.time}</span>
-    </li>
-  `).join('');
-}
-
-// --- 4. タイムライン(ガントチャート)データのモック ---
-async function renderTimeline(dateStr) {
-  console.log(`[API MOCK] GET /api/attendance/timeline?date=${dateStr}`);
-  // const data = await fetch(`/api/attendance/timeline?date=${dateStr}`).then(res => res.json());
-
-  const data = [
-    { name: '安藤 健太郎', memo: '[NEXTメモ]\n休日出勤', barLeft: '70.4%', barWidth: '14.7%', timeText: '18:28-21:43', hasRest: false },
-    { name: '五十嵐 由樹', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
-    { name: '池上 裕士', memo: '[NEXTメモ]\n休憩あり', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
-    { name: '池谷 あや子', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
-    { name: '石井 秀龍', memo: '[NEXTメモ]\n修正済み', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
-    { name: '岩本 勇祐', memo: '[NEXTメモ]\n午後出勤', barLeft: '40.5%', barWidth: '25.5%', timeText: '11:54-17:31', hasRest: false },
-    { name: '岡田 光平', memo: '[NEXTメモ]\n午前中のみ', barLeft: '31.3%', barWidth: '7.1%', timeText: '09:52-11:26', hasRest: false }
-  ];
-
-  document.getElementById('gantt-tbody').innerHTML = data.map(emp => {
-    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
-    const barHtml = emp.barWidth !== '0' ? `
-      <div class="gantt-bar" style="left: ${emp.barLeft}; width: ${emp.barWidth};">${emp.timeText}</div>
-      ${emp.hasRest ? `<div class="gantt-bar-stripe" style="left: ${emp.barLeft}; width: 4.5%;"></div>` : ''}
-    ` : '';
-    return `
-      <tr>
-        <td class="gantt-emp-col">${emp.name} ${memoHtml}</td>
-        <td colspan="22" class="gantt-track">${barHtml}</td>
-      </tr>
-    `;
-  }).join('');
-}
-
-// --- 5. 残業時間集計表のモックとソート・集計ロジック ---
+// --- 残業時間集計表 ---
 let currentOvertimeDate = new Date(2026, 8, 1);
 let overtimeSortKey = 'name';
 let overtimeSortAsc = true;
@@ -772,7 +558,6 @@ async function renderOvertimeTable() {
   const month = currentOvertimeDate.getMonth() + 1;
   document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  // ソート処理
   const sortedData = [...overtimeDataMock].sort((a, b) => {
     let valA = a[overtimeSortKey];
     let valB = b[overtimeSortKey];
@@ -783,11 +568,9 @@ async function renderOvertimeTable() {
     }
   });
 
-  // ソートアイコン更新
   document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
   document.getElementById(`sort-${overtimeSortKey}`).textContent = overtimeSortAsc ? '▲' : '▼';
 
-  // tbody描画
   document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => `
     <tr>
       <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
@@ -800,7 +583,6 @@ async function renderOvertimeTable() {
     </tr>
   `).join('');
 
-  // tfoot描画（合計・平均）
   const count = sortedData.length;
   const sumWeekday = sortedData.reduce((sum, emp) => sum + emp.weekdayDays, 0);
   const sumWeekend = sortedData.reduce((sum, emp) => sum + emp.weekendDays, 0);
@@ -845,11 +627,55 @@ function changeOvertimeMonth(offset) {
   renderOvertimeTable();
 }
 
-// ページ読み込み時に各レンダリングを実行
+// --- 従業員一覧 ---
+const employeesData = [
+  { id: 2, name: '阿久津 幸一', role: 'システム管理者', roleClass: 'badge-admin', status: '利用停止', empType: '管理職', office: 'NEXT (事業所管理者)', joinDate: '-' },
+  { id: 69, name: '安藤 健太郎', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2024年08月01日' },
+  { id: 81, name: '五十嵐 由樹', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2025年02月03日' }
+];
+
+async function renderEmployees() {
+  console.log('[API MOCK] GET /api/employees');
+  const container = document.getElementById('emp-list-container');
+  container.innerHTML = employeesData.map(emp => {
+    const statusClass = emp.status === '利用停止' ? '' : 'hidden';
+    const toggleAction = emp.status === '利用停止' ? '再開' : '停止';
+    return `
+      <div class="emp-card-item" id="emp-card-${emp.id}">
+        <div class="emp-avatar">👤</div>
+        <div class="emp-info-main">
+          <div class="emp-name-row">
+            <a href="#" class="emp-name" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
+            <span class="badge-tag ${emp.roleClass}">${emp.role}</span>
+            <span class="badge-tag badge-disabled ${statusClass}" id="emp-status-${emp.id}">利用停止</span>
+          </div>
+          <div class="emp-meta-row">
+            <span>従業員区分: ${emp.empType}</span>
+            ${emp.joinDate !== '-' ? `<span>入社日: ${emp.joinDate}</span>` : ''}
+            <span>事業所: ${emp.office}</span>
+            <span>従業員ID: ${emp.id}</span>
+          </div>
+        </div>
+        <div class="emp-action-menu">
+          <button class="btn-more" onclick="toggleEmpMenu(this)">•••</button>
+          <div class="emp-popover-menu hidden">
+            <div onclick="handleEmpAction('copy', ${emp.id}, '${emp.name}')">コピーして新しい従業員を作成</div>
+            <div onclick="handleEmpAction('toggle', ${emp.id}, '${emp.name}', '${toggleAction}')">利用${toggleAction}</div>
+            <div class="text-danger" onclick="handleEmpAction('delete', ${emp.id}, '${emp.name}')">削除</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==========================================
+// 6. 初期化
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+  renderDashboard();
   renderMatrixTable();
   renderDailyTable();
+  renderOvertimeTable();
   renderEmployees();
-  renderDashboard();
-  renderOvertimeTable(); // ← 追加
 });
