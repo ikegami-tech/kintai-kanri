@@ -592,10 +592,74 @@ async function renderEmployees() {
   container.innerHTML = html;
 }
 
+// --- 3. ダッシュボードデータのモック ---
+async function renderDashboard() {
+  console.log('[API MOCK] GET /api/dashboard/status');
+  // const data = await fetch('/api/dashboard/status').then(res => res.json());
+
+  const data = {
+    working: [
+      { name: '山田 太郎', time: '08:55 -' },
+      { name: '岡田 光平', time: '09:00 -' },
+      { name: '佐野 真知子', time: '09:12 -' }
+    ],
+    finished: [
+      { name: '佐藤 花子', time: '09:00 - 18:00' }
+    ]
+  };
+
+  document.getElementById('dash-working-count').textContent = `${data.working.length}名`;
+  document.getElementById('dash-working-list').innerHTML = data.working.map(emp => `
+    <li class="member-item">
+      <span class="member-name"><span class="dot-status dot-working"></span>${emp.name}</span>
+      <span class="time-text">${emp.time}</span>
+    </li>
+  `).join('');
+
+  document.getElementById('dash-finished-count').textContent = `${data.finished.length}名`;
+  document.getElementById('dash-finished-list').innerHTML = data.finished.map(emp => `
+    <li class="member-item">
+      <span class="member-name"><span class="dot-status dot-finished"></span>${emp.name}</span>
+      <span class="time-text">${emp.time}</span>
+    </li>
+  `).join('');
+}
+
+// --- 4. タイムライン(ガントチャート)データのモック ---
+async function renderTimeline(dateStr) {
+  console.log(`[API MOCK] GET /api/attendance/timeline?date=${dateStr}`);
+  // const data = await fetch(`/api/attendance/timeline?date=${dateStr}`).then(res => res.json());
+
+  const data = [
+    { name: '安藤 健太郎', memo: '[NEXTメモ]\n休日出勤', barLeft: '70.4%', barWidth: '14.7%', timeText: '18:28-21:43', hasRest: false },
+    { name: '五十嵐 由樹', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
+    { name: '池上 裕士', memo: '[NEXTメモ]\n休憩あり', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
+    { name: '池谷 あや子', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
+    { name: '石井 秀龍', memo: '[NEXTメモ]\n修正済み', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
+    { name: '岩本 勇祐', memo: '[NEXTメモ]\n午後出勤', barLeft: '40.5%', barWidth: '25.5%', timeText: '11:54-17:31', hasRest: false },
+    { name: '岡田 光平', memo: '[NEXTメモ]\n午前中のみ', barLeft: '31.3%', barWidth: '7.1%', timeText: '09:52-11:26', hasRest: false }
+  ];
+
+  document.getElementById('gantt-tbody').innerHTML = data.map(emp => {
+    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
+    const barHtml = emp.barWidth !== '0' ? `
+      <div class="gantt-bar" style="left: ${emp.barLeft}; width: ${emp.barWidth};">${emp.timeText}</div>
+      ${emp.hasRest ? `<div class="gantt-bar-stripe" style="left: ${emp.barLeft}; width: 4.5%;"></div>` : ''}
+    ` : '';
+    return `
+      <tr>
+        <td class="gantt-emp-col">${emp.name} ${memoHtml}</td>
+        <td colspan="22" class="gantt-track">${barHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 // ページ読み込み時に各レンダリングを実行
 document.addEventListener('DOMContentLoaded', () => {
   renderDailyTable();
   renderEmployees();
+  renderDashboard(); // ダッシュボード初期描画
 });
 // --- 3. ダッシュボードデータのモック ---
 async function renderDashboard() {
