@@ -880,8 +880,13 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   btn.disabled = false;
 });
 
-// 完了画面からログイン画面へ戻る処理
-function goToLoginFromComplete() {
-  document.getElementById('password-complete-view').classList.add('hidden');
-  document.getElementById('login-view').classList.remove('hidden');
+// 完了画面からブラウザタブを閉じる処理
+function closeBrowserWindow() {
+  window.close();
+  
+  // ブラウザのセキュリティ仕様により自動で閉じられなかった場合の案内
+  const msgEl = document.getElementById('complete-msg');
+  if (msgEl) {
+    msgEl.innerHTML = 'パスワードの設定が完了しました。<br><span style="color: #e74c3c; font-weight: bold;">※お使いの環境により自動で画面が閉じられない場合があります。その場合は手動でブラウザのタブを閉じてください。</span>';
+  }
 }
