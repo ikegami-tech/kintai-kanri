@@ -696,16 +696,76 @@ function changeOvertimeMonth(offset) {
 }
 
 // --- 従業員一覧 ---
-const employeesData = [
-  { id: 2, name: '阿久津 幸一', role: 'システム管理者', roleClass: 'badge-admin', status: '利用停止', empType: '管理職', office: 'NEXT (事業所管理者)', joinDate: '-' },
-  { id: 69, name: '安藤 健太郎', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2024年08月01日' },
-  { id: 81, name: '五十嵐 由樹', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2025年02月03日' }
+
+// 【DBモック】本来はバックエンドのデータベースに保存されているデータ
+const employeesDB = [
+  { id: 2, name: '阿久津 幸一', kana: 'アクツ コウイチ', role: 'システム管理者', roleClass: 'badge-admin', status: '利用停止', empType: '管理職', office: 'NEXT (事業所管理者)', joinDate: '-' },
+  { id: 69, name: '安藤 健太郎', kana: 'アンドウ ケンタロウ', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2024年08月01日' },
+  { id: 81, name: '五十嵐 由樹', kana: 'イガラシ ユキ', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2025年02月03日' },
+  { id: 101, name: '加藤 健人', kana: 'カトウ ケント', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2026年04月01日' },
+  { id: 102, name: '佐藤 花子', kana: 'サトウ ハナコ', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: 'パート', office: 'NEXT (従業員)', joinDate: '2026年05月01日' }
 ];
 
+let currentInitialFilter = 'ALL';
+
+// 1. UIのタブ切り替えと再描画トリガー
+function filterInitial(initial) {
+  currentInitialFilter = initial;
+  const tabs = document.querySelectorAll('.initial-tabs .tab-btn');
+  tabs.forEach(tab => {
+    if (tab.textContent === initial) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  renderEmployees();
+}
+
+// 2. 【API通信モック】将来 fetch() でエンドポイントを叩く処理に差し替える関数
+async function fetchEmployeesAPI(initialFilter) {
+  console.log(`[API MOCK] GET /api/employees?initial=${initialFilter}`);
+  
+  // ネットワーク通信の遅延をシミュレート（300ms）
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  // 以下の絞り込みは、将来的にDBのSQLクエリ（例: WHERE kana LIKE 'ア%'）で処理されます
+  if (initialFilter === 'ALL') {
+    return employeesDB;
+  }
+
+  const initialMap = {
+    'ア': /^[ア-オ]/, 'カ': /^[カ-ゴ]/, 'サ': /^[サ-ゾ]/,
+    'タ': /^[タ-ド]/, 'ナ': /^[ナ-ノ]/, 'ハ': /^[ハ-ポ]/,
+    'マ': /^[マ-モ]/, 'ヤ': /^[ヤ-ヨ]/, 'ラ': /^[ラ-ロ]/,
+    'ワ': /^[ワ-ン]/, 'A-Z': /^[A-Za-z]/
+  };
+
+  const regex = initialMap[initialFilter];
+  if (regex) {
+    return employeesDB.filter(emp => regex.test(emp.kana));
+  }
+  return [];
+}
+
+// 3. 画面描画処理（データの取得完了を待ってからレンダリング）
 async function renderEmployees() {
-  console.log('[API MOCK] GET /api/employees');
   const container = document.getElementById('emp-list-container');
-  container.innerHTML = employeesData.map(emp => {
+  
+  // データ取得中のローディング表示
+  container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">読み込み中...</div>';
+
+  // APIから非同期でデータを取得
+  const data = await fetchEmployeesAPI(currentInitialFilter);
+
+  // 取得結果が0件の場合のハンドリング
+  if (data.length === 0) {
+    container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">該当する従業員が見つかりません。</div>';
+    return;
+  }
+
+  // 取得したデータをもとにHTMLを構築
+  container.innerHTML = data.map(emp => {
     const statusClass = emp.status === '利用停止' ? '' : 'hidden';
     const toggleAction = emp.status === '利用停止' ? '再開' : '停止';
     return `
