@@ -552,7 +552,7 @@
           </div>
         </div>
 
-        <!-- ページ: 従業員詳細 (スマレジ風) -->
+<!-- ページ: 従業員詳細 (スマレジ風) -->
         <div id="page-employee-detail" class="page-content hidden" style="background: white;">
           <div class="detail-header-row">
             <button class="btn-back" onclick="switchPage('employees', document.querySelector('.nav-item:nth-child(3)'))">＜ 一覧へ戻る</button>
@@ -591,8 +591,8 @@
                   </td>
                 </tr>
                 <tr>
-                  <th>役職 <span class="badge-req">必須</span></th>
-                  <td>管理職</td>
+                  <th>所属 <span class="badge-req">必須</span></th>
+                  <td>システム課</td>
                 </tr>
                 <tr>
                   <th>権限 <span class="badge-req">必須</span></th>
@@ -601,6 +601,14 @@
                 <tr>
                   <th>勤怠表示 <span class="badge-req">必須</span></th>
                   <td>あり</td>
+                </tr>
+                <tr>
+                  <th>入社日</th>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <th>退職日</th>
+                  <td>-</td>
                 </tr>
               </tbody>
             </table>
@@ -647,12 +655,14 @@
                     <td>akutsu@toho-next.com</td>
                   </tr>
                   <tr>
-                    <th>役職 <span class="badge-req">必須</span></th>
+                    <th>所属 <span class="badge-req">必須</span></th>
                     <td>
                       <select class="form-select">
-                        <option value="管理職" selected>管理職</option>
-                        <option value="正社員">正社員</option>
-                        <option value="パート">パート</option>
+                        <option value="社長">社長</option>
+                        <option value="LP">LP</option>
+                        <option value="ホーム課">ホーム課</option>
+                        <option value="システム課" selected>システム課</option>
+                        <option value="事務">事務</option>
                       </select>
                     </td>
                   </tr>
@@ -669,6 +679,14 @@
                       <label><input type="radio" name="attendance_display" value="あり" checked> あり</label>
                       <label style="margin-left: 15px;"><input type="radio" name="attendance_display" value="なし"> なし</label>
                     </td>
+                  </tr>
+                  <tr>
+                    <th>入社日</th>
+                    <td><input type="text" class="form-input" style="width: 150px;" placeholder="例) 2026/09/11"></td>
+                  </tr>
+                  <tr>
+                    <th>退職日</th>
+                    <td><input type="text" class="form-input" style="width: 150px;" placeholder="例) 2026/09/11"></td>
                   </tr>
                 </tbody>
               </table>
@@ -710,12 +728,14 @@
                     <td><input type="email" class="form-input" id="new-email" placeholder="例) xxxx@example.jp"></td>
                   </tr>
                   <tr>
-                    <th>役職 <span class="badge-req">必須</span></th>
+                    <th>所属 <span class="badge-req">必須</span></th>
                     <td>
                       <select class="form-select" required>
-                        <option value="正社員" selected>正社員</option>
-                        <option value="管理職">管理職</option>
-                        <option value="パート">パート</option>
+                        <option value="社長">社長</option>
+                        <option value="LP">LP</option>
+                        <option value="ホーム課" selected>ホーム課</option>
+                        <option value="システム課">システム課</option>
+                        <option value="事務">事務</option>
                       </select>
                     </td>
                   </tr>
@@ -732,6 +752,14 @@
                       <label><input type="radio" name="new_attendance_display" value="あり" checked> あり</label>
                       <label style="margin-left: 15px;"><input type="radio" name="new_attendance_display" value="なし"> なし</label>
                     </td>
+                  </tr>
+                  <tr>
+                    <th>入社日</th>
+                    <td><input type="text" class="form-input" style="width: 150px;" placeholder="例) 2026/09/11"></td>
+                  </tr>
+                  <tr>
+                    <th>退職日</th>
+                    <td><input type="text" class="form-input" style="width: 150px;" placeholder="例) 2026/09/11"></td>
                   </tr>
                 </tbody>
               </table>
