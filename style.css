@@ -869,6 +869,23 @@ body {
   font-weight: bold;
 }
 
+/* 退職日以降の無効化セル（背景色は変えず、クリックのみ不可） */
+.cell-retired {
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* 退職者の入力済み打刻時間を灰色にする */
+.retired-time {
+  color: #a0aab5 !important; /* スマレジ風の薄いグレー */
+}
+.retired-time .time-edited {
+  color: #a0aab5 !important;
+}
+.retired-time .memo-icon {
+  opacity: 0.4; /* メモアイコンも少し薄くする */
+}
+
 .memo-icon {
   color: transparent; /* 元の絵文字を見えなくする */
   font-size: 14px;
