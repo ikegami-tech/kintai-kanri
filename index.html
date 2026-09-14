@@ -539,6 +539,12 @@
           </div>
 
           <div class="emp-filter-card">
+            <!-- 追加：名前検索枠 -->
+            <div class="filter-row" style="margin-bottom: 15px;">
+              <span class="filter-label">名前検索</span>
+              <input type="text" id="emp-search-name" class="form-input" style="width: 300px;" placeholder="従業員名・フリガナで検索" oninput="filterByName(this.value)">
+            </div>
+            
             <div class="filter-row">
               <span class="filter-label">イニシャル</span>
               <div class="initial-tabs">

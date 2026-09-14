@@ -714,8 +714,9 @@ const employeesDB = [
 ];
 
 let currentInitialFilter = 'ALL';
+let currentNameFilter = ''; // 追加：名前検索用の変数
 
-// 1. UIのタブ切り替えと再描画トリガー
+// 1. UIのタブ切り替え・検索と再描画トリガー
 function filterInitial(initial) {
   currentInitialFilter = initial;
   const tabs = document.querySelectorAll('.initial-tabs .tab-btn');
@@ -729,30 +730,45 @@ function filterInitial(initial) {
   renderEmployees();
 }
 
+function filterByName(nameStr) {
+  currentNameFilter = nameStr.trim();
+  renderEmployees();
+}
+
 // 2. 【API通信モック】将来 fetch() でエンドポイントを叩く処理に差し替える関数
-async function fetchEmployeesAPI(initialFilter) {
-  console.log(`[API MOCK] GET /api/employees?initial=${initialFilter}`);
+async function fetchEmployeesAPI(initialFilter, nameFilter) {
+  // バックエンドへイニシャルと名前の両方をクエリパラメータとして送信する想定
+  console.log(`[API MOCK] GET /api/employees?initial=${initialFilter}&name=${nameFilter}`);
   
   // ネットワーク通信の遅延をシミュレート（300ms）
   await new Promise(resolve => setTimeout(resolve, 300));
 
-  // 以下の絞り込みは、将来的にDBのSQLクエリ（例: WHERE kana LIKE 'ア%'）で処理されます
-  if (initialFilter === 'ALL') {
-    return employeesDB;
+  let result = employeesDB;
+
+  // ① イニシャルによる絞り込み（DBのWHERE句を想定）
+  if (initialFilter !== 'ALL') {
+    const initialMap = {
+      'ア': /^[ア-オ]/, 'カ': /^[カ-ゴ]/, 'サ': /^[サ-ゾ]/,
+      'タ': /^[タ-ド]/, 'ナ': /^[ナ-ノ]/, 'ハ': /^[ハ-ポ]/,
+      'マ': /^[マ-モ]/, 'ヤ': /^[ヤ-ヨ]/, 'ラ': /^[ラ-ロ]/,
+      'ワ': /^[ワ-ン]/, 'A-Z': /^[A-Za-z]/
+    };
+    const regex = initialMap[initialFilter];
+    if (regex) {
+      result = result.filter(emp => regex.test(emp.kana));
+    } else {
+      result = [];
+    }
   }
 
-  const initialMap = {
-    'ア': /^[ア-オ]/, 'カ': /^[カ-ゴ]/, 'サ': /^[サ-ゾ]/,
-    'タ': /^[タ-ド]/, 'ナ': /^[ナ-ノ]/, 'ハ': /^[ハ-ポ]/,
-    'マ': /^[マ-モ]/, 'ヤ': /^[ヤ-ヨ]/, 'ラ': /^[ラ-ロ]/,
-    'ワ': /^[ワ-ン]/, 'A-Z': /^[A-Za-z]/
-  };
-
-  const regex = initialMap[initialFilter];
-  if (regex) {
-    return employeesDB.filter(emp => regex.test(emp.kana));
+  // ② 名前（漢字・フリガナ）による部分一致絞り込み（DBのLIKE検索を想定）
+  if (nameFilter) {
+    result = result.filter(emp => 
+      emp.name.includes(nameFilter) || emp.kana.includes(nameFilter)
+    );
   }
-  return [];
+
+  return result;
 }
 
 // 3. 画面描画処理（データの取得完了を待ってからレンダリング）
@@ -762,8 +778,8 @@ async function renderEmployees() {
   // データ取得中のローディング表示
   container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">読み込み中...</div>';
 
-  // APIから非同期でデータを取得
-  const data = await fetchEmployeesAPI(currentInitialFilter);
+  // APIから非同期でデータを取得 (検索パラメータを2つ渡す)
+  const data = await fetchEmployeesAPI(currentInitialFilter, currentNameFilter);
 
   // 取得結果が0件の場合のハンドリング
   if (data.length === 0) {
