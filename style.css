@@ -805,9 +805,9 @@ body {
 .monthly-matrix-table th, 
 .monthly-matrix-table td {
   border: 1px solid var(--border-color);
-  padding: 4px 2px; /* 余白を最小化して横幅を節約 */
+  padding: 8px 4px; /* 余白を広げて本家のようなサイズ感へ */
   vertical-align: middle;
-  line-height: 1.2;
+  line-height: 1.4;
 }
 
 .monthly-matrix-table th {
