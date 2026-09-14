@@ -387,30 +387,33 @@ async function saveNewEmployee(event) {
 // --- ダッシュボード ---
 async function renderDashboard() {
   console.log('[API MOCK] GET /api/dashboard/status');
-  const data = {
-    working: [
-      { name: '山田 太郎', time: '08:55 -' },
-      { name: '岡田 光平', time: '09:00 -' },
-      { name: '佐野 真知子', time: '09:12 -' }
-    ],
-    finished: [
-      { name: '佐藤 花子', time: '09:00 - 18:00' }
-    ]
-  };
+  
+  // 今後のバックエンド連携を想定したAPIレスポンスのモックデータ
+  const rawData = [
+    { name: '山田 太郎', status: '出勤', timeStr: '08:55 -' },
+    { name: '岡田 光平', status: '直行', timeStr: '09:00 -' },
+    { name: '佐野 真知子', status: '出勤', timeStr: '09:12 -' },
+    { name: '佐藤 花子', status: '退勤', timeStr: '09:00 - 18:00' },
+    { name: '高橋 健太', status: '直帰', timeStr: '10:00 - 19:30' }
+  ];
 
-  document.getElementById('dash-working-count').textContent = `${data.working.length}名`;
-  document.getElementById('dash-working-list').innerHTML = data.working.map(emp => `
+  // 打刻ステータスによる振り分け（出勤・直行 → 出勤中 / 退勤・直帰 → 退勤済）
+  const working = rawData.filter(emp => emp.status === '出勤' || emp.status === '直行');
+  const finished = rawData.filter(emp => emp.status === '退勤' || emp.status === '直帰');
+
+  document.getElementById('dash-working-count').textContent = `${working.length}名`;
+  document.getElementById('dash-working-list').innerHTML = working.map(emp => `
     <li class="member-item">
       <span class="member-name"><span class="dot-status dot-working"></span>${emp.name}</span>
-      <span class="time-text">${emp.time}</span>
+      <span class="time-text">${emp.timeStr}</span>
     </li>
   `).join('');
 
-  document.getElementById('dash-finished-count').textContent = `${data.finished.length}名`;
-  document.getElementById('dash-finished-list').innerHTML = data.finished.map(emp => `
+  document.getElementById('dash-finished-count').textContent = `${finished.length}名`;
+  document.getElementById('dash-finished-list').innerHTML = finished.map(emp => `
     <li class="member-item">
       <span class="member-name"><span class="dot-status dot-finished"></span>${emp.name}</span>
-      <span class="time-text">${emp.time}</span>
+      <span class="time-text">${emp.timeStr}</span>
     </li>
   `).join('');
 }
