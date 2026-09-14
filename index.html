@@ -157,6 +157,17 @@
             </div>
 
             <div class="status-grid">
+              <!-- 未出勤 (新規追加) -->
+              <div class="status-column">
+                <div class="status-column-header" style="background-color: #fff4e5; color: #d35400;">
+                  <span>未出勤</span>
+                  <span class="badge-count" id="dash-not-started-count">0名</span>
+                </div>
+                <ul class="member-list" id="dash-not-started-list">
+                  <!-- JSで動的に生成 -->
+                </ul>
+              </div>
+
               <!-- 出勤中 -->
               <div class="status-column">
                 <div class="status-column-header header-working">
@@ -733,7 +744,8 @@
                       <select class="form-select" required>
                         <option value="社長">社長</option>
                         <option value="LP">LP</option>
-                        <option value="ホーム課" selected>ホーム課</option>
+                        <option value="PRコンシェルジュ">PRコンシェルジュ</option>
+                        <option value="ホーム課">ホーム課</option>
                         <option value="システム課">システム課</option>
                         <option value="事務">事務</option>
                       </select>

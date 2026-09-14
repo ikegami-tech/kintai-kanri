@@ -380,16 +380,14 @@ async function saveNewEmployee(event) {
     sendPwSetupEmail(newEmail);
   }
 }
-// ==========================================
-// 5. データモックとレンダリング関数 (API連携想定)
-// ==========================================
-
 // --- ダッシュボード ---
 async function renderDashboard() {
   console.log('[API MOCK] GET /api/dashboard/status');
   
   // 今後のバックエンド連携を想定したAPIレスポンスのモックデータ
   const rawData = [
+    { name: '池上 裕士', status: '未出勤', timeStr: '-' },
+    { name: '石井 秀龍', status: '未出勤', timeStr: '-' },
     { name: '山田 太郎', status: '出勤', timeStr: '08:55 -' },
     { name: '岡田 光平', status: '直行', timeStr: '09:00 -' },
     { name: '佐野 真知子', status: '出勤', timeStr: '09:12 -' },
@@ -397,9 +395,18 @@ async function renderDashboard() {
     { name: '高橋 健太', status: '直帰', timeStr: '10:00 - 19:30' }
   ];
 
-  // 打刻ステータスによる振り分け（出勤・直行 → 出勤中 / 退勤・直帰 → 退勤済）
+  // 打刻ステータスによる振り分け
+  const notStarted = rawData.filter(emp => emp.status === '未出勤' || !emp.status);
   const working = rawData.filter(emp => emp.status === '出勤' || emp.status === '直行');
   const finished = rawData.filter(emp => emp.status === '退勤' || emp.status === '直帰');
+
+  document.getElementById('dash-not-started-count').textContent = `${notStarted.length}名`;
+  document.getElementById('dash-not-started-list').innerHTML = notStarted.map(emp => `
+    <li class="member-item">
+      <span class="member-name"><span class="dot-status" style="background-color: #f39c12;"></span>${emp.name}</span>
+      <span class="time-text">${emp.timeStr}</span>
+    </li>
+  `).join('');
 
   document.getElementById('dash-working-count').textContent = `${working.length}名`;
   document.getElementById('dash-working-list').innerHTML = working.map(emp => `
@@ -589,8 +596,8 @@ async function renderDailyTable() {
 
 // --- 残業時間集計表 ---
 let currentOvertimeDate = new Date(2026, 8, 1);
-let overtimeSortKey = 'name';
-let overtimeSortAsc = true;
+let overtimeSortKey = 'overtimeHours';
+let overtimeSortAsc = false;
 
 const overtimeDataMock = [
   { id: 1, name: '安藤 健太郎', dept: '営業', weekdayDays: 20, weekendDays: 1, totalHours: 165.5, overtimeHours: 15.5 },
