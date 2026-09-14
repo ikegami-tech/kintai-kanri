@@ -73,6 +73,20 @@ function switchPage(pageId, element) {
   }
 }
 
+// --- Web打刻アプリ画面を開く処理 ---
+function openWebTimeclock() {
+  const pages = document.querySelectorAll('.page-content');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('page-web-timeclock').classList.remove('hidden');
+  document.getElementById('page-title').textContent = 'Web打刻アプリ';
+  
+  // サイドバーが開いていれば閉じる（アプリ画面を広く見せるため）
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar.classList.contains('collapsed')) {
+    toggleSidebar();
+  }
+}
+
 // ==========================================
 // 3. モーダル・ポップオーバー・トースト共通制御
 // ==========================================

@@ -150,7 +150,10 @@
           <div class="attendance-status-card">
             <div class="card-header-bar">
               <div class="card-header-title">出退勤状況</div>
-              <div class="date-display" id="current-date-str">2026年9月11日(金)</div>
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <button class="btn-primary" style="background-color: #73c82e; font-size: 13px; padding: 8px 16px;" onclick="openWebTimeclock()">NEXT出退勤画面 ＞</button>
+                <div class="date-display" id="current-date-str">2026年9月11日(金)</div>
+              </div>
             </div>
 
             <div class="status-grid">
@@ -176,6 +179,15 @@
                 </ul>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- ページ: Web打刻アプリ画面 (今後実装予定) -->
+        <div id="page-web-timeclock" class="page-content hidden">
+          <div style="height: calc(100vh - 120px); background: #73c82e; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <h1 style="font-size: 36px; margin-bottom: 20px;">NEXT出退勤アプリ (開発中)</h1>
+            <p style="font-size: 16px; margin-bottom: 40px; opacity: 0.9;">※ 今後の開発で、ここに時計や打刻ボタン（出勤・退勤・休憩）が実装されます。</p>
+            <button class="btn-back" style="background: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; cursor: pointer; color: #333;" onclick="switchPage('dashboard', document.querySelector('.nav-item:nth-child(1)'))">＜ 管理画面へ戻る</button>
           </div>
         </div>
 
