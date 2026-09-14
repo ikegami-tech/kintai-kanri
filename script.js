@@ -311,6 +311,15 @@ function openEditEmployee() {
   const currentName = document.getElementById('detail-emp-name').textContent;
   document.getElementById('edit-emp-name').textContent = currentName;
   document.getElementById('edit-name').value = currentName;
+  
+  // モックデータ連携：マトリクス表データから退職日を取得して入力欄にセット
+  const matrixEmp = matrixData.find(e => e.name === currentName);
+  if (matrixEmp && matrixEmp.retireDate) {
+    document.getElementById('edit-retire-date').value = matrixEmp.retireDate.replace(/-/g, '/');
+  } else {
+    document.getElementById('edit-retire-date').value = '';
+  }
+
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-employee-edit').classList.remove('hidden');
@@ -335,6 +344,27 @@ async function saveEmployeeEdit(event) {
   await new Promise(resolve => setTimeout(resolve, 500));
 
   const newName = document.getElementById('edit-name').value;
+  const oldName = document.getElementById('detail-emp-name').textContent;
+  const retireDateInput = document.getElementById('edit-retire-date').value;
+
+  // ===== 【DB連携モック】全画面のデータを一括で書き換える =====
+  // 1. 従業員DB (employeesDB) の更新
+  const dbEmp = employeesDB.find(e => e.name === oldName);
+  if (dbEmp) dbEmp.name = newName;
+
+  // 2. マトリクス表 (matrixData) の更新
+  const matrixEmp = matrixData.find(e => e.name === oldName);
+  if (matrixEmp) {
+    matrixEmp.name = newName;
+    // 退職日を YYYY/MM/DD から YYYY-MM-DD に変換して保存
+    matrixEmp.retireDate = retireDateInput ? retireDateInput.replace(/\//g, '-') : null;
+  }
+  
+  // 変更を即座に各画面へ反映（再描画）
+  renderEmployees();
+  renderMatrixTable();
+  // =========================================================
+
   document.getElementById('detail-emp-name').textContent = newName;
   document.getElementById('val-name').textContent = newName;
   
