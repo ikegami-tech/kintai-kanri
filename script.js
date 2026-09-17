@@ -537,16 +537,16 @@ function renderMatrixTable() {
       let cellData = '';
 
       if (isAfterRetire) {
-        // 退職日以降：クリック不可にするクラスを追加（背景色はそのまま）
+        // 退職日以降：クリック不可にするクラスを追加（空セル・背景色はそのまま）
         tdClass += ' cell-retired';
       } else {
         // 在籍期間中：実績データがあれば取得
         const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         cellData = emp.data[dateKey] || '';
         
-        // 退職者が入力済みの実績のみグレーにする
+        // 退職者で、かつ実績データが入力されているセルのみ背景をグレーにする
         if (retireDateObj && cellData) {
-          cellData = `<div class="retired-time">${cellData}</div>`;
+          tdClass += ' retired-data-cell';
         }
       }
       

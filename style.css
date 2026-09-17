@@ -875,15 +875,9 @@ body {
   pointer-events: none;
 }
 
-/* 退職者の入力済み打刻時間を灰色にする */
-.retired-time {
-  color: #a0aab5 !important; /* スマレジ風の薄いグレー */
-}
-.retired-time .time-edited {
-  color: #a0aab5 !important;
-}
-.retired-time .memo-icon {
-  opacity: 0.4; /* メモアイコンも少し薄くする */
+/* 退職者の入力済み実績があるセルの背景をグレーにする */
+.retired-data-cell {
+  background-color: #e2e8f0 !important; /* スマレジ風の薄いグレー背景 */
 }
 
 .memo-icon {
