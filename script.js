@@ -351,6 +351,8 @@ function showEmployeeDetail(identifier) {
   
   if (!emp) return;
 
+  currentEmpTargetId = emp.id; // 現在選択中の従業員IDを記録
+
   // 画面の各項目を実際のデータで書き換える
   document.getElementById('detail-emp-name').textContent = emp.name;
   document.getElementById('val-name').textContent = emp.name;
@@ -370,17 +372,32 @@ function showEmployeeDetail(identifier) {
 }
 
 function openEditEmployee() {
-  const currentName = document.getElementById('detail-emp-name').textContent;
-  document.getElementById('edit-emp-name').textContent = currentName;
-  document.getElementById('edit-name').value = currentName;
+  const emp = currentEmployeeList.find(e => e.id === currentEmpTargetId);
+  if (!emp) return;
+
+  document.getElementById('edit-emp-name').textContent = emp.name;
+  document.getElementById('edit-name').value = emp.name;
+  document.getElementById('edit-kana').value = emp.kana;
   
-  // モックデータ連携：マトリクス表データから退職日を取得して入力欄にセット
-  const matrixEmp = matrixData.find(e => e.name === currentName);
-  if (matrixEmp && matrixEmp.retireDate) {
-    document.getElementById('edit-retire-date').value = matrixEmp.retireDate.replace(/-/g, '/');
-  } else {
-    document.getElementById('edit-retire-date').value = '';
-  }
+  // 性別のラジオボタン
+  const genderRadios = document.querySelectorAll('input[name="gender"]');
+  genderRadios.forEach(r => r.checked = (r.value === emp.gender));
+
+  // 所属
+  const deptSelect = document.querySelector('#employee-edit-form .form-select');
+  if (deptSelect) deptSelect.value = emp.office;
+
+  // 権限
+  const roleRadios = document.querySelectorAll('input[name="role"]');
+  roleRadios.forEach(r => r.checked = (r.value === emp.role));
+
+  // 勤怠表示
+  const attRadios = document.querySelectorAll('input[name="attendance_display"]');
+  attRadios.forEach(r => r.checked = (emp.show_attendance ? r.value === 'あり' : r.value === 'なし'));
+
+  // 入社日・退職日
+  document.getElementById('edit-join-date').value = emp.joinDate !== '-' ? emp.joinDate : '';
+  document.getElementById('edit-retire-date').value = emp.retireDate !== '-' ? emp.retireDate : '';
 
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
@@ -393,47 +410,51 @@ function closeEditEmployee() {
   document.getElementById('page-employee-detail').classList.remove('hidden');
 }
 
+// 【API通信実装】実際のデータベース（バックエンド）へ編集内容を更新保存する
 async function saveEmployeeEdit(event) {
   event.preventDefault();
   const btn = event.target.querySelector('.btn-save');
   btn.textContent = '保存中...';
   btn.disabled = true;
 
-  const formData = new FormData(event.target);
-  const payload = Object.fromEntries(formData.entries());
-  console.log(`[API MOCK] PUT /api/employees/${currentEmpTargetId || 'current'}`, payload);
-  
-  await new Promise(resolve => setTimeout(resolve, 500));
+  const form = event.target;
+  const currentEmp = currentEmployeeList.find(e => e.id === currentEmpTargetId);
 
-  const newName = document.getElementById('edit-name').value;
-  const oldName = document.getElementById('detail-emp-name').textContent;
-  const retireDateInput = document.getElementById('edit-retire-date').value;
+  const payload = {
+    name: document.getElementById('edit-name').value,
+    kana: document.getElementById('edit-kana').value,
+    gender: form.querySelector('input[name="gender"]:checked').value,
+    email: currentEmp ? currentEmp.email : '',
+    department: form.querySelector('.form-select').value,
+    role: form.querySelector('input[name="role"]:checked').value,
+    show_attendance: form.querySelector('input[name="attendance_display"]:checked').value === 'あり' ? 1 : 0,
+    join_date: document.getElementById('edit-join-date').value ? document.getElementById('edit-join-date').value.replace(/\//g, '-') : null,
+    retire_date: document.getElementById('edit-retire-date').value ? document.getElementById('edit-retire-date').value.replace(/\//g, '-') : null
+  };
 
-  // ===== 【DB連携モック】全画面のデータを一括で書き換える =====
-  // 1. 従業員DB (employeesDB) の更新
-  const dbEmp = employeesDB.find(e => e.name === oldName);
-  if (dbEmp) dbEmp.name = newName;
+  try {
+    const response = await fetch(`http://localhost:3000/api/employees/${currentEmpTargetId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-  // 2. マトリクス表 (matrixData) の更新
-  const matrixEmp = matrixData.find(e => e.name === oldName);
-  if (matrixEmp) {
-    matrixEmp.name = newName;
-    // 退職日を YYYY/MM/DD から YYYY-MM-DD に変換して保存
-    matrixEmp.retireDate = retireDateInput ? retireDateInput.replace(/\//g, '-') : null;
+    if (!response.ok) throw new Error('更新に失敗しました');
+
+    showToast('従業員情報を保存しました。');
+    
+    // 一覧データを再取得して詳細画面と一覧画面を即座に更新
+    await renderEmployees();
+    showEmployeeDetail(currentEmpTargetId);
+    closeEditEmployee();
+
+  } catch (error) {
+    console.error('更新エラー:', error);
+    alert('保存に失敗しました。サーバーが起動しているか確認してください。');
+  } finally {
+    btn.textContent = '設定を保存';
+    btn.disabled = false;
   }
-  
-  // 変更を即座に各画面へ反映（再描画）
-  renderEmployees();
-  renderMatrixTable();
-  // =========================================================
-
-  document.getElementById('detail-emp-name').textContent = newName;
-  document.getElementById('val-name').textContent = newName;
-  
-  showToast('従業員情報を保存しました。');
-  closeEditEmployee();
-  btn.textContent = '設定を保存';
-  btn.disabled = false;
 }
 
 function openCreateEmployee() {
