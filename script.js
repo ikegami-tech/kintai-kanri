@@ -232,7 +232,17 @@ async function submitRecordCreate() {
     return;
   }
 
-  const dateVal = document.getElementById('create-date').value.replace(/\//g, '-');
+  // 2026/09/05 や 2026/9/5 などの形式を、SQL標準の YYYY-MM-DD に厳格に変換
+  const rawDate = document.getElementById('create-date').value;
+  const dateParts = rawDate.replace(/\//g, '-').split('-');
+  let dateVal = rawDate;
+  if (dateParts.length === 3) {
+    const y = dateParts[0];
+    const m = String(dateParts[1]).padStart(2, '0');
+    const d = String(dateParts[2]).padStart(2, '0');
+    dateVal = `${y}-${m}-${d}`;
+  }
+
   const startH = document.getElementById('create-start-h').value;
   const startM = document.getElementById('create-start-m').value;
   const endH = document.getElementById('create-end-h').value;
@@ -257,7 +267,7 @@ async function submitRecordCreate() {
 
     showToast('実績を新規作成しました');
     closeRecordModal('modal-record-create');
-    await renderMatrixTable(); // マトリクス表を最新表示に更新
+    await renderMatrixTable(); // 最新状態に再描画
 
   } catch (error) {
     console.error('打刻作成エラー:', error);
