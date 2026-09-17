@@ -528,8 +528,8 @@ function renderMatrixTable() {
       const currentDateObj = new Date(year, month - 1, i);
       const dayOfWeek = currentDateObj.getDay();
       
-      // 退職者の場合はホバー時のハイライト(cell-click)も外す
-      let tdClass = retireDateObj ? '' : 'cell-click';
+      // 退職者の場合はホバー時のハイライト(cell-click)を外し、位置調整用のクラスを付与
+      let tdClass = retireDateObj ? 'cell-readonly' : 'cell-click';
 
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
       let cellData = '';

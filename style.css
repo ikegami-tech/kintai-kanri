@@ -881,6 +881,13 @@ body {
   pointer-events: none;
 }
 
+/* 退職者の退職日以前のセル（クリック不可だが、アイコン配置などの基本構造は維持） */
+.cell-readonly {
+  position: relative;
+  height: 45px;
+  font-size: 10px;
+}
+
 /* 退職者の入力済み実績の背景を上・左右の端まで広げる（下は少し空ける） */
 .retired-time-box {
   background-color: #e2e8f0;
