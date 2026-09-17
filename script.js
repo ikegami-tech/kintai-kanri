@@ -313,9 +313,29 @@ async function executeEmpAction() {
   closeEmpActionModal();
 }
 
-function showEmployeeDetail(empName) {
-  document.getElementById('detail-emp-name').textContent = empName;
-  document.getElementById('val-name').textContent = empName;
+function showEmployeeDetail(identifier) {
+  // IDまたは名前で該当の従業員データを探す
+  let emp;
+  if (typeof identifier === 'number') {
+    emp = currentEmployeeList.find(e => e.id === identifier);
+  } else {
+    emp = currentEmployeeList.find(e => e.name === identifier);
+  }
+  
+  if (!emp) return;
+
+  // 画面の各項目を実際のデータで書き換える
+  document.getElementById('detail-emp-name').textContent = emp.name;
+  document.getElementById('val-name').textContent = emp.name;
+  document.getElementById('val-kana').textContent = emp.kana;
+  document.getElementById('val-gender').textContent = emp.gender;
+  document.getElementById('detail-email').textContent = emp.email || '-';
+  document.getElementById('val-department').textContent = emp.office;
+  document.getElementById('val-role').textContent = emp.role;
+  document.getElementById('val-attendance').textContent = emp.show_attendance ? 'あり' : 'なし';
+  document.getElementById('val-join-date').textContent = emp.joinDate;
+  document.getElementById('val-retire-date').textContent = emp.retireDate;
+
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('page-employee-detail').classList.remove('hidden');
@@ -861,6 +881,10 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
       id: emp.id,
       name: emp.name,
       kana: emp.kana,
+      gender: emp.gender || '未選択',
+      email: emp.email || '',
+      show_attendance: emp.show_attendance,
+      retireDate: emp.retire_date ? new Date(emp.retire_date).toLocaleDateString('ja-JP') : '-',
       role: emp.role || '一般',
       roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
       status: emp.status || '利用中',
@@ -905,6 +929,8 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   return result;
 }
 
+let currentEmployeeList = []; // 取得したデータを一時保存する変数
+
 // 3. 画面描画処理（データの取得完了を待ってからレンダリング）
 async function renderEmployees() {
   const container = document.getElementById('emp-list-container');
@@ -914,6 +940,7 @@ async function renderEmployees() {
 
   // APIから非同期でデータを取得 (検索パラメータを2つ渡す)
   const data = await fetchEmployeesAPI(currentInitialFilter, currentNameFilter);
+  currentEmployeeList = data; // データを変数に保存
 
   // 取得結果が0件の場合のハンドリング
   if (data.length === 0) {
@@ -930,7 +957,7 @@ async function renderEmployees() {
         <div class="emp-avatar">👤</div>
         <div class="emp-info-main">
           <div class="emp-name-row">
-            <a href="#" class="emp-name" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
+            <a href="#" class="emp-name" onclick="showEmployeeDetail(${emp.id})">${emp.name}</a>
             <span class="badge-tag ${emp.roleClass}">${emp.role}</span>
             <span class="badge-tag badge-disabled ${statusClass}" id="emp-status-${emp.id}">利用停止</span>
           </div>
