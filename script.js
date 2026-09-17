@@ -816,17 +816,32 @@ function filterByName(nameStr) {
   renderEmployees();
 }
 
-// 2. 【API通信モック】将来 fetch() でエンドポイントを叩く処理に差し替える関数
+// 2. 【API通信実装】Node.jsのバックエンドから本物の従業員データを取得する関数
 async function fetchEmployeesAPI(initialFilter, nameFilter) {
-  // バックエンドへイニシャルと名前の両方をクエリパラメータとして送信する想定
-  console.log(`[API MOCK] GET /api/employees?initial=${initialFilter}&name=${nameFilter}`);
-  
-  // ネットワーク通信の遅延をシミュレート（300ms）
-  await new Promise(resolve => setTimeout(resolve, 300));
+  let result = [];
+  try {
+    // ① 先ほど立ち上げたローカルサーバー(ポート3000)からデータを取得！
+    const response = await fetch('http://localhost:3000/api/employees');
+    const dbData = await response.json();
 
-  let result = employeesDB;
+    // ② RDSの生データを、画面表示用の形式に変換（マッピング）
+    result = dbData.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      kana: emp.kana,
+      role: emp.role || '一般',
+      roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
+      status: emp.status || '利用中',
+      empType: '正社員', // ※ひとまず固定
+      office: emp.department || 'NEXT',
+      joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-'
+    }));
+  } catch (error) {
+    console.error('API取得エラー:', error);
+    return [];
+  }
 
-  // ① イニシャルによる絞り込み（DBのWHERE句を想定）
+  // ③ イニシャルによる絞り込み（本来はバックエンド側で処理しますが、今回はフロントで処理）
   if (initialFilter !== 'ALL') {
     const initialMap = {
       'ア': /^[ア-オ]/, 'カ': /^[カ-ゴ]/, 'サ': /^[サ-ゾ]/,
@@ -842,18 +857,15 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
     }
   }
 
-  // ② 名前（漢字・フリガナ）による部分一致絞り込み（DBのLIKE検索を想定）
+  // ④ 名前（漢字・フリガナ）による部分一致絞り込み
   if (nameFilter) {
-    // 検索キーワードの空白(全角/半角)を除去し、ひらがなをカタカナに変換する
     const normalizedFilter = nameFilter
       .replace(/[\s ]/g, '')
       .replace(/[\u3041-\u3096]/g, match => String.fromCharCode(match.charCodeAt(0) + 0x60));
 
     result = result.filter(emp => {
-      // データの名前とフリガナからも空白を除去して比較する
       const normalizedName = emp.name.replace(/[\s ]/g, '');
       const normalizedKana = emp.kana.replace(/[\s ]/g, '');
-      
       return normalizedName.includes(normalizedFilter) || normalizedKana.includes(normalizedFilter);
     });
   }
