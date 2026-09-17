@@ -89,10 +89,9 @@ app.patch('/api/employees/:id/status', (req, res) => {
   });
 });
 
-// サーバーを起動
-app.listen(port, () => {
-  console.log(`🚀 サーバーが起動しました: http://localhost:${port}`);
-});
+// ==========================================
+// 勤怠打刻API (取得・登録・更新)
+// ==========================================
 
 // 【月表示用API】指定された年月の打刻実績一覧を取得する
 app.get('/api/attendances/monthly', (req, res) => {
@@ -124,10 +123,6 @@ app.get('/api/attendances/monthly', (req, res) => {
   });
 });
 
-// ==========================================
-// 勤怠打刻API (新規作成・更新・削除)
-// ==========================================
-
 // 打刻の新規作成または更新 (UPSERT)
 app.post('/api/attendances', (req, res) => {
   const { employee_id, work_date, clock_in, clock_out, memo } = req.body;
@@ -149,28 +144,10 @@ app.post('/api/attendances', (req, res) => {
     res.json({ message: '打刻データを保存しました' });
   });
 });
-// ==========================================
-// 勤怠打刻API (新規作成・更新・削除)
-// ==========================================
 
-// 打刻の新規作成または更新 (UPSERT)
-app.post('/api/attendances', (req, res) => {
-  const { employee_id, work_date, clock_in, clock_out, memo } = req.body;
-  
-  const sql = `
-    INSERT INTO attendances (employee_id, work_date, clock_in, clock_out, memo)
-    VALUES (?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      clock_in = VALUES(clock_in),
-      clock_out = VALUES(clock_out),
-      memo = VALUES(memo)
-  `;
-
-  db.query(sql, [employee_id, work_date, clock_in || null, clock_out || null, memo || null], (err, result) => {
-    if (err) {
-      console.error('打刻保存エラー:', err);
-      return res.status(500).json({ error: '打刻の保存に失敗しました' });
-    }
-    res.json({ message: '打刻データを保存しました' });
-  });
+// ==========================================
+// サーバー起動 (すべてのAPI定義の最後に記述)
+// ==========================================
+app.listen(port, () => {
+  console.log(`🚀 サーバーが起動しました: http://localhost:${port}`);
 });
