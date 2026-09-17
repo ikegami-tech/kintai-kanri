@@ -29,7 +29,7 @@ db.connect((err) => {
 
 // 【テスト用API】従業員一覧を取得する
 app.get('/api/employees', (req, res) => {
-  const sql = 'SELECT * FROM employees';
+  const sql = 'SELECT * FROM employees ORDER BY kana ASC';
   
   db.query(sql, (err, results) => {
     if (err) {
