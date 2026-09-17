@@ -528,14 +528,14 @@ function renderMatrixTable() {
       const currentDateObj = new Date(year, month - 1, i);
       const dayOfWeek = currentDateObj.getDay();
       
-      // 基本クラス（土日の背景色分けは廃止し、CSSのストライプに任せる）
-      let tdClass = 'cell-click';
+      // 退職者の場合はホバー時のハイライト(cell-click)も外す
+      let tdClass = retireDateObj ? '' : 'cell-click';
 
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
       let cellData = '';
 
       if (isAfterRetire) {
-        // 退職日以降：クリック不可にするクラスを追加（空セル・背景色はそのまま）
+        // 退職日以降：カーソルを禁止マークにするクラスを追加
         tdClass += ' cell-retired';
       } else {
         // 在籍期間中：実績データがあれば取得
@@ -550,8 +550,13 @@ function renderMatrixTable() {
       
       // クリックイベントの出し分け
       if (isAfterRetire) {
+        // 退職日以降の空セル
         tbodyHtml += `<td class="${tdClass}"></td>`;
+      } else if (retireDateObj) {
+        // 退職者の退職日以前のセル（データは表示するがクリック不可）
+        tbodyHtml += `<td class="${tdClass}">${cellData}</td>`;
       } else {
+        // 通常の従業員のセル（クリック可能）
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
     }
