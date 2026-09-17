@@ -881,12 +881,12 @@ body {
   pointer-events: none;
 }
 
-/* 退職者の入力済み実績の数字部分だけをグレーの背景にする */
+/* 退職者の入力済み実績の背景を上・左右の端まで広げる（下は少し空ける） */
 .retired-time-box {
   background-color: #e2e8f0;
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 2px;
+  display: block;
+  margin: -8px -4px 0 -4px; /* セルのpadding(上8px, 左右4px)を相殺して端まで密着させる */
+  padding: 8px 4px 4px 4px; /* 内側の余白を再設定 */
 }
 
 .memo-icon {
