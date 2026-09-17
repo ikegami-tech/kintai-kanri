@@ -1269,6 +1269,13 @@ td:hover .memo-icon::before {
 .map-modal-content {
   padding: 15px 20px 20px 20px;
   background: #ffffff;
+  display: flex;
+  gap: 20px;
+}
+
+/* 直行直帰でメールを表示する際、モーダルの幅を拡張するクラス */
+.map-modal-wide {
+  width: 960px !important; 
 }
 
 .map-preview {

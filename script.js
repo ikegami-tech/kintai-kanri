@@ -146,14 +146,28 @@ function toggleMailAccordion() {
   arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
 }
 
-function openMapModal(empName, actionStr, addressStr) {
-  // 打刻種別（出勤、直行出勤など）をそのままタイトルに設定
+function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   document.getElementById('map-modal-title').textContent = actionStr || '出勤';
   document.getElementById('map-modal-address').textContent = `住所: ${addressStr}`;
   
   const mapIframe = document.getElementById('map-iframe');
   if (mapIframe) {
     mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(addressStr)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  }
+
+  const modalBody = document.getElementById('map-modal-body');
+  const emailArea = document.getElementById('map-modal-email-area');
+  const emailText = document.getElementById('map-modal-email-text');
+
+  // 「直行」または「直帰」が含まれる場合のみメール内容を表示して幅を広げる
+  if (actionStr.includes('直行') || actionStr.includes('直帰')) {
+    modalBody.classList.add('map-modal-wide');
+    emailArea.classList.remove('hidden');
+    emailText.textContent = emailContent || '※メール内容が登録されていません。';
+  } else {
+    modalBody.classList.remove('map-modal-wide');
+    emailArea.classList.add('hidden');
+    emailText.textContent = '';
   }
 
   document.getElementById('map-modal').classList.remove('hidden');
@@ -617,11 +631,11 @@ function changeDailyDate(offset) {
 }
 
 const dailyData = [
-  { id: 1, name: '安藤 健太郎', time: '08:29 ～', memo: '[NEXTメモ]\n通常出勤', action: '出勤', fullTime: '9/11 08:29:00', address: '東京都千代田区有楽町1-1-1' },
-  { id: 2, name: '五十嵐 由樹', time: '08:52 ～', memo: '[NEXTメモ]\n直行打刻', action: '直行出勤', fullTime: '9/11 08:52:14', address: '東京都新宿区西新宿2-8-1' },
-  { id: 3, name: '池上 裕士', time: '08:27 ～', memo: '', action: '出勤', fullTime: '9/11 08:27:45', address: '東京都中央区銀座4-1-2' },
-  { id: 4, name: '池谷 あや子', time: '08:56 ～', memo: '', action: '出勤', fullTime: '9/11 08:56:22', address: '東京都港区南青山3-1-1' },
-  { id: 5, name: '石井 秀龍', time: '08:59 ～', memo: '[NEXTメモ]\n管理者修正済み', action: '出勤', fullTime: '9/11 08:59:10', address: '東京都港区六本木6-10-1' }
+  { id: 1, name: '安藤 健太郎', time: '08:29 ～', memo: '[NEXTメモ]\n通常出勤', action: '出勤', fullTime: '9/11 08:29:00', address: '東京都千代田区有楽町1-1-1', email: '' },
+  { id: 2, name: '五十嵐 由樹', time: '08:52 ～', memo: '[NEXTメモ]\n直行打刻', action: '直行出勤', fullTime: '9/11 08:52:14', address: '東京都新宿区西新宿2-8-1', email: '訪問先：株式会社〇〇\n業務内容：システム導入の打ち合わせ\n\nそのまま直行いたします。' },
+  { id: 3, name: '池上 裕士', time: '08:27 ～', memo: '', action: '出勤', fullTime: '9/11 08:27:45', address: '東京都中央区銀座4-1-2', email: '' },
+  { id: 4, name: '池谷 あや子', time: '08:56 ～', memo: '', action: '出勤', fullTime: '9/11 08:56:22', address: '東京都港区南青山3-1-1', email: '' },
+  { id: 5, name: '石井 秀龍', time: '08:59 ～', memo: '[NEXTメモ]\n管理者修正済み', action: '出勤', fullTime: '9/11 08:59:10', address: '東京都港区六本木6-10-1', email: '' }
 ];
 
 async function renderDailyTable() {
@@ -652,7 +666,7 @@ async function renderDailyTable() {
             <div class="avatar-circle has-tooltip" data-tooltip="${emp.action}\n${emp.fullTime}\n住所:${emp.address}">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
-            <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${emp.action}', '${emp.address}')">📍地図</button>
+            <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${emp.action}', '${emp.address}', '${(emp.email || '').replace(/\n/g, '\\n')}')">📍地図</button>
           </div>
         </td>
       </tr>
