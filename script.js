@@ -603,13 +603,15 @@ const matrixData = [
   }
 ];
 
-function renderMatrixTable() {
+// 【API通信実装】RDSから指定月の打刻データを取得してマトリクス表を描画する
+async function renderMatrixTable() {
   const year = currentMatrixDate.getFullYear();
   const month = currentMatrixDate.getMonth() + 1;
   const daysInMonth = new Date(year, month, 0).getDate();
 
   document.getElementById('matrix-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
+  // 1. ヘッダー(日付行)の生成
   const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
   let theadHtml = `
     <tr>
@@ -628,56 +630,65 @@ function renderMatrixTable() {
   theadHtml += `</tr>`;
   document.getElementById('matrix-thead').innerHTML = theadHtml;
 
+  // 2. バックエンドAPIから実際の打刻データを取得
+  let attendancesData = [];
+  try {
+    const response = await fetch(`http://localhost:3000/api/attendances/monthly?year=${year}&month=${month}`);
+    if (response.ok) {
+      attendancesData = await response.json();
+    }
+  } catch (error) {
+    console.error('マトリクスデータ取得エラー:', error);
+  }
+
+  // 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
+  const attendanceMap = {};
+  attendancesData.forEach(att => {
+    const dateStr = new Date(att.work_date).toISOString().split('T')[0];
+    if (!attendanceMap[att.employee_id]) {
+      attendanceMap[att.employee_id] = {};
+    }
+    const timeText = `${att.clock_in ? att.clock_in.substring(0, 5) : ''}<br>${att.clock_out ? att.clock_out.substring(0, 5) : ''}`;
+    const memoHtml = att.memo ? `<span class="memo-icon" data-tooltip="${att.memo}">💬</span>` : '';
+    attendanceMap[att.employee_id][dateStr] = `${timeText}${memoHtml}`;
+  });
+
+  // 4. 従業員一覧（currentEmployeeList）をもとに表の行を生成
   let tbodyHtml = '';
-  matrixData.forEach(emp => {
+  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+
+  empList.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
     
-    // 退職日オブジェクトを作成
-    let retireDateObj = null;
-    if (emp.retireDate) {
-      retireDateObj = new Date(emp.retireDate);
-      retireDateObj.setHours(0, 0, 0, 0);
-    }
+    let retireDateObj = emp.retireDate && emp.retireDate !== '-' ? new Date(emp.retireDate) : null;
+    if (retireDateObj) retireDateObj.setHours(0, 0, 0, 0);
 
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDateObj = new Date(year, month - 1, i);
-      const dayOfWeek = currentDateObj.getDay();
+      const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
-      // 退職者の場合はホバー時のハイライト(cell-click)を外し、位置調整用のクラスを付与
       let tdClass = retireDateObj ? 'cell-readonly' : 'cell-click';
-
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
       let cellData = '';
 
       if (isAfterRetire) {
-        // 退職日以降：カーソルを禁止マークにするクラスを追加
         tdClass += ' cell-retired';
       } else {
-        // 在籍期間中：実績データがあれば取得
-        const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        cellData = emp.data[dateKey] || '';
-        
-        // 退職者で、かつ実績データが入力されている場合、数字部分のみをグレー枠で囲む
+        cellData = (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) || '';
         if (retireDateObj && cellData) {
           cellData = `<div class="retired-time-box">${cellData}</div>`;
         }
       }
       
-      // クリックイベントの出し分け
-      if (isAfterRetire) {
-        // 退職日以降の空セル
-        tbodyHtml += `<td class="${tdClass}"></td>`;
-      } else if (retireDateObj) {
-        // 退職者の退職日以前のセル（データは表示するがクリック不可）
+      if (isAfterRetire || retireDateObj) {
         tbodyHtml += `<td class="${tdClass}">${cellData}</td>`;
       } else {
-        // 通常の従業員のセル（クリック可能）
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
     }
-    const sumVal = (year === 2026 && month === 9) ? emp.sum : '-';
-    tbodyHtml += `<td class="col-sum">${sumVal}</td></tr>`;
+    tbodyHtml += `<td class="col-sum">-</td></tr>`;
   });
+
   document.getElementById('matrix-tbody').innerHTML = tbodyHtml;
 }
 

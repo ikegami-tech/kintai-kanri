@@ -93,3 +93,33 @@ app.patch('/api/employees/:id/status', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 サーバーが起動しました: http://localhost:${port}`);
 });
+
+// 【月表示用API】指定された年月の打刻実績一覧を取得する
+app.get('/api/attendances/monthly', (req, res) => {
+  const { year, month } = req.query;
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+
+  const sql = `
+    SELECT 
+      a.id,
+      a.employee_id,
+      e.name AS employee_name,
+      a.work_date,
+      a.clock_in,
+      a.clock_out,
+      a.memo
+    FROM attendances a
+    JOIN employees e ON a.employee_id = e.id
+    WHERE a.work_date BETWEEN ? AND ?
+    ORDER BY e.kana ASC, a.work_date ASC
+  `;
+
+  db.query(sql, [startDate, endDate], (err, results) => {
+    if (err) {
+      console.error('打刻データ取得エラー:', err);
+      return res.status(500).json({ error: 'データ取得に失敗しました' });
+    }
+    res.json(results);
+  });
+});
