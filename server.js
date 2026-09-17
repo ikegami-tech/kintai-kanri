@@ -42,6 +42,53 @@ app.get('/api/employees', (req, res) => {
   });
 });
 
+// ==========================================
+// 従業員管理API (追加・更新・削除・ステータス変更)
+// ==========================================
+
+// 1. 【新規追加】
+app.post('/api/employees', (req, res) => {
+  const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date } = req.body;
+  const sql = `INSERT INTO employees (name, kana, gender, email, department, role, show_attendance, join_date, retire_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const values = [name, kana, gender, email, department, role, show_attendance, join_date || null, retire_date || null];
+  
+  db.query(sql, values, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: '追加成功', id: result.insertId });
+  });
+});
+
+// 2. 【編集(更新)】
+app.put('/api/employees/:id', (req, res) => {
+  const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date } = req.body;
+  const sql = `UPDATE employees SET name=?, kana=?, gender=?, email=?, department=?, role=?, show_attendance=?, join_date=?, retire_date=? WHERE id=?`;
+  const values = [name, kana, gender, email, department, role, show_attendance, join_date || null, retire_date || null, req.params.id];
+  
+  db.query(sql, values, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: '更新成功' });
+  });
+});
+
+// 3. 【削除】
+app.delete('/api/employees/:id', (req, res) => {
+  const sql = 'DELETE FROM employees WHERE id = ?';
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: '削除成功' });
+  });
+});
+
+// 4. 【ステータス更新 (利用停止/再開)】
+app.patch('/api/employees/:id/status', (req, res) => {
+  const { status } = req.body;
+  const sql = 'UPDATE employees SET status = ? WHERE id = ?';
+  db.query(sql, [status, req.params.id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'ステータス更新成功' });
+  });
+});
+
 // サーバーを起動
 app.listen(port, () => {
   console.log(`🚀 サーバーが起動しました: http://localhost:${port}`);

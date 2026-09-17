@@ -402,27 +402,59 @@ function closeCreateEmployee() {
   document.getElementById('page-employees').classList.remove('hidden');
 }
 
+// 【API通信実装】実際のデータベース（バックエンド）へ従業員データを保存する
 async function saveNewEmployee(event) {
   event.preventDefault();
   const btn = event.target.querySelector('.btn-save');
   btn.textContent = '保存中...';
   btn.disabled = true;
 
-  const formData = new FormData(event.target);
-  const payload = Object.fromEntries(formData.entries());
-  console.log(`[API MOCK] POST /api/employees`, payload);
+  const form = event.target;
+  const inputs = form.querySelectorAll('.form-input');
+  const selects = form.querySelectorAll('.form-select');
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // 入力フォームからデータを抽出してペイロード（送信データ）を作成
+  const payload = {
+    name: inputs[0].value,
+    kana: inputs[1].value,
+    gender: form.querySelector('input[name="new_gender"]:checked').value,
+    email: inputs[2].value,
+    department: selects[0].value,
+    role: form.querySelector('input[name="new_role"]:checked').value,
+    show_attendance: form.querySelector('input[name="new_attendance_display"]:checked').value === 'あり' ? 1 : 0,
+    join_date: inputs[3].value ? inputs[3].value.replace(/\//g, '-') : null, // 2026/09/11 を 2026-09-11 に変換
+    retire_date: inputs[4].value ? inputs[4].value.replace(/\//g, '-') : null
+  };
 
-  showToast('新しい従業員を作成しました。');
-  closeCreateEmployee();
-  btn.textContent = '設定を保存';
-  btn.disabled = false;
+  try {
+    // 立ち上げているローカルサーバー(API)へPOSTリクエスト
+    const response = await fetch('http://localhost:3000/api/employees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-  // メールアドレスが入力されていればパスワード設定メールを送信
-  const newEmail = document.getElementById('new-email').value;
-  if (newEmail) {
-    sendPwSetupEmail(newEmail);
+    if (!response.ok) {
+      throw new Error('サーバーエラーが発生しました');
+    }
+
+    showToast('新しい従業員を作成しました。');
+    closeCreateEmployee();
+    form.reset(); // フォームを空に戻す
+
+    // 保存後に一覧データを再取得して画面を更新！
+    await renderEmployees();
+
+    // メール送信処理（今回はモックのまま）
+    if (payload.email) {
+      sendPwSetupEmail(payload.email);
+    }
+  } catch (error) {
+    console.error('保存エラー:', error);
+    alert('保存に失敗しました。サーバーが起動しているか確認してください。');
+  } finally {
+    btn.textContent = '設定を保存';
+    btn.disabled = false;
   }
 }
 // --- ダッシュボード ---
