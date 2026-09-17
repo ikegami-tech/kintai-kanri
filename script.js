@@ -1043,12 +1043,14 @@ async function renderEmployees() {
 // ==========================================
 // 6. 初期化
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   renderDashboard();
+  // 1. 先に従業員一覧（最新データ）を取得して保存
+  await renderEmployees();
+  // 2. その後にマトリクス表を描画
   renderMatrixTable();
   renderDailyTable();
   renderOvertimeTable();
-  renderEmployees();
 });
 // ==========================================
 // 7. スマレジ風 対象月変更専用モーダル機能
