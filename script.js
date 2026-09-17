@@ -298,19 +298,46 @@ function closeEmpActionModal() {
   currentEmpTargetId = null;
 }
 
+// 【API通信実装】実際のデータベース（バックエンド）で削除・ステータス更新を行う
 async function executeEmpAction() {
-  if (currentEmpAction === 'toggle') {
-    console.log(`[API MOCK] PATCH /api/employees/${currentEmpTargetId}/status`);
-    showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
-    const statusBadge = document.getElementById(`emp-status-${currentEmpTargetId}`);
-    if (statusBadge) statusBadge.classList.toggle('hidden');
-  } else if (currentEmpAction === 'delete') {
-    console.log(`[API MOCK] DELETE /api/employees/${currentEmpTargetId}`);
-    showToast(`従業員『${currentEmpTargetName}』を削除しました。`);
-    const cardEl = document.getElementById(`emp-card-${currentEmpTargetId}`);
-    if (cardEl) cardEl.remove();
+  try {
+    if (currentEmpAction === 'toggle') {
+      // 1. 現在のステータスバッジの状態から、新しいステータスを判定
+      const statusBadge = document.getElementById(`emp-status-${currentEmpTargetId}`);
+      const isCurrentlyStopped = statusBadge && !statusBadge.classList.contains('hidden');
+      const newStatus = isCurrentlyStopped ? '利用中' : '利用停止';
+
+      // 2. ローカルサーバー(API)へPATCHリクエスト（ステータス更新）
+      const response = await fetch(`http://localhost:3000/api/employees/${currentEmpTargetId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) throw new Error('ステータス更新に失敗しました');
+
+      showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
+      
+    } else if (currentEmpAction === 'delete') {
+      // 1. ローカルサーバー(API)へDELETEリクエスト（削除）
+      const response = await fetch(`http://localhost:3000/api/employees/${currentEmpTargetId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('削除に失敗しました');
+
+      showToast(`従業員『${currentEmpTargetName}』を削除しました。`);
+    }
+
+    // 処理成功後、一覧データを再取得して画面を最新状態に更新！
+    await renderEmployees();
+
+  } catch (error) {
+    console.error('操作エラー:', error);
+    alert('操作に失敗しました。サーバーが起動しているか確認してください。');
+  } finally {
+    closeEmpActionModal();
   }
-  closeEmpActionModal();
 }
 
 function showEmployeeDetail(identifier) {
