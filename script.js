@@ -829,9 +829,18 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
 
   // ② 名前（漢字・フリガナ）による部分一致絞り込み（DBのLIKE検索を想定）
   if (nameFilter) {
-    result = result.filter(emp => 
-      emp.name.includes(nameFilter) || emp.kana.includes(nameFilter)
-    );
+    // 検索キーワードの空白(全角/半角)を除去し、ひらがなをカタカナに変換する
+    const normalizedFilter = nameFilter
+      .replace(/[\s ]/g, '')
+      .replace(/[\u3041-\u3096]/g, match => String.fromCharCode(match.charCodeAt(0) + 0x60));
+
+    result = result.filter(emp => {
+      // データの名前とフリガナからも空白を除去して比較する
+      const normalizedName = emp.name.replace(/[\s ]/g, '');
+      const normalizedKana = emp.kana.replace(/[\s ]/g, '');
+      
+      return normalizedName.includes(normalizedFilter) || normalizedKana.includes(normalizedFilter);
+    });
   }
 
   return result;
