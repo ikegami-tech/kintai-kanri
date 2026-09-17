@@ -722,7 +722,13 @@ async function renderMatrixTable() {
   // 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
   const attendanceMap = {};
   attendancesData.forEach(att => {
-    const dateStr = new Date(att.work_date).toISOString().split('T')[0];
+    // タイムゾーンの時差ズレを防ぎ、ローカル（日本時間）の日付を正確に取得
+    const d = new Date(att.work_date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${day}`;
+
     if (!attendanceMap[att.employee_id]) {
       attendanceMap[att.employee_id] = {};
     }
