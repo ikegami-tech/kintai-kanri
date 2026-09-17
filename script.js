@@ -147,7 +147,8 @@ function toggleMailAccordion() {
 }
 
 function openMapModal(empName, actionStr, addressStr, emailContent = '') {
-  document.getElementById('map-modal-title').textContent = actionStr || '出勤';
+  // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (五十嵐 由樹)"）
+  document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
   document.getElementById('map-modal-address').textContent = `住所: ${addressStr}`;
   
   const mapIframe = document.getElementById('map-iframe');
