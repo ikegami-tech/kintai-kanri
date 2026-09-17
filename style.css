@@ -825,11 +825,17 @@ body {
   color: #e74c3c;
 }
 
-/* 土日のセル内文字色は通常（黒）に戻し、背景色だけわずかに変える */
-.monthly-matrix-table td.sat-bg,
-.monthly-matrix-table td.sun-bg {
-  color: var(--text-main);
-  background-color: #f8fafc;
+/* 行ごとのストライプ（白・薄いTOHOカラー）設定 */
+.monthly-matrix-table tbody tr:nth-child(even) td {
+  background-color: #f0f7ff; /* 薄いTOHOブルー */
+}
+.monthly-matrix-table tbody tr:nth-child(odd) td {
+  background-color: #ffffff; /* 白 */
+}
+
+/* ホバー時の色は少し濃くする */
+.monthly-matrix-table tbody tr td.cell-click:hover {
+  background-color: #e2f0fd !important;
 }
 
 .col-emp-name {

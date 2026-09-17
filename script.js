@@ -528,10 +528,8 @@ function renderMatrixTable() {
       const currentDateObj = new Date(year, month - 1, i);
       const dayOfWeek = currentDateObj.getDay();
       
-      // 基本クラス（土日の背景色は維持）
+      // 基本クラス（土日の背景色分けは廃止し、CSSのストライプに任せる）
       let tdClass = 'cell-click';
-      if (dayOfWeek === 0) tdClass += ' sun-bg';
-      if (dayOfWeek === 6) tdClass += ' sat-bg';
 
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
       let cellData = '';
