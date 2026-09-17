@@ -881,9 +881,12 @@ body {
   pointer-events: none;
 }
 
-/* 退職者の入力済み実績があるセルの背景をグレーにする */
-.retired-data-cell {
-  background-color: #e2e8f0 !important; /* スマレジ風の薄いグレー背景 */
+/* 退職者の入力済み実績の数字部分だけをグレーの背景にする */
+.retired-time-box {
+  background-color: #e2e8f0;
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 2px;
 }
 
 .memo-icon {

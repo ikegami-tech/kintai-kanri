@@ -542,9 +542,9 @@ function renderMatrixTable() {
         const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         cellData = emp.data[dateKey] || '';
         
-        // 退職者で、かつ実績データが入力されているセルのみ背景をグレーにする
+        // 退職者で、かつ実績データが入力されている場合、数字部分のみをグレー枠で囲む
         if (retireDateObj && cellData) {
-          tdClass += ' retired-data-cell';
+          cellData = `<div class="retired-time-box">${cellData}</div>`;
         }
       }
       
