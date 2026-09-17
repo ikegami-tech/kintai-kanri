@@ -224,18 +224,86 @@ function closeRecordModal(modalId) {
   document.getElementById(modalId).classList.add('hidden');
 }
 
+// 【API通信実装】実績の新規登録処理
 async function submitRecordCreate() {
-  const date = document.getElementById('create-date').value;
-  console.log(`[API MOCK] POST /api/attendance`, { empName: currentEmpName, date: date, action: 'create' });
-  closeRecordModal('modal-record-create');
-  showToast('実績を新規作成しました');
+  const emp = currentEmployeeList.find(e => e.name === currentEmpName);
+  if (!emp) {
+    alert('従業員データが見つかりません');
+    return;
+  }
+
+  const dateVal = document.getElementById('create-date').value.replace(/\//g, '-');
+  const startH = document.getElementById('create-start-h').value;
+  const startM = document.getElementById('create-start-m').value;
+  const endH = document.getElementById('create-end-h').value;
+  const endM = document.getElementById('create-end-m').value;
+
+  const payload = {
+    employee_id: emp.id,
+    work_date: dateVal,
+    clock_in: `${startH}:${startM}:00`,
+    clock_out: `${endH}:${endM}:00`,
+    memo: ''
+  };
+
+  try {
+    const response = await fetch('http://localhost:3000/api/attendances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error('保存に失敗しました');
+
+    showToast('実績を新規作成しました');
+    closeRecordModal('modal-record-create');
+    await renderMatrixTable(); // マトリクス表を最新表示に更新
+
+  } catch (error) {
+    console.error('打刻作成エラー:', error);
+    alert('保存に失敗しました。サーバーの状態を確認してください。');
+  }
 }
 
+// 【API通信実装】実績の編集更新処理
 async function submitRecordEdit() {
-  const date = document.getElementById('edit-date').value;
-  console.log(`[API MOCK] PUT /api/attendance/${currentEmpName}/${date}`);
-  closeRecordModal('modal-record-edit');
-  showToast('実績を更新しました（赤文字で表示されます）');
+  const emp = currentEmployeeList.find(e => e.name === currentEmpName);
+  if (!emp) {
+    alert('従業員データが見つかりません');
+    return;
+  }
+
+  const dateVal = document.getElementById('edit-date').value.replace(/\//g, '-');
+  const startH = document.getElementById('edit-start-h').value;
+  const startM = document.getElementById('edit-start-m').value;
+  const endH = document.getElementById('edit-end-h').value;
+  const endM = document.getElementById('edit-end-m').value;
+
+  const payload = {
+    employee_id: emp.id,
+    work_date: dateVal,
+    clock_in: `${startH}:${startM}:00`,
+    clock_out: `${endH}:${endM}:00`,
+    memo: '管理者修正'
+  };
+
+  try {
+    const response = await fetch('http://localhost:3000/api/attendances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error('更新に失敗しました');
+
+    showToast('実績を更新しました');
+    closeRecordModal('modal-record-edit');
+    await renderMatrixTable(); // マトリクス表を最新表示に更新
+
+  } catch (error) {
+    console.error('打刻更新エラー:', error);
+    alert('更新に失敗しました。サーバーの状態を確認してください。');
+  }
 }
 
 async function submitRecordDelete() {

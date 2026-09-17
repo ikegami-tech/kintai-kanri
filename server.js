@@ -123,3 +123,29 @@ app.get('/api/attendances/monthly', (req, res) => {
     res.json(results);
   });
 });
+
+// ==========================================
+// 勤怠打刻API (新規作成・更新・削除)
+// ==========================================
+
+// 打刻の新規作成または更新 (UPSERT)
+app.post('/api/attendances', (req, res) => {
+  const { employee_id, work_date, clock_in, clock_out, memo } = req.body;
+  
+  const sql = `
+    INSERT INTO attendances (employee_id, work_date, clock_in, clock_out, memo)
+    VALUES (?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      clock_in = VALUES(clock_in),
+      clock_out = VALUES(clock_out),
+      memo = VALUES(memo)
+  `;
+
+  db.query(sql, [employee_id, work_date, clock_in || null, clock_out || null, memo || null], (err, result) => {
+    if (err) {
+      console.error('打刻保存エラー:', err);
+      return res.status(500).json({ error: '打刻の保存に失敗しました' });
+    }
+    res.json({ message: '打刻データを保存しました' });
+  });
+});
