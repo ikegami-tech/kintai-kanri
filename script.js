@@ -1478,6 +1478,7 @@ function openMonthPicker(e, target) {
   let targetDate = currentMatrixDate;
   if (target === 'overtime') targetDate = currentOvertimeDate;
   if (target === 'daily') targetDate = currentDailyDate;
+  if (target === 'dashboard') targetDate = currentDashboardDate;
   pickerSelectedYear = targetDate.getFullYear();
 
   // 年セレクトボックスの生成
@@ -1544,6 +1545,9 @@ function selectSmaregiMonth(year, month) {
   } else if (currentPickerTarget === 'daily') {
     currentDailyDate = newDate;
     renderDailyTable();
+  } else if (currentPickerTarget === 'dashboard') {
+    currentDashboardDate = newDate;
+    renderDashboard();
   }
   
   closeMonthPicker();

@@ -156,8 +156,7 @@
                 <!-- 日付変更コントローラー -->
                 <div style="display: flex; align-items: center; gap: 3px;">
                   <button class="btn-sub" onclick="changeDashboardDate(-1)" style="padding: 4px 8px;">&lt;</button>
-                  <button class="btn-sub" onclick="document.getElementById('dash-date-picker').showPicker()" style="padding: 4px 8px;">📅</button>
-                  <input type="date" id="dash-date-picker" style="display:none;" onchange="selectDashboardDate(this.value)">
+                  <button class="btn-sub" onclick="openMonthPicker(event, 'dashboard')" style="padding: 4px 8px;">📅</button>
                   <button class="btn-sub" onclick="changeDashboardDate(0)" style="padding: 4px 8px;">今日</button>
                   <button class="btn-sub" onclick="changeDashboardDate(1)" style="padding: 4px 8px;">&gt;</button>
                 </div>
