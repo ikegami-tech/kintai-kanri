@@ -1091,7 +1091,7 @@ td:hover .memo-icon::before {
 .daily-table-wrapper {
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  overflow-x: auto;
+  overflow: visible; /* 吹き出しが枠外へ飛び出しても削られないよう解除 */
 }
 
 .daily-status-table {
