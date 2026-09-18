@@ -23,10 +23,11 @@ document.getElementById('login-form').addEventListener('submit', async function(
 function logout() {
   document.getElementById('app-view').classList.add('hidden');
   document.getElementById('login-view').classList.remove('hidden');
+  location.hash = ''; // ★追加：ログアウト時にURLのパスを綺麗にリセットする
 }
 
 // ==========================================
-// 2. UI制御 (サイドバー・SPA画面切り替え)
+// 2. UI制御 & URLルーティング (SPA画面切り替え)
 // ==========================================
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -44,47 +45,61 @@ function toggleAttendanceMenu() {
   arrow.classList.toggle('open');
 }
 
-function switchPage(pageId, element) {
-  const sidebar = document.getElementById('sidebar');
-  if (element && element.classList.contains('active')) {
-    toggleSidebar();
-    return;
-  }
+// ▼ URL（ハッシュ）が変更された時や「戻る/進む」を押した時に自動で発火するルーター
+window.addEventListener('hashchange', handleRouting);
 
+function handleRouting() {
+  const path = location.hash.replace(/^#\//, '') || 'dashboard';
+  
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-' + pageId).classList.remove('hidden');
+
+  const targetElement = document.getElementById('page-' + path);
+  if (targetElement) {
+    targetElement.classList.remove('hidden');
+  }
 
   const titles = {
     'dashboard': 'ダッシュボード',
     'monthly': '月表示 (マトリクス表)',
     'daily': '日表示',
     'overtime': '残業時間集計',
-    'employees': '従業員一覧'
+    'employees': '従業員一覧',
+    'web-timeclock': 'Web打刻アプリ',
+    'employee-detail': '従業員管理 (詳細)',
+    'employee-edit': '従業員管理 (編集)',
+    'employee-create': '新しい従業員を作成',
+    'timeline-detail': '詳細タイムライン'
   };
-  document.getElementById('page-title').textContent = titles[pageId] || '勤怠管理';
+  document.getElementById('page-title').textContent = titles[path] || '勤怠管理';
 
-  const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach(item => item.classList.remove('active'));
-  if (element) element.classList.add('active');
-
-  if (sidebar.classList.contains('collapsed')) {
-    toggleSidebar();
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  const activeMenu = Array.from(document.querySelectorAll('.nav-item')).find(item => {
+    if (path === 'dashboard' && item.textContent.includes('ダッシュボード')) return true;
+    if (path === 'monthly' && item.textContent.includes('月表示')) return true;
+    if (path === 'daily' && item.textContent.includes('日表示')) return true;
+    if ((path === 'employees' || path.includes('employee-')) && item.textContent.includes('従業員')) return true;
+    if (path === 'overtime' && item.textContent.includes('集計')) return true;
+    return false;
+  });
+  
+  if (activeMenu) {
+    activeMenu.classList.add('active');
+    if (path === 'monthly' || path === 'daily') {
+      document.getElementById('attendance-sub').classList.add('open');
+      document.getElementById('attendance-arrow').classList.add('open');
+    }
   }
 }
 
-// --- Web打刻アプリ画面を開く処理 ---
+function switchPage(pageId) {
+  location.hash = '#/' + pageId;
+}
+
 function openWebTimeclock() {
-  const pages = document.querySelectorAll('.page-content');
-  pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-web-timeclock').classList.remove('hidden');
-  document.getElementById('page-title').textContent = 'Web打刻アプリ';
-  
-  // サイドバーが開いていれば閉じる（アプリ画面を広く見せるため）
+  location.hash = '#/web-timeclock';
   const sidebar = document.getElementById('sidebar');
-  if (!sidebar.classList.contains('collapsed')) {
-    toggleSidebar();
-  }
+  if (!sidebar.classList.contains('collapsed')) toggleSidebar();
 }
 
 // ==========================================
@@ -269,9 +284,7 @@ function handleCellAction(actionType) {
   } else if (actionType === '詳細へ') {
     document.getElementById('timeline-title').textContent = `${currentDate} 詳細タイムライン`;
     renderTimeline(currentDate);
-    const pages = document.querySelectorAll('.page-content');
-    pages.forEach(page => page.classList.add('hidden'));
-    document.getElementById('page-timeline-detail').classList.remove('hidden');
+    location.hash = '#/timeline-detail';
   }
 }
 
@@ -561,10 +574,7 @@ function showEmployeeDetail(identifier) {
   document.getElementById('val-join-date').textContent = emp.joinDate;
   document.getElementById('val-retire-date').textContent = emp.retireDate;
 
-  const pages = document.querySelectorAll('.page-content');
-  pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-employee-detail').classList.remove('hidden');
-  document.getElementById('page-title').textContent = '従業員管理';
+  location.hash = '#/employee-detail';
 }
 
 function openEditEmployee() {
@@ -595,15 +605,11 @@ function openEditEmployee() {
   document.getElementById('edit-join-date').value = emp.joinDate !== '-' ? emp.joinDate : '';
   document.getElementById('edit-retire-date').value = emp.retireDate !== '-' ? emp.retireDate : '';
 
-  const pages = document.querySelectorAll('.page-content');
-  pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-employee-edit').classList.remove('hidden');
+  location.hash = '#/employee-edit';
 }
 
 function closeEditEmployee() {
-  const pages = document.querySelectorAll('.page-content');
-  pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-employee-detail').classList.remove('hidden');
+  location.hash = '#/employee-detail';
 }
 
 // 【API通信実装】実際のデータベース（バックエンド）へ編集内容を更新保存する
@@ -655,15 +661,11 @@ async function saveEmployeeEdit(event) {
 
 function openCreateEmployee() {
   document.getElementById('employee-create-form').reset();
-  const pages = document.querySelectorAll('.page-content');
-  pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-employee-create').classList.remove('hidden');
+  location.hash = '#/employee-create';
 }
 
 function closeCreateEmployee() {
-  const pages = document.querySelectorAll('.page-content');
-  pages.forEach(page => page.classList.add('hidden'));
-  document.getElementById('page-employees').classList.remove('hidden');
+  location.hash = '#/employees';
 }
 
 // 【API通信実装】実際のデータベース（バックエンド）へ従業員データを保存する
@@ -1235,6 +1237,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderMatrixTable();
   renderDailyTable();
   renderOvertimeTable();
+  
+  // ▼追加：初期アクセス時にURLから画面を判断してルーティング
+  if (!location.hash) {
+    location.hash = '#/dashboard';
+  } else {
+    handleRouting();
+  }
 });
 // ==========================================
 // 7. スマレジ風 対象月変更専用モーダル機能
