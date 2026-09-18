@@ -57,6 +57,10 @@ function handleRouting() {
   const targetElement = document.getElementById('page-' + path);
   if (targetElement) {
     targetElement.classList.remove('hidden');
+    // ★追加：ダッシュボード表示時は最新の打刻データを再描画する
+    if (path === 'dashboard') {
+      renderDashboard();
+    }
   }
 
   const titles = {
