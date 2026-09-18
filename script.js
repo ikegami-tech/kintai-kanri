@@ -298,9 +298,12 @@ function closeRecordModal(modalId) {
 
 // 【API通信実装】実績の新規登録処理
 async function submitRecordCreate() {
-  const emp = currentEmployeeList.find(e => e.name === currentEmpName);
+  // 全角・半角スペースを除去して一致判定（表記ブレ対策）
+  const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
+  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+
   if (!emp) {
-    alert('従業員データが見つかりません');
+    alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
     return;
   }
 
@@ -349,9 +352,12 @@ async function submitRecordCreate() {
 
 // 【API通信実装】実績の編集更新処理
 async function submitRecordEdit() {
-  const emp = currentEmployeeList.find(e => e.name === currentEmpName);
+  // 全角・半角スペースを除去して一致判定（表記ブレ対策）
+  const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
+  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+
   if (!emp) {
-    alert('従業員データが見つかりません');
+    alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
     return;
   }
 
@@ -407,8 +413,9 @@ async function submitRecordDelete() {
 
 // 【API通信実装】従業員メモの保存処理
 async function submitRecordMemo() {
-  const emp = currentEmployeeList.find(e => e.name === currentEmpName);
-  if (!emp) return alert('従業員データが見つかりません');
+  const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
+  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  if (!emp) return alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
 
   const dateVal = document.getElementById('memo-date').textContent.replace(/\//g, '-');
   const memoText = document.getElementById('modal-employee-memo').querySelector('textarea').value.trim();

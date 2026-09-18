@@ -10,21 +10,15 @@ app.use(cors());
 // JSONデータを扱えるようにする設定
 app.use(express.json());
 
-// データベース接続設定 (RDSの情報)
-const db = mysql.createConnection({
-  host: 'apb.cha6sci863bs.ap-northeast-1.rds.amazonaws.com', // エンドポイント
-  user: 'admin',                                             // ユーザー名
-  password: 'ike31415926',                // ←★ここを実際のパスワードに変更！
-  database: 'kintai'                                         // 今回作ったデータベース名
-});
-
-// データベースに接続
-db.connect((err) => {
-  if (err) {
-    console.error('データベース接続エラー:', err.message);
-    return;
-  }
-  console.log('🎉 RDSのMySQLデータベースに接続成功しました！');
+// データベース接続設定 (AWS Lambda用に接続プールを使用)
+const db = mysql.createPool({
+  host: 'apb.cha6sci863bs.ap-northeast-1.rds.amazonaws.com',
+  user: 'admin',
+  password: 'ike31415926',
+  database: 'kintai',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 // 【テスト用API】従業員一覧を取得する
