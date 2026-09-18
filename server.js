@@ -148,8 +148,7 @@ app.post('/api/attendances', (req, res) => {
 });
 
 // ==========================================
-// サーバー起動 (すべてのAPI定義の最後に記述)
+// AWS Lambda 用のエクスポート設定
 // ==========================================
-app.listen(port, () => {
-  console.log(`🚀 サーバーが起動しました: http://localhost:${port}`);
-});
+const serverless = require('serverless-http');
+module.exports.handler = serverless(app);
