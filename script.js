@@ -479,8 +479,8 @@ function handleEmpAction(action, empId, empName, toggleType = '') {
         const inputs = form.querySelectorAll('.form-input');
         const selects = form.querySelectorAll('.form-select');
 
-        // 名前（コピー表記追加）とフリガナ
-        inputs[0].value = `${emp.name} (コピー)`;
+        // 名前とフリガナ
+        inputs[0].value = emp.name || '';
         inputs[1].value = emp.kana || '';
         
         // 性別
@@ -761,47 +761,78 @@ async function saveNewEmployee(event) {
 }
 // --- ダッシュボード ---
 async function renderDashboard() {
-  console.log('[API MOCK] GET /api/dashboard/status');
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
+  const dayOfWeek = daysStr[today.getDay()];
   
-  // 今後のバックエンド連携を想定したAPIレスポンスのモックデータ
-  const rawData = [
-    { name: '池上 裕士', status: '未出勤', timeStr: '-' },
-    { name: '石井 秀龍', status: '未出勤', timeStr: '-' },
-    { name: '山田 太郎', status: '出勤', timeStr: '08:55 -' },
-    { name: '岡田 光平', status: '直行', timeStr: '09:00 -' },
-    { name: '佐野 真知子', status: '出勤', timeStr: '09:12 -' },
-    { name: '佐藤 花子', status: '退勤', timeStr: '09:00 - 18:00' },
-    { name: '高橋 健太', status: '直帰', timeStr: '10:00 - 19:30' }
-  ];
+  // 右上の日付表示を本日の日付に更新
+  const dateStr = `${year}年${month}月${day}日(${dayOfWeek})`;
+  const dateEl = document.getElementById('current-date-str');
+  if (dateEl) dateEl.textContent = dateStr;
 
-  // 打刻ステータスによる振り分け
-  const notStarted = rawData.filter(emp => emp.status === '未出勤' || !emp.status);
-  const working = rawData.filter(emp => emp.status === '出勤' || emp.status === '直行');
-  const finished = rawData.filter(emp => emp.status === '退勤' || emp.status === '直帰');
+  const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
+  // 1. 全従業員一覧を取得
+  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+
+  // 2. 本日が含まれる年月の打刻データをRDSから取得
+  let attendancesData = [];
+  try {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    if (response.ok) attendancesData = await response.json();
+  } catch (error) {
+    console.error('ダッシュボード用データ取得エラー:', error);
+  }
+
+  // 3. 今日の打刻データをマップ化
+  const todayAttendanceMap = {};
+  attendancesData.filter(a => a.work_date === todayKey).forEach(a => {
+    todayAttendanceMap[a.employee_id] = a;
+  });
+
+  // 4. 従業員ごとの当日の出退勤ステータス判定
+  const notStarted = [];
+  const working = [];
+  const finished = [];
+
+  empList.forEach(emp => {
+    const att = todayAttendanceMap[emp.id];
+    if (!att || !att.clock_in) {
+      notStarted.push({ name: emp.name, timeStr: '-' });
+    } else if (att.clock_in && !att.clock_out) {
+      working.push({ name: emp.name, timeStr: `${att.clock_in} -` });
+    } else if (att.clock_in && att.clock_out) {
+      finished.push({ name: emp.name, timeStr: `${att.clock_in} - ${att.clock_out}` });
+    }
+  });
+
+  // 5. DOM描画
   document.getElementById('dash-not-started-count').textContent = `${notStarted.length}名`;
-  document.getElementById('dash-not-started-list').innerHTML = notStarted.map(emp => `
+  document.getElementById('dash-not-started-list').innerHTML = notStarted.length > 0 ? notStarted.map(emp => `
     <li class="member-item">
       <span class="member-name"><span class="dot-status" style="background-color: #f39c12;"></span>${emp.name}</span>
       <span class="time-text">${emp.timeStr}</span>
     </li>
-  `).join('');
+  `).join('') : '<li class="member-item" style="color:#999; justify-content:center;">該当者なし</li>';
 
   document.getElementById('dash-working-count').textContent = `${working.length}名`;
-  document.getElementById('dash-working-list').innerHTML = working.map(emp => `
+  document.getElementById('dash-working-list').innerHTML = working.length > 0 ? working.map(emp => `
     <li class="member-item">
       <span class="member-name"><span class="dot-status dot-working"></span>${emp.name}</span>
       <span class="time-text">${emp.timeStr}</span>
     </li>
-  `).join('');
+  `).join('') : '<li class="member-item" style="color:#999; justify-content:center;">該当者なし</li>';
 
   document.getElementById('dash-finished-count').textContent = `${finished.length}名`;
-  document.getElementById('dash-finished-list').innerHTML = finished.map(emp => `
+  document.getElementById('dash-finished-list').innerHTML = finished.length > 0 ? finished.map(emp => `
     <li class="member-item">
       <span class="member-name"><span class="dot-status dot-finished"></span>${emp.name}</span>
       <span class="time-text">${emp.timeStr}</span>
     </li>
-  `).join('');
+  `).join('') : '<li class="member-item" style="color:#999; justify-content:center;">該当者なし</li>';
 }
 
 let currentMatrixDate = new Date(); // 現在の年月で初期化
