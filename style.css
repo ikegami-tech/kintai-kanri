@@ -2001,3 +2001,43 @@ td:hover .memo-icon::before {
   border-color: var(--toho-blue);
   font-weight: bold;
 }
+/* 日表示: 出退勤マルチアバターレイアウト (スマレジ再現) */
+.avatar-slot-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-empty {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px dashed #cbd5e1;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-empty svg {
+  width: 26px;
+  height: 26px;
+  stroke: #cbd5e1;
+}
+
+/* 直行・直帰用デザイン（オレンジ色） */
+.avatar-circle.direct-style {
+  border-color: #e67e22;
+}
+
+.avatar-circle.direct-style svg {
+  stroke: #e67e22;
+}
+
+.btn-map-badge.direct-badge {
+  background-color: #e67e22;
+}
+
+.btn-map-badge.direct-badge:hover {
+  background-color: #d35400;
+}

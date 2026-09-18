@@ -1159,16 +1159,55 @@ async function renderDailyTable() {
       }
     }
 
-    // 打刻データがある場合は位置情報アイコンを表示
+    // 直行・直帰の判定
+    const isDirectIn = att && att.memo && att.memo.includes('直行');
+    const isDirectOut = att && att.memo && att.memo.includes('直帰');
     const addressStr = '東京都千代田区有楽町1-1-1';
-    const mapBoxHtml = (att && att.clock_in) ? `
-      <div class="avatar-map-box">
-        <div class="avatar-circle has-tooltip" data-tooltip="${actionStr}\n${fullTimeStr}\n住所:${addressStr}">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+
+    // スロット1: 出勤 / 直行出勤
+    let inSlotHtml = '<div class="avatar-empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
+    
+    if (att && att.clock_in) {
+      const inLabel = isDirectIn ? '直行出勤' : '出勤';
+      const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
+      const inClass = isDirectIn ? 'direct-style' : '';
+      const inBadgeClass = isDirectIn ? 'direct-badge' : '';
+      const inFullTime = `${month}/${date} ${formatTime(att.clock_in)}`;
+
+      inSlotHtml = `
+        <div class="avatar-map-box">
+          <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n住所:${addressStr}">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
         </div>
-        <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${actionStr}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">📍地図</button>
-      </div>
-    ` : '<span style="color: #ccc; font-size: 13px;">-</span>';
+      `;
+    }
+
+    // スロット2〜5: 空白アバター枠（スマレジ再現）
+    const emptySlotHtml = '<div class="avatar-empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
+    const middleSlots = `${emptySlotHtml}${emptySlotHtml}${emptySlotHtml}${emptySlotHtml}`;
+
+    // スロット6: 退勤 / 直帰退勤
+    let outSlotHtml = emptySlotHtml;
+    if (att && att.clock_out) {
+      const outLabel = isDirectOut ? '直帰退勤' : '退勤';
+      const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
+      const outClass = isDirectOut ? 'direct-style' : '';
+      const outBadgeClass = isDirectOut ? 'direct-badge' : '';
+      const outFullTime = `${month}/${date} ${formatTime(att.clock_out)}`;
+
+      outSlotHtml = `
+        <div class="avatar-map-box">
+          <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n住所:${addressStr}">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
+        </div>
+      `;
+    }
+
+    const mapBoxHtml = `<div class="avatar-slot-group">${inSlotHtml}${middleSlots}${outSlotHtml}</div>`;
 
     return `
       <tr>
