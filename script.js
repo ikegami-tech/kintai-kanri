@@ -648,38 +648,7 @@ async function renderDashboard() {
   `).join('');
 }
 
-// --- 月表示 (マトリクス表) ---
-let currentMatrixDate = new Date(2026, 8, 1);
-const matrixData = [
-  {
-    name: '安藤 健太郎', sum: '55.85<br><small>(8日)</small>',
-    retireDate: '2026-09-15', // デモ用：9月15日を退職日に設定
-    data: {
-      '2026-09-03': '08:33<br>18:28', '2026-09-04': '08:38<br>18:16', '2026-09-05': '08:40<br>18:14', '2026-09-06': '08:45<br>18:35', '2026-09-07': '08:32<br>18:16', '2026-09-08': '<div class="time-edited">18:28<br>21:43</div><span class="memo-icon" data-tooltip="[NEXTメモ]\n残業申請承認済み">💬</span>', '2026-09-10': '08:32<br>18:34', '2026-09-11': '08:29<br>-', '2026-09-19': '<span class="memo-icon" data-tooltip="[NEXTメモ]\n休日出勤">💬</span>'
-    }
-  },
-  {
-    name: '五十嵐 由樹', sum: '58.78<br><small>(8日)</small>',
-    retireDate: null,
-    data: {
-      '2026-09-02': '16:41<br>18:28<span class="memo-icon" data-tooltip="[NEXTメモ]\n直帰打刻">💬</span>', '2026-09-03': '08:54<br>18:20', '2026-09-04': '08:59<br>19:11', '2026-09-05': '08:56<br>18:56', '2026-09-06': '08:56<br>19:41', '2026-09-07': '08:48<br>20:23', '2026-09-10': '08:57<br>19:00', '2026-09-11': '08:52<br>20:06'
-    }
-  },
-  {
-    name: '池上 裕士', sum: '65.87<br><small>(9日)</small>',
-    retireDate: '2026-09-08', // デモ用：9月8日を退職日に設定
-    data: {
-      '2026-09-01': '08:48<br>18:03', '2026-09-02': '08:49<br>18:01<span class="memo-icon" data-tooltip="[NEXTメモ]\n直行">💬</span>', '2026-09-03': '08:52<br>18:06', '2026-09-04': '08:40<br>18:01', '2026-09-06': '08:36<br>18:01<span class="memo-icon" data-tooltip="[NEXTメモ]\n休日出勤">💬</span>', '2026-09-07': '08:59<br>18:06', '2026-09-08': '08:52<br>18:12<span class="memo-icon" data-tooltip="[NEXTメモ]\n管理者修正">💬</span>', '2026-09-10': '09:00<br>18:01', '2026-09-11': '08:27<br>18:01', '2026-09-20': '<span class="memo-icon" data-tooltip="[NEXTメモ]\n休日出勤">💬</span>'
-    }
-  },
-  {
-    name: '石井 秀龍', sum: '60.60<br><small>(9日)</small>',
-    retireDate: null,
-    data: {
-      '2026-09-02': '12:59<br>19:16<span class="memo-icon" data-tooltip="[NEXTメモ]\n午後出勤">💬</span>', '2026-09-03': '08:37<br>19:01', '2026-09-04': '08:44<br>18:02', '2026-09-05': '08:44<br>18:06', '2026-09-06': '14:00<br>18:00', '2026-09-07': '08:43<br>18:36', '2026-09-08': '08:52<br>18:12<span class="memo-icon" data-tooltip="[NEXTメモ]\n打ち合わせ打刻">💬</span>', '2026-09-10': '08:53<br>18:02', '2026-09-11': '08:59<br>18:02'
-    }
-  }
-];
+let currentMatrixDate = new Date(); // 現在の年月で初期化
 
 // 【API通信実装】RDSから指定月の打刻データを取得してマトリクス表を描画する
 async function renderMatrixTable() {
