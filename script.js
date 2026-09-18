@@ -956,7 +956,7 @@ async function renderDailyTable() {
       <tr>
         <td class="emp-name-cell">
           <span class="dot-status dot-working"></span>
-          <a href="#" class="emp-link" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
+          <a href="javascript:void(0)" class="emp-link" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
         </td>
         <td>${emp.time} ${memoHtml}</td>
         <td>
@@ -1086,7 +1086,7 @@ async function renderOvertimeTable() {
   document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => `
     <tr>
       <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
-        <a href="#" onclick="showEmployeeDetail('${emp.name}')" style="color:inherit; text-decoration:none;">${emp.name}</a>
+        <a href="javascript:void(0)" onclick="showEmployeeDetail('${emp.name}')" style="color:inherit; text-decoration:none;">${emp.name}</a>
       </td>
       <td>${emp.weekdayDays}日</td>
       <td>${emp.weekendDays}日</td>
@@ -1261,7 +1261,7 @@ async function renderEmployees() {
         <div class="emp-avatar">👤</div>
         <div class="emp-info-main">
           <div class="emp-name-row">
-            <a href="#" class="emp-name" onclick="showEmployeeDetail(${emp.id})">${emp.name}</a>
+            <a href="javascript:void(0)" class="emp-name" onclick="showEmployeeDetail(${emp.id})">${emp.name}</a>
             <span class="badge-tag ${emp.roleClass}">${emp.role}</span>
             <span class="badge-tag badge-disabled ${statusClass}" id="emp-status-${emp.id}">利用停止</span>
           </div>
