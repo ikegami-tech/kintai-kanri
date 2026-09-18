@@ -470,12 +470,44 @@ function handleEmpAction(action, empId, empName, toggleType = '') {
   document.querySelectorAll('.emp-popover-menu').forEach(menu => menu.classList.add('hidden'));
 
   if (action === 'copy') {
-    console.log(`[API MOCK] GET /api/employees/${empId} (既存設定の取得)`);
+    const emp = currentEmployeeList.find(e => e.id === empId);
     openCreateEmployee();
-    setTimeout(() => {
-      const inputs = document.querySelectorAll('#employee-create-form .form-input');
-      if (inputs.length > 0) inputs[0].value = `${empName} (コピー)`;
-    }, 100);
+    
+    if (emp) {
+      setTimeout(() => {
+        const form = document.getElementById('employee-create-form');
+        const inputs = form.querySelectorAll('.form-input');
+        const selects = form.querySelectorAll('.form-select');
+
+        // 名前（コピー表記追加）とフリガナ
+        inputs[0].value = `${emp.name} (コピー)`;
+        inputs[1].value = emp.kana || '';
+        
+        // 性別
+        const genderRadios = form.querySelectorAll('input[name="new_gender"]');
+        genderRadios.forEach(r => r.checked = (r.value === (emp.gender || '未選択')));
+
+        // メールアドレス
+        inputs[2].value = emp.email || '';
+
+        // 所属
+        if (selects.length > 0) {
+          selects[0].value = emp.office || 'NEXT';
+        }
+
+        // 権限
+        const roleRadios = form.querySelectorAll('input[name="new_role"]');
+        roleRadios.forEach(r => r.checked = (r.value === (emp.role || '一般')));
+
+        // 勤怠表示
+        const attRadios = form.querySelectorAll('input[name="new_attendance_display"]');
+        attRadios.forEach(r => r.checked = (emp.show_attendance ? r.value === 'あり' : r.value === 'なし'));
+
+        // 入社日・退職日
+        inputs[3].value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate : '';
+        inputs[4].value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate : '';
+      }, 50);
+    }
     return;
   }
 
