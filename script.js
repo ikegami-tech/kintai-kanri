@@ -622,14 +622,18 @@ async function saveEmployeeEdit(event) {
   const form = event.target;
   const currentEmp = currentEmployeeList.find(e => e.id === currentEmpTargetId);
 
+  const genderEl = form.querySelector('input[name="gender"]:checked');
+  const roleEl = form.querySelector('input[name="role"]:checked');
+  const attEl = form.querySelector('input[name="attendance_display"]:checked');
+
   const payload = {
     name: document.getElementById('edit-name').value,
     kana: document.getElementById('edit-kana').value,
-    gender: form.querySelector('input[name="gender"]:checked').value,
+    gender: genderEl ? genderEl.value : (currentEmp ? currentEmp.gender : '未選択'),
     email: currentEmp ? currentEmp.email : '',
-    department: form.querySelector('.form-select').value,
-    role: form.querySelector('input[name="role"]:checked').value,
-    show_attendance: form.querySelector('input[name="attendance_display"]:checked').value === 'あり' ? 1 : 0,
+    department: form.querySelector('.form-select') ? form.querySelector('.form-select').value : 'NEXT',
+    role: roleEl ? roleEl.value : (currentEmp ? currentEmp.role : '一般'),
+    show_attendance: attEl ? (attEl.value === 'あり' ? 1 : 0) : 1,
     join_date: document.getElementById('edit-join-date').value ? document.getElementById('edit-join-date').value.replace(/\//g, '-') : null,
     retire_date: document.getElementById('edit-retire-date').value ? document.getElementById('edit-retire-date').value.replace(/\//g, '-') : null
   };
@@ -1181,6 +1185,10 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
     const dbData = await response.json();
 
     // ② RDSの生データを、画面表示用の形式に変換（マッピング）
+    if (!Array.isArray(dbData)) {
+      console.error('APIレスポンスが配列ではありません:', dbData);
+      return [];
+    }
     result = dbData.map(emp => ({
       id: emp.id,
       name: emp.name,

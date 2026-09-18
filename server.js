@@ -62,10 +62,17 @@ app.post('/api/employees', (req, res) => {
 app.put('/api/employees/:id', (req, res) => {
   const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date } = req.body;
   const sql = `UPDATE employees SET name=?, kana=?, gender=?, email=?, department=?, role=?, show_attendance=?, join_date=?, retire_date=? WHERE id=?`;
-  const values = [name, kana, gender, email, department, role, show_attendance, join_date || null, retire_date || null, req.params.id];
+  
+  const cleanJoinDate = (join_date && join_date.trim() !== '' && join_date !== '-') ? join_date : null;
+  const cleanRetireDate = (retire_date && retire_date.trim() !== '' && retire_date !== '-') ? retire_date : null;
+
+  const values = [name, kana, gender, email, department, role, show_attendance, cleanJoinDate, cleanRetireDate, req.params.id];
   
   db.query(sql, values, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) {
+      console.error('更新SQLエラー:', err);
+      return res.status(500).json({ error: err.message });
+    }
     res.json({ message: '更新成功' });
   });
 });
