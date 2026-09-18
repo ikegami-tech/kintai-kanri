@@ -1169,7 +1169,7 @@ td:hover .memo-icon::before {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  border: 1px solid #27ae60;
+  border: 1px solid var(--toho-blue);
   background-color: white;
   display: flex;
   align-items: center;
@@ -1179,7 +1179,26 @@ td:hover .memo-icon::before {
 .avatar-circle svg {
   width: 26px;
   height: 26px;
-  stroke: #27ae60;
+  stroke: var(--toho-blue);
+}
+
+.btn-map-badge {
+  position: absolute;
+  bottom: -4px;
+  background-color: var(--toho-blue);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.btn-map-badge:hover {
+  background-color: var(--toho-blue-hover);
 }
 
 /* アイコンホバー時のツールチップ表示 */

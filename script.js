@@ -61,9 +61,12 @@ function handleRouting() {
   const targetElement = document.getElementById('page-' + path);
   if (targetElement) {
     targetElement.classList.remove('hidden');
-    // ★追加：ダッシュボード表示時は最新の打刻データを再描画する
     if (path === 'dashboard') {
       renderDashboard();
+    }
+    // ★追加：日表示が開かれた時も最新の打刻データを再描画する
+    if (path === 'daily') {
+      renderDailyTable();
     }
   }
 
@@ -353,18 +356,15 @@ async function submitRecordCreate() {
     dateVal = `${y}-${m}-${d}`;
   }
 
-  const startH = document.getElementById('create-start-h').value;
-  const startM = document.getElementById('create-start-m').value;
-  const endH = document.getElementById('create-end-h').value;
-  const endM = document.getElementById('create-end-m').value;
-
-  const payload = {
-    employee_id: emp.id,
-    work_date: dateVal,
-    clock_in: `${startH}:${startM}:00`,
-    clock_out: `${endH}:${endM}:00`,
-    memo: ''
-  };
+  // ★追加：既存の吹き出しメモがあれば消さずに結合する
+  let existingMemo = '';
+  if (currentCellElement) {
+    const memoIcon = currentCellElement.querySelector('.memo-icon');
+    if (memoIcon) {
+      existingMemo = memoIcon.getAttribute('data-tooltip');
+    }
+  }
+  const finalMemo = existingMemo ? `管理者修正\n${existingMemo}` : '管理者修正';
 
   try {
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
