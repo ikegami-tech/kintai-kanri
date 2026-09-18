@@ -1073,24 +1073,16 @@ async function renderTimeline(dateStr) {
 }
 
 // --- 日表示 ---
-let currentDailyDate = new Date(2026, 8, 11);
+let currentDailyDate = new Date(); // 本日の日付で初期化
 
 function changeDailyDate(offset) {
   if (offset === 0) {
-    currentDailyDate = new Date(2026, 8, 11); // 本日（初期値）へリセット
+    currentDailyDate = new Date(); // 今日へリセット
   } else {
     currentDailyDate.setDate(currentDailyDate.getDate() + offset);
   }
   renderDailyTable();
 }
-
-const dailyData = [
-  { id: 1, name: '安藤 健太郎', time: '08:29 ～', memo: '[NEXTメモ]\n通常出勤', action: '出勤', fullTime: '9/11 08:29:00', address: '東京都千代田区有楽町1-1-1', email: '' },
-  { id: 2, name: '五十嵐 由樹', time: '08:52 ～', memo: '[NEXTメモ]\n直行打刻', action: '直行出勤', fullTime: '9/11 08:52:14', address: '東京都新宿区西新宿2-8-1', email: '訪問先：株式会社〇〇\n業務内容：システム導入の打ち合わせ\n\nそのまま直行いたします。' },
-  { id: 3, name: '池上 裕士', time: '08:27 ～', memo: '', action: '出勤', fullTime: '9/11 08:27:45', address: '東京都中央区銀座4-1-2', email: '' },
-  { id: 4, name: '池谷 あや子', time: '08:56 ～', memo: '', action: '出勤', fullTime: '9/11 08:56:22', address: '東京都港区南青山3-1-1', email: '' },
-  { id: 5, name: '石井 秀龍', time: '08:59 ～', memo: '[NEXTメモ]\n管理者修正済み', action: '出勤', fullTime: '9/11 08:59:10', address: '東京都港区六本木6-10-1', email: '' }
-];
 
 async function renderDailyTable() {
   const year = currentDailyDate.getFullYear();
@@ -1104,25 +1096,88 @@ async function renderDailyTable() {
     titleEl.textContent = `${year}年${String(month).padStart(2, '0')}月${String(date).padStart(2, '0')}日(${dayOfWeek})`;
   }
 
-  console.log(`[API MOCK] GET /api/attendance/daily?date=${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`);
+  const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+
+  // 1. 全従業員一覧の取得
+  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+
+  // 2. 指定年月の打刻データをRDSから取得
+  let attendancesData = [];
+  try {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    if (response.ok) attendancesData = await response.json();
+  } catch (error) {
+    console.error('日表示データ取得エラー:', error);
+  }
+
+  // 3. 当日の打刻データをマップ化
+  const todayAttendanceMap = {};
+  attendancesData.filter(a => a.work_date === dateKey).forEach(a => {
+    todayAttendanceMap[a.employee_id] = a;
+  });
+
   const tbody = document.getElementById('daily-tbody');
-  tbody.innerHTML = dailyData.map(emp => {
-    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
+  
+  if (empList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #7f8c8d;">従業員データがありません</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = empList.map(emp => {
+    const att = todayAttendanceMap[emp.id];
+    const formatTime = (t) => t ? t.substring(0, 5) : '';
+    
+    let timeStr = '-';
+    let statusDotClass = '';
+    let actionStr = '出勤';
+    let fullTimeStr = `${month}/${date} -`;
+    
+    if (att && att.clock_in) {
+      if (att.clock_out) {
+        timeStr = `${formatTime(att.clock_in)} ～ ${formatTime(att.clock_out)}`;
+        statusDotClass = 'dot-finished';
+        actionStr = '退勤';
+        fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)} - ${formatTime(att.clock_out)}`;
+      } else {
+        timeStr = `${formatTime(att.clock_in)} ～`;
+        statusDotClass = 'dot-working';
+        actionStr = '出勤';
+        fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)}`;
+      }
+    }
+
+    // メモと管理者修正の判定
+    let memoHtml = '';
+    let pureMemo = '';
+    if (att && att.memo) {
+      if (att.memo.includes('管理者修正')) {
+        timeStr = `<span class="time-edited">${timeStr}</span>`;
+      }
+      pureMemo = att.memo.replace('管理者修正', '').trim();
+      if (pureMemo) {
+        memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
+      }
+    }
+
+    // 打刻データがある場合は位置情報アイコンを表示
+    const addressStr = '東京都千代田区有楽町1-1-1';
+    const mapBoxHtml = (att && att.clock_in) ? `
+      <div class="avatar-map-box">
+        <div class="avatar-circle has-tooltip" data-tooltip="${actionStr}\n${fullTimeStr}\n住所:${addressStr}">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${actionStr}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">📍地図</button>
+      </div>
+    ` : '<span style="color: #ccc; font-size: 13px;">-</span>';
+
     return `
       <tr>
         <td class="emp-name-cell">
-          <span class="dot-status dot-working"></span>
+          ${statusDotClass ? `<span class="dot-status ${statusDotClass}"></span>` : '<span class="dot-status" style="background-color: #ccc;"></span>'}
           <a href="javascript:void(0)" class="emp-link" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
         </td>
-        <td>${emp.time} ${memoHtml}</td>
-        <td>
-          <div class="avatar-map-box">
-            <div class="avatar-circle has-tooltip" data-tooltip="${emp.action}\n${emp.fullTime}\n住所:${emp.address}">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            </div>
-            <button class="btn-map-badge" onclick="openMapModal('${emp.name}', '${emp.action}', '${emp.address}', '${(emp.email || '').replace(/\n/g, '\\n')}')">📍地図</button>
-          </div>
-        </td>
+        <td>${timeStr} ${memoHtml}</td>
+        <td>${mapBoxHtml}</td>
       </tr>
     `;
   }).join('');
