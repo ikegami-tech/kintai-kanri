@@ -97,19 +97,18 @@ app.patch('/api/employees/:id/status', (req, res) => {
 app.get('/api/attendances/monthly', (req, res) => {
   const { year, month } = req.query;
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  
-  // 該当月の最終日を自動で計算してセットする (9月31日などのエラーを防ぐ)
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
+  // DATE_FORMATを使って、日付や時間を完全に文字列化して返す（タイムゾーンのズレ防止）
   const sql = `
     SELECT 
       a.id,
       a.employee_id,
       e.name AS employee_name,
-      a.work_date,
-      a.clock_in,
-      a.clock_out,
+      DATE_FORMAT(a.work_date, '%Y-%m-%d') AS work_date,
+      DATE_FORMAT(a.clock_in, '%H:%i') AS clock_in,
+      DATE_FORMAT(a.clock_out, '%H:%i') AS clock_out,
       a.memo
     FROM attendances a
     JOIN employees e ON a.employee_id = e.id

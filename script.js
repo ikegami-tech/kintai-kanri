@@ -677,10 +677,10 @@ async function renderMatrixTable() {
   theadHtml += `</tr>`;
   document.getElementById('matrix-thead').innerHTML = theadHtml;
 
-  // 2. バックエンドAPIから実際の打刻データを取得
+  // 2. バックエンドAPIから実際の打刻データを取得 (cache: 'no-store' でキャッシュによる未反映を完全ブロック)
   let attendancesData = [];
   try {
-    const response = await fetch(`http://localhost:3000/api/attendances/monthly?year=${year}&month=${month}`);
+    const response = await fetch(`http://localhost:3000/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
     if (response.ok) {
       attendancesData = await response.json();
     }
@@ -691,17 +691,14 @@ async function renderMatrixTable() {
   // 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
   const attendanceMap = {};
   attendancesData.forEach(att => {
-    // タイムゾーンの時差ズレを防ぎ、ローカル（日本時間）の日付を正確に取得
-    const d = new Date(att.work_date);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${y}-${m}-${day}`;
-
+    // バックエンドから "YYYY-MM-DD" で返ってくるので、JSでの変換を省いてそのままキーにする
+    const dateStr = att.work_date;
+    
     if (!attendanceMap[att.employee_id]) {
       attendanceMap[att.employee_id] = {};
     }
-    const timeText = `${att.clock_in ? att.clock_in.substring(0, 5) : ''}<br>${att.clock_out ? att.clock_out.substring(0, 5) : ''}`;
+    // 時間も "HH:mm" で返ってくるのでそのまま使用
+    const timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
     const memoHtml = att.memo ? `<span class="memo-icon" data-tooltip="${att.memo}">💬</span>` : '';
     attendanceMap[att.employee_id][dateStr] = `${timeText}${memoHtml}`;
   });
