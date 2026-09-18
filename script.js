@@ -183,11 +183,13 @@ function closeMapModal() {
 // ==========================================
 let currentEmpName = '';
 let currentDate = '';
+let currentCellElement = null; // ★追加：クリックしたセルを記憶する変数
 
 function openCellMenu(event, empName, dateStr) {
   event.stopPropagation();
   currentEmpName = empName;
   currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
+  currentCellElement = event.currentTarget; // ★追加：クリックされたHTML要素を保存
   
   const menu = document.getElementById('cell-action-menu');
   document.getElementById('cell-menu-title').textContent = `${empName} - ${dateStr}`;
@@ -202,11 +204,52 @@ function handleCellAction(actionType) {
   if (actionType === '新規作成') {
     document.getElementById('create-emp-name').textContent = currentEmpName;
     document.getElementById('create-date').value = currentDate;
+    
+    // ★追加：フォームを完全にリセット（空にする）
+    document.getElementById('create-start-h').value = '09';
+    document.getElementById('create-start-m').value = '00';
+    document.getElementById('create-end-h').value = '18';
+    document.getElementById('create-end-m').value = '00';
+    const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
+    createCheckboxes.forEach(cb => cb.checked = false);
+
     document.getElementById('modal-record-create').classList.remove('hidden');
+    
   } else if (actionType === '編集') {
     document.getElementById('edit-emp-name').textContent = currentEmpName;
     document.getElementById('edit-date').value = currentDate;
+    
+    // ★追加：セルの内容から時間を読み取ってセット。空ならデフォルト値でリセット
+    let startH = '09', startM = '00', endH = '18', endM = '00';
+    if (currentCellElement) {
+      // innerTextを使ってHTMLタグ（赤文字設定など）を除外した「純粋な時間テキスト」を取得
+      const text = currentCellElement.innerText.trim();
+      if (text) {
+        // 改行や空白で分割して、出勤・退勤時間に割り当て
+        const lines = text.split(/\r?\n|\s+/);
+        if (lines.length >= 1 && lines[0].includes(':')) {
+          const [h, m] = lines[0].split(':');
+          startH = h.padStart(2, '0');
+          startM = m.padStart(2, '0');
+        }
+        if (lines.length >= 2 && lines[1].includes(':')) {
+          const [h, m] = lines[1].split(':');
+          endH = h.padStart(2, '0');
+          endM = m.padStart(2, '0');
+        }
+      }
+    }
+    
+    // 抽出した時間をフォームに適用
+    document.getElementById('edit-start-h').value = startH;
+    document.getElementById('edit-start-m').value = startM;
+    document.getElementById('edit-end-h').value = endH;
+    document.getElementById('edit-end-m').value = endM;
+    const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
+    editCheckboxes.forEach(cb => cb.checked = false);
+
     document.getElementById('modal-record-edit').classList.remove('hidden');
+    
   } else if (actionType === '従業員メモ') {
     document.getElementById('memo-emp-name').textContent = currentEmpName;
     document.getElementById('memo-date').textContent = currentDate;
@@ -698,9 +741,13 @@ async function renderMatrixTable() {
       attendanceMap[att.employee_id] = {};
     }
     // 時間も "HH:mm" で返ってくるのでそのまま使用
-    const timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
-    const memoHtml = att.memo ? `<span class="memo-icon" data-tooltip="${att.memo}">💬</span>` : '';
-    attendanceMap[att.employee_id][dateStr] = `${timeText}${memoHtml}`;
+    let timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
+    
+    // メモ（編集履歴など）がある場合は、吹き出しではなく専用の赤文字クラスを適用する
+    if (att.memo) {
+      timeText = `<span class="time-edited">${timeText}</span>`;
+    }
+    attendanceMap[att.employee_id][dateStr] = timeText;
   });
 
   // 4. 従業員一覧（currentEmployeeList）をもとに表の行を生成
