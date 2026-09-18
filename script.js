@@ -839,8 +839,16 @@ async function saveNewEmployee(event) {
   }
 }
 // --- ダッシュボード ---
+let currentDashboardDate = new Date();
+
+// 前日(-1)・翌日(+1)への日付切り替え処理
+function changeDashboardDate(offset) {
+  currentDashboardDate.setDate(currentDashboardDate.getDate() + offset);
+  renderDashboard();
+}
+
 async function renderDashboard() {
-  const today = new Date();
+  const today = currentDashboardDate;
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
   const day = today.getDate();
@@ -916,7 +924,6 @@ async function renderDashboard() {
   `).join('') : '<li class="member-item" style="color:#999; justify-content:center;">該当者なし</li>';
 }
 
-let currentDashboardDate = new Date(); // ダッシュボード選択日
 let currentMatrixDate = new Date(); // 現在の年月で初期化
 
 // 【API通信実装】RDSから指定月の打刻データを取得してマトリクス表を描画する
