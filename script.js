@@ -973,32 +973,91 @@ async function renderDailyTable() {
 }
 
 // --- 残業時間集計表 ---
-let currentOvertimeDate = new Date(2026, 8, 1);
+let currentOvertimeDate = new Date();
 let overtimeSortKey = 'overtimeHours';
 let overtimeSortAsc = false;
 
-const overtimeDataMock = [
-  { id: 1, name: '安藤 健太郎', dept: '営業', weekdayDays: 20, weekendDays: 1, totalHours: 165.5, overtimeHours: 15.5 },
-  { id: 2, name: '五十嵐 由樹', dept: '課長', weekdayDays: 19, weekendDays: 0, totalHours: 155.0, overtimeHours: 5.0 },
-  { id: 3, name: '池上 裕士', dept: '課', weekdayDays: 22, weekendDays: 2, totalHours: 190.0, overtimeHours: 30.0 },
-  { id: 4, name: '池谷 あや子', dept: '営業', weekdayDays: 20, weekendDays: 0, totalHours: 160.0, overtimeHours: 10.0 },
-  { id: 5, name: '石井 秀龍', dept: '課', weekdayDays: 21, weekendDays: 1, totalHours: 175.5, overtimeHours: 20.5 }
-];
+// 【API連携】打刻データを取得し、出勤日数・実労働時間・残業時間を自動計算する関数
+async function fetchOvertimeData(year, month, selectedDept) {
+  // 1. 全従業員データを取得
+  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+  
+  // 2. 指定された年月の打刻データを取得
+  let attendancesData = [];
+  try {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    if (response.ok) attendancesData = await response.json();
+  } catch (error) {
+    console.error('残業集計用データ取得エラー:', error);
+  }
+
+  // 3. 部署(所属)で絞り込み
+  let filteredEmps = empList;
+  if (selectedDept !== 'ALL') {
+    filteredEmps = empList.filter(emp => emp.office === selectedDept);
+  }
+
+  // 4. 従業員ごとに集計計算を実行
+  return filteredEmps.map(emp => {
+    const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
+    
+    let weekdayDays = 0, weekendDays = 0, totalHours = 0, overtimeHours = 0;
+
+    myAttendances.forEach(att => {
+      // 出退勤が両方入力されている日のみ計算
+      if (!att.clock_in || !att.clock_out) return;
+
+      // 曜日判定 (0:日曜日, 6:土曜日)
+      const dateObj = new Date(att.work_date);
+      const day = dateObj.getDay();
+      if (day === 0 || day === 6) weekendDays++;
+      else weekdayDays++;
+
+      // 時間の差分計算
+      const [inH, inM] = att.clock_in.split(':').map(Number);
+      const [outH, outM] = att.clock_out.split(':').map(Number);
+      
+      const inMinutes = inH * 60 + inM;
+      let outMinutes = outH * 60 + outM;
+      if (outMinutes < inMinutes) outMinutes += 24 * 60; // 翌日退勤対応
+      
+      let workMinutes = outMinutes - inMinutes;
+      
+      // 法定休憩の自動控除 (8時間以上なら60分、6時間以上なら45分引く)
+      if (workMinutes >= 480) workMinutes -= 60;
+      else if (workMinutes >= 360) workMinutes -= 45;
+      if (workMinutes < 0) workMinutes = 0;
+
+      const hours = workMinutes / 60;
+      totalHours += hours;
+
+      // 1日8時間を超えた分を残業時間として加算
+      if (hours > 8) overtimeHours += (hours - 8);
+    });
+
+    return {
+      id: emp.id,
+      name: emp.name,
+      dept: emp.office,
+      weekdayDays,
+      weekendDays,
+      totalHours,
+      overtimeHours
+    };
+  });
+}
 
 async function renderOvertimeTable() {
   const filterEl = document.getElementById('overtime-dept-filter');
   const selectedDept = filterEl ? filterEl.value : 'ALL';
-  console.log(`[API MOCK] GET /api/attendance/overtime?year=${currentOvertimeDate.getFullYear()}&month=${currentOvertimeDate.getMonth() + 1}&dept=${selectedDept}`);
   
   const year = currentOvertimeDate.getFullYear();
   const month = currentOvertimeDate.getMonth() + 1;
   document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  // 選択された区分（課/課長/営業）で絞り込み
-  let displayData = overtimeDataMock;
-  if (selectedDept !== 'ALL') {
-    displayData = overtimeDataMock.filter(emp => emp.dept === selectedDept);
-  }
+  // 取得と計算の実行 (ローディング表示を追加)
+  document.getElementById('overtime-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #7f8c8d; padding: 20px;">データ集計中...</td></tr>';
+  const displayData = await fetchOvertimeData(year, month, selectedDept);
 
   const sortedData = [...displayData].sort((a, b) => {
     let valA = a[overtimeSortKey];
