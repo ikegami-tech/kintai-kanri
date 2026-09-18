@@ -916,6 +916,7 @@ async function renderDashboard() {
   `).join('') : '<li class="member-item" style="color:#999; justify-content:center;">該当者なし</li>';
 }
 
+let currentDashboardDate = new Date(); // ダッシュボード選択日
 let currentMatrixDate = new Date(); // 現在の年月で初期化
 
 // 【API通信実装】RDSから指定月の打刻データを取得してマトリクス表を描画する
@@ -1478,7 +1479,7 @@ function openMonthPicker(e, target) {
   let targetDate = currentMatrixDate;
   if (target === 'overtime') targetDate = currentOvertimeDate;
   if (target === 'daily') targetDate = currentDailyDate;
-  if (target === 'dashboard') targetDate = currentDashboardDate;
+  if (target === 'dashboard') targetDate = (typeof currentDashboardDate !== 'undefined') ? currentDashboardDate : new Date();
   pickerSelectedYear = targetDate.getFullYear();
 
   // 年セレクトボックスの生成
