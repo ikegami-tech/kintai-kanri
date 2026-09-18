@@ -16,6 +16,10 @@ document.getElementById('login-form').addEventListener('submit', async function(
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('app-view').classList.remove('hidden');
 
+  // ログイン時は常にダッシュボードを表示
+  location.hash = '#/dashboard';
+  handleRouting();
+
   btn.textContent = 'ログイン';
   btn.disabled = false;
 });
@@ -405,10 +409,43 @@ async function submitRecordEdit() {
 }
 
 async function submitRecordDelete() {
-  const date = document.getElementById('edit-date').value;
-  console.log(`[API MOCK] DELETE /api/attendance/${currentEmpName}/${date}`);
-  closeRecordModal('modal-record-edit');
-  showToast('実績を削除しました');
+  const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
+  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  
+  if (!emp) {
+    alert('従業員データが見つかりません');
+    return;
+  }
+
+  const dateVal = document.getElementById('edit-date').value.replace(/\//g, '-');
+
+  try {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/${emp.id}/${dateVal}`, {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) {
+      // DELETEが未実装の場合はPOSTでデータ消去
+      await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: emp.id,
+          work_date: dateVal,
+          clock_in: null,
+          clock_out: null,
+          memo: null
+        })
+      });
+    }
+
+    showToast('実績を削除しました');
+    closeRecordModal('modal-record-edit');
+    await renderMatrixTable();
+  } catch (error) {
+    console.error('削除エラー:', error);
+    alert('削除処理に失敗しました。');
+  }
 }
 
 // 【API通信実装】従業員メモの保存処理
@@ -811,12 +848,14 @@ async function renderDashboard() {
 
   empList.forEach(emp => {
     const att = todayAttendanceMap[emp.id];
+    const formatTime = (t) => t ? t.substring(0, 5) : '';
+
     if (!att || !att.clock_in) {
       notStarted.push({ name: emp.name, timeStr: '-' });
     } else if (att.clock_in && !att.clock_out) {
-      working.push({ name: emp.name, timeStr: `${att.clock_in} -` });
+      working.push({ name: emp.name, timeStr: `${formatTime(att.clock_in)} -` });
     } else if (att.clock_in && att.clock_out) {
-      finished.push({ name: emp.name, timeStr: `${att.clock_in} - ${att.clock_out}` });
+      finished.push({ name: emp.name, timeStr: `${formatTime(att.clock_in)} - ${formatTime(att.clock_out)}` });
     }
   });
 
