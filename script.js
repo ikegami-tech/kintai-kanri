@@ -257,7 +257,7 @@ async function submitRecordCreate() {
   };
 
   try {
-    const response = await fetch('http://localhost:3000/api/attendances', {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -298,7 +298,7 @@ async function submitRecordEdit() {
   };
 
   try {
-    const response = await fetch('http://localhost:3000/api/attendances', {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -386,7 +386,7 @@ async function executeEmpAction() {
       const newStatus = isCurrentlyStopped ? '利用中' : '利用停止';
 
       // 2. ローカルサーバー(API)へPATCHリクエスト（ステータス更新）
-      const response = await fetch(`http://localhost:3000/api/employees/${currentEmpTargetId}/status`, {
+      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -398,7 +398,7 @@ async function executeEmpAction() {
       
     } else if (currentEmpAction === 'delete') {
       // 1. ローカルサーバー(API)へDELETEリクエスト（削除）
-      const response = await fetch(`http://localhost:3000/api/employees/${currentEmpTargetId}`, {
+      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}`, {
         method: 'DELETE'
       });
 
@@ -511,7 +511,7 @@ async function saveEmployeeEdit(event) {
   };
 
   try {
-    const response = await fetch(`http://localhost:3000/api/employees/${currentEmpTargetId}`, {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -574,7 +574,7 @@ async function saveNewEmployee(event) {
 
   try {
     // 立ち上げているローカルサーバー(API)へPOSTリクエスト
-    const response = await fetch('http://localhost:3000/api/employees', {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -680,7 +680,7 @@ async function renderMatrixTable() {
   // 2. バックエンドAPIから実際の打刻データを取得 (cache: 'no-store' でキャッシュによる未反映を完全ブロック)
   let attendancesData = [];
   try {
-    const response = await fetch(`http://localhost:3000/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
     if (response.ok) {
       attendancesData = await response.json();
     }
@@ -982,7 +982,7 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   let result = [];
   try {
     // ① 先ほど立ち上げたローカルサーバー(ポート3000)からデータを取得！
-    const response = await fetch('http://localhost:3000/api/employees');
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees');
     const dbData = await response.json();
 
     // ② RDSの生データを、画面表示用の形式に変換（マッピング）
