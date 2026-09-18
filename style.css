@@ -1162,6 +1162,7 @@ td:hover .memo-icon::before {
   justify-content: center;
   width: 54px;
   position: relative;
+  z-index: 100;
 }
 
 .avatar-circle {
@@ -1202,7 +1203,7 @@ td:hover .memo-icon::before {
   text-align: center;
   line-height: 1.5;
   display: none;
-  z-index: 200;
+  z-index: 9999;
   width: max-content;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
@@ -1216,7 +1217,7 @@ td:hover .memo-icon::before {
   border: 5px solid transparent;
   border-top-color: rgba(20, 30, 40, 0.95);
   display: none;
-  z-index: 200;
+  z-index: 9999;
 }
 
 .avatar-circle.has-tooltip:hover::after,
