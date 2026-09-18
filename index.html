@@ -150,9 +150,24 @@
           <div class="attendance-status-card">
             <div class="card-header-bar">
               <div class="card-header-title">出退勤状況</div>
-              <div style="display: flex; align-items: center; gap: 20px;">
-                <button class="btn-primary" style="background-color: var(--toho-blue); font-size: 13px; padding: 8px 16px;" onclick="window.open('timeclock.html', '_blank')">NEXT出退勤画面 ＞</button>
-                <div class="date-display" id="current-date-str">2026年9月11日(金)</div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="date-display" id="current-date-str" style="font-weight: bold; font-size: 15px;">2026年09月18日(金)</span>
+                
+                <!-- 日付変更コントローラー -->
+                <div style="display: flex; align-items: center; gap: 3px;">
+                  <button class="btn-sub" onclick="changeDashboardDate(-1)" style="padding: 4px 8px;">&lt;</button>
+                  <button class="btn-sub" onclick="document.getElementById('dash-date-picker').showPicker()" style="padding: 4px 8px;">📅</button>
+                  <input type="date" id="dash-date-picker" style="display:none;" onchange="selectDashboardDate(this.value)">
+                  <button class="btn-sub" onclick="changeDashboardDate(0)" style="padding: 4px 8px;">今日</button>
+                  <button class="btn-sub" onclick="changeDashboardDate(1)" style="padding: 4px 8px;">&gt;</button>
+                </div>
+
+                <!-- 更新ボタン -->
+                <button class="btn-sub" onclick="renderDashboard()" style="padding: 4px 10px; display: flex; align-items: center; gap: 4px;">
+                  <span style="display:inline-block; transform:scaleX(-1);">↻</span> 更新
+                </button>
+
+                <button class="btn-primary" style="background-color: var(--toho-blue); font-size: 13px; padding: 8px 16px;" onclick="openWebTimeclock()">NEXT出退勤画面 ＞</button>
               </div>
             </div>
 

@@ -169,6 +169,29 @@ function toggleMailAccordion() {
   arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
 }
 
+// 直行・直帰のチェック状態に合わせてメール送信内容表示エリアの表示/非表示を切り替える関数
+function toggleDirectMailArea(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  
+  const checkboxes = modal.querySelectorAll('input[type="checkbox"]');
+  let isChecked = false;
+  checkboxes.forEach(cb => {
+    if (cb.checked) isChecked = true;
+  });
+
+  const mailContent = modal.querySelector('#mail-content');
+  const mailArea = mailContent ? (mailContent.closest('.form-group') || mailContent.parentElement) : modal.querySelector('.mail-accordion-area');
+  
+  if (mailArea) {
+    if (isChecked) {
+      mailArea.classList.remove('hidden');
+    } else {
+      mailArea.classList.add('hidden');
+    }
+  }
+}
+
 function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (五十嵐 由樹)"）
   document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
@@ -234,7 +257,11 @@ function handleCellAction(actionType) {
     document.getElementById('create-end-h').value = '18';
     document.getElementById('create-end-m').value = '00';
     const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
-    createCheckboxes.forEach(cb => cb.checked = false);
+    createCheckboxes.forEach(cb => {
+      cb.checked = false;
+      cb.onchange = () => toggleDirectMailArea('modal-record-create');
+    });
+    toggleDirectMailArea('modal-record-create');
 
     document.getElementById('modal-record-create').classList.remove('hidden');
     
@@ -269,7 +296,11 @@ function handleCellAction(actionType) {
     document.getElementById('edit-end-h').value = endH;
     document.getElementById('edit-end-m').value = endM;
     const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
-    editCheckboxes.forEach(cb => cb.checked = false);
+    editCheckboxes.forEach(cb => {
+      cb.checked = false;
+      cb.onchange = () => toggleDirectMailArea('modal-record-edit');
+    });
+    toggleDirectMailArea('modal-record-edit');
 
     document.getElementById('modal-record-edit').classList.remove('hidden');
     
