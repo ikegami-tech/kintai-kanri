@@ -1209,17 +1209,17 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
     return [];
   }
 
-  // ③ イニシャルによる絞り込み（本来はバックエンド側で処理しますが、今回はフロントで処理）
+  // ③ イニシャルによる絞り込み（ひらがな・カタカナ両対応）
   if (initialFilter !== 'ALL') {
     const initialMap = {
-      'ア': /^[ア-オ]/, 'カ': /^[カ-ゴ]/, 'サ': /^[サ-ゾ]/,
-      'タ': /^[タ-ド]/, 'ナ': /^[ナ-ノ]/, 'ハ': /^[ハ-ポ]/,
-      'マ': /^[マ-モ]/, 'ヤ': /^[ヤ-ヨ]/, 'ラ': /^[ラ-ロ]/,
-      'ワ': /^[ワ-ン]/, 'A-Z': /^[A-Za-z]/
+      'ア': /^[ア-オあ-お]/, 'カ': /^[カ-ゴか-ご]/, 'サ': /^[サ-ゾさ-ぞ]/,
+      'タ': /^[タ-ドた-ど]/, 'ナ': /^[ナ-ノな-の]/, 'ハ': /^[ハ-ポは-ぽ]/,
+      'マ': /^[マ-モま-も]/, 'ヤ': /^[ヤ-ヨや-よ]/, 'ラ': /^[ラ-ロら-ろ]/,
+      'ワ': /^[ワ-ンわ-ん]/, 'A-Z': /^[A-Za-z]/
     };
     const regex = initialMap[initialFilter];
     if (regex) {
-      result = result.filter(emp => regex.test(emp.kana));
+      result = result.filter(emp => emp.kana && regex.test(emp.kana.trim()));
     } else {
       result = [];
     }
