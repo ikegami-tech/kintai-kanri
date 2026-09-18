@@ -253,6 +253,18 @@ function handleCellAction(actionType) {
   } else if (actionType === '従業員メモ') {
     document.getElementById('memo-emp-name').textContent = currentEmpName;
     document.getElementById('memo-date').textContent = currentDate;
+    
+    // ★追加：既存の吹き出しがあれば内容をセットし、なければ空にする
+    const memoTextarea = document.getElementById('modal-employee-memo').querySelector('textarea');
+    let existingMemo = '';
+    if (currentCellElement) {
+      const memoIcon = currentCellElement.querySelector('.memo-icon');
+      if (memoIcon) {
+        existingMemo = memoIcon.getAttribute('data-tooltip');
+      }
+    }
+    memoTextarea.value = existingMemo;
+
     document.getElementById('modal-employee-memo').classList.remove('hidden');
   } else if (actionType === '詳細へ') {
     document.getElementById('timeline-title').textContent = `${currentDate} 詳細タイムライン`;
@@ -332,12 +344,22 @@ async function submitRecordEdit() {
   const endH = document.getElementById('edit-end-h').value;
   const endM = document.getElementById('edit-end-m').value;
 
+  // ★追加：既存の吹き出しメモがあれば消さずに結合する
+  let existingMemo = '';
+  if (currentCellElement) {
+    const memoIcon = currentCellElement.querySelector('.memo-icon');
+    if (memoIcon) {
+      existingMemo = memoIcon.getAttribute('data-tooltip');
+    }
+  }
+  const finalMemo = existingMemo ? `管理者修正\n${existingMemo}` : '管理者修正';
+
   const payload = {
     employee_id: emp.id,
     work_date: dateVal,
     clock_in: `${startH}:${startM}:00`,
     clock_out: `${endH}:${endM}:00`,
-    memo: '管理者修正'
+    memo: finalMemo
   };
 
   try {
@@ -366,11 +388,64 @@ async function submitRecordDelete() {
   showToast('実績を削除しました');
 }
 
+// 【API通信実装】従業員メモの保存処理
 async function submitRecordMemo() {
-  const date = document.getElementById('memo-date').textContent;
-  console.log(`[API MOCK] POST /api/attendance/${currentEmpName}/${date}/memo`);
-  closeRecordModal('modal-employee-memo');
-  showToast('従業員メモを保存しました');
+  const emp = currentEmployeeList.find(e => e.name === currentEmpName);
+  if (!emp) return alert('従業員データが見つかりません');
+
+  const dateVal = document.getElementById('memo-date').textContent.replace(/\//g, '-');
+  const memoText = document.getElementById('modal-employee-memo').querySelector('textarea').value.trim();
+
+  // 既存の時間と「管理者修正」の赤文字フラグを維持する
+  let startH = '', startM = '', endH = '', endM = '';
+  let isEdited = false;
+
+  if (currentCellElement) {
+    const text = currentCellElement.innerText.trim();
+    if (text) {
+      const lines = text.split(/\r?\n|\s+/);
+      if (lines.length >= 1 && lines[0].includes(':')) {
+        const [h, m] = lines[0].split(':');
+        startH = h; startM = m;
+      }
+      if (lines.length >= 2 && lines[1].includes(':')) {
+        const [h, m] = lines[1].split(':');
+        endH = h; endM = m;
+      }
+    }
+    if (currentCellElement.querySelector('.time-edited')) {
+      isEdited = true;
+    }
+  }
+
+  // DBに保存するメモ内容（赤文字フラグと結合）
+  let finalMemo = memoText;
+  if (isEdited && memoText) finalMemo = `管理者修正\n${memoText}`;
+  else if (isEdited && !memoText) finalMemo = `管理者修正`;
+
+  const payload = {
+    employee_id: emp.id,
+    work_date: dateVal,
+    clock_in: startH ? `${startH}:${startM}:00` : null,
+    clock_out: endH ? `${endH}:${endM}:00` : null,
+    memo: finalMemo
+  };
+
+  try {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('保存に失敗しました');
+
+    showToast('従業員メモを保存しました');
+    closeRecordModal('modal-employee-memo');
+    await renderMatrixTable();
+  } catch (error) {
+    console.error('メモ保存エラー:', error);
+    alert('保存に失敗しました。');
+  }
 }
 
 // 従業員操作関連
@@ -742,12 +817,24 @@ async function renderMatrixTable() {
     }
     // 時間も "HH:mm" で返ってくるのでそのまま使用
     let timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
-    
-    // メモ（編集履歴など）がある場合は、吹き出しではなく専用の赤文字クラスを適用する
+    let memoHtml = '';
+
     if (att.memo) {
-      timeText = `<span class="time-edited">${timeText}</span>`;
+      // 1. 「管理者修正」が含まれていれば時間を赤文字にする
+      if (att.memo.includes('管理者修正')) {
+        timeText = `<span class="time-edited">${timeText}</span>`;
+      }
+      
+      // 2. 「管理者修正」というシステム文字を取り除いた純粋なメモ内容を取り出す
+      const pureMemo = att.memo.replace('管理者修正', '').trim();
+      
+      // 3. 純粋なメモが残っていれば吹き出しアイコン（💬）を追加する
+      if (pureMemo) {
+        memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
+      }
     }
-    attendanceMap[att.employee_id][dateStr] = timeText;
+
+    attendanceMap[att.employee_id][dateStr] = `${timeText}${memoHtml}`;
   });
 
   // 4. 従業員一覧（currentEmployeeList）をもとに表の行を生成
