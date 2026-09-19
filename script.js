@@ -1009,9 +1009,40 @@ async function renderMatrixTable() {
 
   // 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
   const attendanceMap = {};
+  const summaryMap = {}; // 追加: 各従業員の合計時間・日数を保持
+
   attendancesData.forEach(att => {
     // バックエンドから "YYYY-MM-DD" で返ってくるので、JSでの変換を省いてそのままキーにする
     const dateStr = att.work_date;
+    
+    if (!summaryMap[att.employee_id]) {
+      summaryMap[att.employee_id] = { days: 0, workMins: 0 };
+    }
+
+    // === 合計時間と日数の計算 ===
+    if (att.clock_in && att.clock_out) {
+      summaryMap[att.employee_id].days++;
+      
+      const [inH, inM] = att.clock_in.split(':').map(Number);
+      const [outH, outM] = att.clock_out.split(':').map(Number);
+      
+      let inMinutes = inH * 60 + inM;
+      if (inMinutes < 540) inMinutes = 540; // 9:00前カット
+
+      let outMinutes = outH * 60 + outM;
+      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60; // 翌日退勤対応
+      
+      let stayMinutes = outMinutes - inMinutes;
+      if (stayMinutes < 0) stayMinutes = 0;
+
+      let workMinutes = stayMinutes;
+      if (stayMinutes > 360) {
+        workMinutes = stayMinutes - 60; // 6時間超えで1時間マイナス
+        if (workMinutes < 360) workMinutes = 360;
+      }
+      
+      summaryMap[att.employee_id].workMins += workMinutes;
+    }
     
     if (!attendanceMap[att.employee_id]) {
       attendanceMap[att.employee_id] = {};
@@ -1076,7 +1107,15 @@ async function renderMatrixTable() {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
     }
-    tbodyHtml += `<td class="col-sum">-</td></tr>`;
+    
+    // 集計データの表示 (右端のセル)
+    const summary = summaryMap[emp.id];
+    if (summary && summary.days > 0) {
+      const totalHours = (Math.ceil(summary.workMins / 6) / 10).toFixed(1);
+      tbodyHtml += `<td class="col-sum" style="font-size: 10px; line-height: 1.6; padding: 4px;">${totalHours}時間<br>${summary.days}日</td></tr>`;
+    } else {
+      tbodyHtml += `<td class="col-sum">-</td></tr>`;
+    }
   });
 
   document.getElementById('matrix-tbody').innerHTML = tbodyHtml;
