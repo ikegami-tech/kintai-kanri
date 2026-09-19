@@ -1099,20 +1099,21 @@ async function renderMatrixTable() {
       // 退職者がいる場合は行全体を cell-readonly (クリック不可) にする
       let tdClass = retireDateObj ? 'cell-readonly' : 'cell-click';
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
-      let cellData = '';
+      
+      // 退職日より後であっても、すでに入力されているデータは取得する
+      let cellData = (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) || '';
 
       if (isAfterRetire) {
         tdClass += ' cell-retired'; // 退職日より後のマス用
-      } else {
-        cellData = (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) || '';
-        // 退職日以前の過去データがある場合、以前の仕様通りグレーアウトさせる用のdivで囲む
-        if (retireDateObj && cellData) {
-          cellData = `<div class="retired-time-box">${cellData}</div>`;
-        }
+      }
+      
+      // 退職者のデータは、過去・未来問わずグレーアウト用のdivで囲む
+      if (retireDateObj && cellData) {
+        cellData = `<div class="retired-time-box">${cellData}</div>`;
       }
       
       // 退職者がいる場合は onclick を付けず、完全にロックする
-      if (isAfterRetire || retireDateObj) {
+      if (retireDateObj) {
         tbodyHtml += `<td class="${tdClass}" ${isAfterRetire ? 'style="background-color: #f4f7f9;"' : ''}>${cellData}</td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
