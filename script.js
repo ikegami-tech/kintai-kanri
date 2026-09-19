@@ -371,12 +371,22 @@ async function submitRecordCreate() {
   if (createCheckboxes[0] && createCheckboxes[0].checked) directMemoList.push('直行');
   if (createCheckboxes[1] && createCheckboxes[1].checked) directMemoList.push('直帰');
 
+  let memoParts = [];
+  
+  // 休日設定されている日付なら自動で「休日出勤」を付与
+  if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
+    memoParts.push('休日出勤');
+  }
+  if (directMemoList.length > 0) {
+    memoParts.push(directMemoList.join('・'));
+  }
+
   const payload = {
     employee_id: emp.id,
     work_date: dateVal,
     clock_in: `${startH}:${startM}:00`,
     clock_out: `${endH}:${endM}:00`,
-    memo: directMemoList.join('・')
+    memo: memoParts.join('\n')
   };
 
   try {
@@ -428,6 +438,14 @@ async function submitRecordEdit() {
   }
 
   let memoParts = ['管理者修正'];
+  
+  // 休日設定されている日付なら自動で「休日出勤」を付与（既存メモにまだ無ければ）
+  if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
+    if (!existingMemo.includes('休日出勤')) {
+      memoParts.push('休日出勤');
+    }
+  }
+
   if (directMemoList.length > 0) memoParts.push(directMemoList.join('・'));
   if (existingMemo) memoParts.push(existingMemo);
 
