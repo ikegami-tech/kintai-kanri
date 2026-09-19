@@ -116,9 +116,8 @@ function switchPage(pageId) {
 }
 
 function openWebTimeclock() {
-  location.hash = '#/web-timeclock';
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar.classList.contains('collapsed')) toggleSidebar();
+  // 別タブで Web打刻アプリ 画面を開く
+  window.open('#/web-timeclock', '_blank');
 }
 
 // ==========================================
