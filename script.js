@@ -982,7 +982,7 @@ async function renderMatrixTable() {
     <tr>
       <th rowspan="2" class="col-emp-name">従業員名</th>
       <th colspan="${daysInMonth}" style="font-size: 15px; letter-spacing: 2px; background: #f4f7f9;">${month}月</th>
-      <th rowspan="2" class="col-sum">計</th>
+      <th rowspan="2" class="col-sum" style="min-width: 85px; width: 85px;">計</th>
     </tr>
     <tr>
   `;
@@ -1111,10 +1111,10 @@ async function renderMatrixTable() {
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
       const totalHours = (Math.ceil(summary.workMins / 6) / 10).toFixed(1);
-      // はみ出しを防ぐため、paddingを削りフォントサイズを微調整
-      tbodyHtml += `<td class="col-sum" style="font-size: 10.5px; line-height: 1.6; padding: 4px 2px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
+      // 列幅を広げたので、左右の余白(padding)を増やして見切れを解消
+      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
-      tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 2px; text-align: center;">-</td></tr>`;
+      tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
     }
   });
 
