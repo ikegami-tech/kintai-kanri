@@ -1304,86 +1304,69 @@ async function fetchOvertimeData(year, month, selectedDept) {
 
   // 4. 従業員ごとに集計計算を実行
   return filteredEmps.map(emp => {
-    const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
-    
-    let weekdayDays = 0, weekendDays = 0, totalHours = 0, overtimeHours = 0;
+            const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
+            
+            let weekdayDays = 0, weekendDays = 0;
+            let totalWorkMins = 0, totalOvertimeMins = 0; // 浮動小数点誤差を防ぐため「分」で集計
 
-    myAttendances.forEach(att => {
-      // 出退勤が両方入力されている日のみ計算
-      if (!att.clock_in || !att.clock_out) return;
+            myAttendances.forEach(att => {
+              if (!att.clock_in || !att.clock_out) return;
 
-      // 休日判定 (カレンダーで設定された日かどうか)
-      const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
-      
-      if (isHoliday) {
-        weekendDays++;
-      } else {
-        weekdayDays++;
-      }
+              const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+              
+              if (isHoliday) {
+                weekendDays++;
+              } else {
+                weekdayDays++;
+              }
 
-      // 時間の差分計算
-      const [inH, inM] = att.clock_in.split(':').map(Number);
-      const [outH, outM] = att.clock_out.split(':').map(Number);
-      
-      let inMinutes = inH * 60 + inM;
-      // ルール: AM9:00前は勤務時間にカウントしない (9:00 = 540分)
-      if (inMinutes < 540) {
-        inMinutes = 540;
-      }
+              const [inH, inM] = att.clock_in.split(':').map(Number);
+              const [outH, outM] = att.clock_out.split(':').map(Number);
+              
+              let inMinutes = inH * 60 + inM;
+              if (inMinutes < 540) inMinutes = 540;
 
-      let outMinutes = outH * 60 + outM;
-      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60; // 翌日退勤対応
-      
-      let stayMinutes = outMinutes - inMinutes;
-      if (stayMinutes < 0) stayMinutes = 0;
+              let outMinutes = outH * 60 + outM;
+              if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60;
+              
+              let stayMinutes = outMinutes - inMinutes;
+              if (stayMinutes < 0) stayMinutes = 0;
 
-      let workMinutes = stayMinutes;
-      // ルール: 滞在時間が6時間(360分)を超える場合、休憩1時間分(60分)をマイナスする
-      // ※7時間未満の場合、1時間引くと実働が6時間を切る逆転現象を防ぐための補正を含む
-      if (stayMinutes > 360) {
-        workMinutes = stayMinutes - 60;
-        if (workMinutes < 360) {
-          workMinutes = 360;
-        }
-      }
+              let workMinutes = stayMinutes;
+              if (stayMinutes > 360) {
+                workMinutes = stayMinutes - 60;
+                if (workMinutes < 360) workMinutes = 360;
+              }
 
-      // 1分単位を小数(0.1 = 6分)として計算
-      const hours = workMinutes / 60;
-      totalHours += hours;
+              totalWorkMins += workMinutes;
 
-      // 残業時間の計算
-      if (isHoliday) {
-        // ▼ 休日出勤の残業ルール
-        if (hours <= 4) {
-          // 実働4時間までは残業0
-        } else if (hours < 8) {
-          // 実働5〜7時間は、4時間を超えた分を残業とする
-          overtimeHours += (hours - 4);
-        } else if (hours === 8) {
-          // 実働8時間は1日代休付与のため、残業0
-        } else if (hours > 8) {
-          // 実働9時間以上は、8時間を超えた分を残業とする
-          overtimeHours += (hours - 8);
-        }
-      } else {
-        // ▼ 平日の残業ルール
-        if (hours > 8) {
-          // 実働8時間を超えた分を残業とする
-          overtimeHours += (hours - 8);
-        }
-      }
-    });
+              if (isHoliday) {
+                if (workMinutes <= 240) {
+                  // 4時間までは残業0
+                } else if (workMinutes < 480) {
+                  totalOvertimeMins += (workMinutes - 240);
+                } else if (workMinutes === 480) {
+                  // 8時間は代休のため残業0
+                } else {
+                  totalOvertimeMins += (workMinutes - 480);
+                }
+              } else {
+                if (workMinutes > 480) {
+                  totalOvertimeMins += (workMinutes - 480);
+                }
+              }
+            });
 
-    return {
-      id: emp.id,
-      name: emp.name,
-      dept: emp.office,
-      weekdayDays,
-      weekendDays,
-      totalHours,
-      overtimeHours
-    };
-  });
+            return {
+              id: emp.id,
+              name: emp.name,
+              dept: emp.office,
+              weekdayDays,
+              weekendDays,
+              totalHours: totalWorkMins / 60,
+              overtimeHours: totalOvertimeMins / 60
+            };
+          });
 }
 
 async function renderOvertimeTable() {
@@ -1429,8 +1412,8 @@ async function renderOvertimeTable() {
       </td>
       <td>${emp.weekdayDays}日</td>
       <td>${emp.weekendDays}日</td>
-      <td>${emp.totalHours.toFixed(1)}時間</td>
-      <td>${emp.overtimeHours.toFixed(1)}時間</td>
+      <td>${emp.totalHours.toFixed(2)}時間</td>
+      <td>${emp.overtimeHours.toFixed(2)}時間</td>
     </tr>
   `).join('');
 
@@ -1445,15 +1428,15 @@ async function renderOvertimeTable() {
       <td style="text-align:left;">合計 (${count}名)</td>
       <td>${sumWeekday}日</td>
       <td>${sumWeekend}日</td>
-      <td>${sumTotal.toFixed(1)}時間</td>
-      <td>${sumOvertime.toFixed(1)}時間</td>
+      <td>${sumTotal.toFixed(2)}時間</td>
+      <td>${sumOvertime.toFixed(2)}時間</td>
     </tr>
     <tr class="summary-row">
       <td style="text-align:left;">全体平均 (1人あたり)</td>
       <td>${(sumWeekday / count).toFixed(1)}日</td>
       <td>${(sumWeekend / count).toFixed(1)}日</td>
-      <td>${(sumTotal / count).toFixed(1)}時間</td>
-      <td>${(sumOvertime / count).toFixed(1)}時間</td>
+      <td>${(sumTotal / count).toFixed(2)}時間</td>
+      <td>${(sumOvertime / count).toFixed(2)}時間</td>
     </tr>
   `;
 }
