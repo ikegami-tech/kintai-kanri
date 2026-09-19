@@ -356,15 +356,24 @@ async function submitRecordCreate() {
     dateVal = `${y}-${m}-${d}`;
   }
 
-  // ★追加：既存の吹き出しメモがあれば消さずに結合する
-  let existingMemo = '';
-  if (currentCellElement) {
-    const memoIcon = currentCellElement.querySelector('.memo-icon');
-    if (memoIcon) {
-      existingMemo = memoIcon.getAttribute('data-tooltip');
-    }
-  }
-  const finalMemo = existingMemo ? `管理者修正\n${existingMemo}` : '管理者修正';
+  const startH = document.getElementById('create-start-h').value;
+  const startM = document.getElementById('create-start-m').value;
+  const endH = document.getElementById('create-end-h').value;
+  const endM = document.getElementById('create-end-m').value;
+
+  // 新規作成モーダル(#modal-record-create)から直行・直帰のチェック状態を取得
+  const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
+  let directMemoList = [];
+  if (createCheckboxes[0] && createCheckboxes[0].checked) directMemoList.push('直行');
+  if (createCheckboxes[1] && createCheckboxes[1].checked) directMemoList.push('直帰');
+
+  const payload = {
+    employee_id: emp.id,
+    work_date: dateVal,
+    clock_in: `${startH}:${startM}:00`,
+    clock_out: `${endH}:${endM}:00`,
+    memo: directMemoList.join('・')
+  };
 
   try {
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
@@ -402,15 +411,23 @@ async function submitRecordEdit() {
   const endH = document.getElementById('edit-end-h').value;
   const endM = document.getElementById('edit-end-m').value;
 
-  // ★追加：既存の吹き出しメモがあれば消さずに結合する
+  // 直行・直帰チェック状態を取得
+  const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
+  let directMemoList = [];
+  if (editCheckboxes[0] && editCheckboxes[0].checked) directMemoList.push('直行');
+  if (editCheckboxes[1] && editCheckboxes[1].checked) directMemoList.push('直帰');
+
   let existingMemo = '';
   if (currentCellElement) {
     const memoIcon = currentCellElement.querySelector('.memo-icon');
-    if (memoIcon) {
-      existingMemo = memoIcon.getAttribute('data-tooltip');
-    }
+    if (memoIcon) existingMemo = memoIcon.getAttribute('data-tooltip');
   }
-  const finalMemo = existingMemo ? `管理者修正\n${existingMemo}` : '管理者修正';
+
+  let memoParts = ['管理者修正'];
+  if (directMemoList.length > 0) memoParts.push(directMemoList.join('・'));
+  if (existingMemo) memoParts.push(existingMemo);
+
+  const finalMemo = memoParts.join('\n');
 
   const payload = {
     employee_id: emp.id,
