@@ -1080,7 +1080,7 @@ async function renderMatrixTable() {
   empList.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
     
-    // 1. 退職日の読み取りを強化（「2026年9月19日」や「2026-09-19」など様々な形式に対応）
+    // 退職日の読み取りを強化
     let retireDateObj = null;
     if (emp.retireDate && emp.retireDate !== '-') {
       const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
@@ -1096,18 +1096,24 @@ async function renderMatrixTable() {
       const currentDateObj = new Date(year, month - 1, i);
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
+      // 退職者がいる場合は行全体を cell-readonly (クリック不可) にする
+      let tdClass = retireDateObj ? 'cell-readonly' : 'cell-click';
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
-      // 退職日より後なら読み取り専用、それ以前ならクリック可能
-      let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : 'cell-click';
       let cellData = '';
 
-      if (!isAfterRetire) {
+      if (isAfterRetire) {
+        tdClass += ' cell-retired'; // 退職日より後のマス用
+      } else {
         cellData = (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) || '';
+        // 退職日以前の過去データがある場合、以前の仕様通りグレーアウトさせる用のdivで囲む
+        if (retireDateObj && cellData) {
+          cellData = `<div class="retired-time-box">${cellData}</div>`;
+        }
       }
       
-      // 2. 退職日より後の日付は確実にグレーアウトさせ、クリックも無効化する
-      if (isAfterRetire) {
-        tbodyHtml += `<td class="${tdClass}" style="background-color: #f4f7f9;"></td>`;
+      // 退職者がいる場合は onclick を付けず、完全にロックする
+      if (isAfterRetire || retireDateObj) {
+        tbodyHtml += `<td class="${tdClass}" ${isAfterRetire ? 'style="background-color: #f4f7f9;"' : ''}>${cellData}</td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
