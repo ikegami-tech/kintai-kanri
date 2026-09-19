@@ -1219,8 +1219,10 @@ async function renderDailyTable() {
     const isDirectOut = att && att.memo && att.memo.includes('直帰');
     const addressStr = '東京都千代田区有楽町1-1-1';
 
-    // スロット1: 出勤 / 直行出勤
-    let inSlotHtml = '';
+    // 各スロットの位置を固定するための透明スペーサー（全6スロット）
+    const emptySpacer = '<div style="width: 46px; height: 46px;"></div>';
+    let slots = [emptySpacer, emptySpacer, emptySpacer, emptySpacer, emptySpacer, emptySpacer];
+
     if (att && att.clock_in) {
       const inLabel = isDirectIn ? '直行出勤' : '出勤';
       const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
@@ -1228,7 +1230,7 @@ async function renderDailyTable() {
       const inBadgeClass = isDirectIn ? 'direct-badge' : '';
       const inFullTime = `${month}/${date} ${formatTime(att.clock_in)}`;
 
-      inSlotHtml = `
+      const html = `
         <div class="avatar-map-box">
           <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n住所:${addressStr}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -1236,10 +1238,14 @@ async function renderDailyTable() {
           <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
         </div>
       `;
+      // 直行なら左から2番目、通常出勤なら左端
+      if (isDirectIn) {
+        slots[1] = html;
+      } else {
+        slots[0] = html;
+      }
     }
 
-    // スロット2: 退勤 / 直帰退勤
-    let outSlotHtml = '';
     if (att && att.clock_out) {
       const outLabel = isDirectOut ? '直帰退勤' : '退勤';
       const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
@@ -1247,7 +1253,7 @@ async function renderDailyTable() {
       const outBadgeClass = isDirectOut ? 'direct-badge' : '';
       const outFullTime = `${month}/${date} ${formatTime(att.clock_out)}`;
 
-      outSlotHtml = `
+      const html = `
         <div class="avatar-map-box">
           <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n住所:${addressStr}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -1255,19 +1261,17 @@ async function renderDailyTable() {
           <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
         </div>
       `;
+      // 直帰なら右から2番目、通常退勤なら右端
+      if (isDirectOut) {
+        slots[4] = html;
+      } else {
+        slots[5] = html;
+      }
     }
 
-    // アイコン間の間隔を以前の幅（枠4つ分）に戻すための透明スペーサー
-    const emptySpacer = '<div style="width: 46px; height: 46px;"></div>';
-    const middleSlots = `${emptySpacer}${emptySpacer}${emptySpacer}${emptySpacer}`;
-    
-    // 出退勤どちらか片方しかない場合の位置合わせ用
-    const inFinal = inSlotHtml || emptySpacer;
-    const outFinal = outSlotHtml || '';
-
     // 打刻が一つもなければハイフンを表示し、あれば横並びにする
-    const mapBoxHtml = (inSlotHtml || outSlotHtml) 
-      ? `<div class="avatar-slot-group">${inFinal}${middleSlots}${outFinal}</div>` 
+    const mapBoxHtml = (att && (att.clock_in || att.clock_out)) 
+      ? `<div class="avatar-slot-group">${slots.join('')}</div>` 
       : '<span style="color: #ccc; font-size: 13px;">-</span>';
 
     return `
