@@ -1220,8 +1220,7 @@ async function renderDailyTable() {
     const addressStr = '東京都千代田区有楽町1-1-1';
 
     // スロット1: 出勤 / 直行出勤
-    let inSlotHtml = '<div class="avatar-empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
-    
+    let inSlotHtml = '';
     if (att && att.clock_in) {
       const inLabel = isDirectIn ? '直行出勤' : '出勤';
       const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
@@ -1239,12 +1238,8 @@ async function renderDailyTable() {
       `;
     }
 
-    // スロット2〜5: 空白アバター枠（スマレジ再現）
-    const emptySlotHtml = '<div class="avatar-empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
-    const middleSlots = `${emptySlotHtml}${emptySlotHtml}${emptySlotHtml}${emptySlotHtml}`;
-
-    // スロット6: 退勤 / 直帰退勤
-    let outSlotHtml = emptySlotHtml;
+    // スロット2: 退勤 / 直帰退勤
+    let outSlotHtml = '';
     if (att && att.clock_out) {
       const outLabel = isDirectOut ? '直帰退勤' : '退勤';
       const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
@@ -1262,7 +1257,10 @@ async function renderDailyTable() {
       `;
     }
 
-    const mapBoxHtml = `<div class="avatar-slot-group">${inSlotHtml}${middleSlots}${outSlotHtml}</div>`;
+    // 打刻が一つもなければハイフンを表示し、あれば横並びにする
+    const mapBoxHtml = (inSlotHtml || outSlotHtml) 
+      ? `<div class="avatar-slot-group">${inSlotHtml}${outSlotHtml}</div>` 
+      : '<span style="color: #ccc; font-size: 13px;">-</span>';
 
     return `
       <tr>
