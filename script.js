@@ -1308,32 +1308,66 @@ async function fetchOvertimeData(year, month, selectedDept) {
       // 出退勤が両方入力されている日のみ計算
       if (!att.clock_in || !att.clock_out) return;
 
-      // 曜日判定 (0:日曜日, 6:土曜日)
-      const dateObj = new Date(att.work_date);
-      const day = dateObj.getDay();
-      if (day === 0 || day === 6) weekendDays++;
-      else weekdayDays++;
+      // 休日判定 (カレンダーで設定された日かどうか)
+      const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+      
+      if (isHoliday) {
+        weekendDays++;
+      } else {
+        weekdayDays++;
+      }
 
       // 時間の差分計算
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       
-      const inMinutes = inH * 60 + inM;
-      let outMinutes = outH * 60 + outM;
-      if (outMinutes < inMinutes) outMinutes += 24 * 60; // 翌日退勤対応
-      
-      let workMinutes = outMinutes - inMinutes;
-      
-      // 法定休憩の自動控除 (8時間以上なら60分、6時間以上なら45分引く)
-      if (workMinutes >= 480) workMinutes -= 60;
-      else if (workMinutes >= 360) workMinutes -= 45;
-      if (workMinutes < 0) workMinutes = 0;
+      let inMinutes = inH * 60 + inM;
+      // ルール: AM9:00前は勤務時間にカウントしない (9:00 = 540分)
+      if (inMinutes < 540) {
+        inMinutes = 540;
+      }
 
+      let outMinutes = outH * 60 + outM;
+      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60; // 翌日退勤対応
+      
+      let stayMinutes = outMinutes - inMinutes;
+      if (stayMinutes < 0) stayMinutes = 0;
+
+      let workMinutes = stayMinutes;
+      // ルール: 滞在時間が6時間(360分)を超える場合、休憩1時間分(60分)をマイナスする
+      // ※7時間未満の場合、1時間引くと実働が6時間を切る逆転現象を防ぐための補正を含む
+      if (stayMinutes > 360) {
+        workMinutes = stayMinutes - 60;
+        if (workMinutes < 360) {
+          workMinutes = 360;
+        }
+      }
+
+      // 1分単位を小数(0.1 = 6分)として計算
       const hours = workMinutes / 60;
       totalHours += hours;
 
-      // 1日8時間を超えた分を残業時間として加算
-      if (hours > 8) overtimeHours += (hours - 8);
+      // 残業時間の計算
+      if (isHoliday) {
+        // ▼ 休日出勤の残業ルール
+        if (hours <= 4) {
+          // 実働4時間までは残業0
+        } else if (hours < 8) {
+          // 実働5〜7時間は、4時間を超えた分を残業とする
+          overtimeHours += (hours - 4);
+        } else if (hours === 8) {
+          // 実働8時間は1日代休付与のため、残業0
+        } else if (hours > 8) {
+          // 実働9時間以上は、8時間を超えた分を残業とする
+          overtimeHours += (hours - 8);
+        }
+      } else {
+        // ▼ 平日の残業ルール
+        if (hours > 8) {
+          // 実働8時間を超えた分を残業とする
+          overtimeHours += (hours - 8);
+        }
+      }
     });
 
     return {
@@ -1847,10 +1881,9 @@ function toggleHoliday(dateStr, cellElement) {
   } else {
     cellElement.classList.remove('is-holiday');
   }
+  
+  // クリックした瞬間に即座に自動保存する
+  localStorage.setItem('holidaySettingsMap', JSON.stringify(holidaySettingsMap));
 }
 
-function saveHolidaySettings() {
-  // バックエンドへ一括送信する想定ですが、まずはブラウザのローカルに永続保存します
-  localStorage.setItem('holidaySettingsMap', JSON.stringify(holidaySettingsMap));
-  showToast('休日設定を一括保存しました。');
-}
+// ※ saveHolidaySettings() 関数は不要になったため削除
