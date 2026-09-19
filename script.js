@@ -1080,28 +1080,34 @@ async function renderMatrixTable() {
   empList.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
     
-    let retireDateObj = emp.retireDate && emp.retireDate !== '-' ? new Date(emp.retireDate) : null;
-    if (retireDateObj) retireDateObj.setHours(0, 0, 0, 0);
+    // 1. 退職日の読み取りを強化（「2026年9月19日」や「2026-09-19」など様々な形式に対応）
+    let retireDateObj = null;
+    if (emp.retireDate && emp.retireDate !== '-') {
+      const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      retireDateObj = new Date(cleanDate);
+      if (!isNaN(retireDateObj)) {
+        retireDateObj.setHours(0, 0, 0, 0);
+      } else {
+        retireDateObj = null;
+      }
+    }
 
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDateObj = new Date(year, month - 1, i);
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
-      let tdClass = retireDateObj ? 'cell-readonly' : 'cell-click';
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
+      // 退職日より後なら読み取り専用、それ以前ならクリック可能
+      let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : 'cell-click';
       let cellData = '';
 
-      if (isAfterRetire) {
-        tdClass += ' cell-retired';
-      } else {
+      if (!isAfterRetire) {
         cellData = (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) || '';
-        if (retireDateObj && cellData) {
-          cellData = `<div class="retired-time-box">${cellData}</div>`;
-        }
       }
       
-      if (isAfterRetire || retireDateObj) {
-        tbodyHtml += `<td class="${tdClass}">${cellData}</td>`;
+      // 2. 退職日より後の日付は確実にグレーアウトさせ、クリックも無効化する
+      if (isAfterRetire) {
+        tbodyHtml += `<td class="${tdClass}" style="background-color: #f4f7f9;"></td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
