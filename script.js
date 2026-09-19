@@ -1112,9 +1112,10 @@ async function renderMatrixTable() {
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
       const totalHours = (Math.ceil(summary.workMins / 6) / 10).toFixed(1);
-      tbodyHtml += `<td class="col-sum" style="font-size: 10px; line-height: 1.6; padding: 4px;">${totalHours}時間<br>${summary.days}日</td></tr>`;
+      // white-space: nowrap を追加して変な改行を防ぎ、文字サイズと余白を微調整
+      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.8; padding: 4px 10px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
-      tbodyHtml += `<td class="col-sum">-</td></tr>`;
+      tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 10px; text-align: center;">-</td></tr>`;
     }
   });
 
