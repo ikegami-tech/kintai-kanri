@@ -1628,6 +1628,18 @@ async function renderEmployees() {
 // 6. 初期化
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+  // 実績登録・編集モーダルの「分」選択肢を1分単位(00〜59)で生成
+  const minuteSelectIds = ['create-start-m', 'create-end-m', 'edit-start-m', 'edit-end-m'];
+  let minutesHtml = '';
+  for (let m = 0; m < 60; m++) {
+    const minStr = String(m).padStart(2, '0');
+    minutesHtml += `<option value="${minStr}">${minStr}</option>`;
+  }
+  minuteSelectIds.forEach(id => {
+    const selectEl = document.getElementById(id);
+    if (selectEl) selectEl.innerHTML = minutesHtml;
+  });
+
   renderDashboard();
   // 1. 先に従業員一覧（最新データ）を取得して保存
   await renderEmployees();
