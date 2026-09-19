@@ -1259,9 +1259,11 @@ async function renderDailyTable() {
     const isDirectOut = att && att.memo && att.memo.includes('直帰');
     const addressStr = '東京都千代田区有楽町1-1-1';
 
-    // 各スロットの位置を固定するための透明スペーサー（全6スロット）
-    const emptySpacer = '<div style="width: 46px; height: 46px;"></div>';
-    let slots = [emptySpacer, emptySpacer, emptySpacer, emptySpacer, emptySpacer, emptySpacer];
+    // 各スロットの位置を固定するための透明スペーサー
+    // 真ん中(slots[2])に余白をすべて埋めるフレキシブルなスペーサーを配置して右側を押しやる
+    const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
+    const centerSpacer = '<div style="flex-grow: 1;"></div>';
+    let slots = [emptySpacer, emptySpacer, centerSpacer, emptySpacer, emptySpacer];
 
     if (att && att.clock_in) {
       const inLabel = isDirectIn ? '直行出勤' : '出勤';
@@ -1301,17 +1303,17 @@ async function renderDailyTable() {
           <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
         </div>
       `;
-      // 直帰なら右から2番目、通常退勤なら右端
+      // 直帰なら右から2番目(index 3)、通常退勤なら右端(index 4)
       if (isDirectOut) {
-        slots[4] = html;
+        slots[3] = html;
       } else {
-        slots[5] = html;
+        slots[4] = html;
       }
     }
 
-    // 打刻が一つもなければハイフンを表示し、あれば横並びにする
+    // 打刻が一つもなければハイフンを表示し、あれば横並びにする（width: 100% を追加して端まで広げる）
     const mapBoxHtml = (att && (att.clock_in || att.clock_out)) 
-      ? `<div class="avatar-slot-group">${slots.join('')}</div>` 
+      ? `<div class="avatar-slot-group" style="display: flex; width: 100%;">${slots.join('')}</div>` 
       : '<span style="color: #ccc; font-size: 13px;">-</span>';
 
     return `
