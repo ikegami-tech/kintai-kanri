@@ -1000,10 +1000,15 @@ async function renderMatrixTable() {
         timeText = `<span class="time-edited">${timeText}</span>`;
       }
       
-      // 2. 「管理者修正」というシステム文字を取り除いた純粋なメモ内容を取り出す
-      const pureMemo = att.memo.replace('管理者修正', '').trim();
+      // 2. システム用の判定テキスト（管理者修正・直行・直帰）を除外した純粋なメモを取り出す
+      const pureMemo = att.memo
+        .replace(/管理者修正/g, '')
+        .replace(/直行/g, '')
+        .replace(/直帰/g, '')
+        .replace(/・/g, '')
+        .trim();
       
-      // 3. 純粋なメモが残っていれば吹き出しアイコン（💬）を追加する
+      // 3. 純粋なユーザーメモが残っている場合のみ吹き出しアイコン（💬）を表示する
       if (pureMemo) {
         memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
       }
@@ -1170,7 +1175,14 @@ async function renderDailyTable() {
       if (att.memo.includes('管理者修正')) {
         timeStr = `<span class="time-edited">${timeStr}</span>`;
       }
-      pureMemo = att.memo.replace('管理者修正', '').trim();
+      // システム用の判定テキスト（管理者修正・直行・直帰）を除外して純粋なメモを取り出す
+      pureMemo = att.memo
+        .replace(/管理者修正/g, '')
+        .replace(/直行/g, '')
+        .replace(/直帰/g, '')
+        .replace(/・/g, '')
+        .trim();
+
       if (pureMemo) {
         memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
       }
