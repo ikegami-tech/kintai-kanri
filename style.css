@@ -2060,3 +2060,61 @@ td:hover .memo-icon::before {
 .btn-map-badge.direct-badge:hover {
   background-color: #d35400;
 }
+/* ==================================================
+   休日設定 カレンダーデザイン
+   ================================================== */
+.holiday-calendar-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: white;
+}
+.holiday-calendar-table th,
+.holiday-calendar-table td {
+  border: 1px solid var(--border-color);
+}
+.holiday-calendar-table th {
+  padding: 12px 0;
+  background-color: #f8fafc;
+  font-weight: bold;
+  text-align: center;
+}
+.holiday-calendar-table th.sun { color: #e74c3c; }
+.holiday-calendar-table th.sat { color: #0073ea; }
+
+.holiday-cell {
+  height: 90px;
+  vertical-align: top;
+  padding: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.holiday-cell:hover {
+  background-color: #f0f7ff;
+}
+.holiday-cell.is-holiday {
+  background-color: #fff0f0;
+  border: 2px solid #ffcccc;
+}
+.holiday-date-num {
+  font-size: 15px;
+  font-weight: bold;
+  display: block;
+  text-align: left;
+  margin-bottom: 5px;
+  color: var(--sidebar-dark);
+}
+.holiday-label {
+  font-size: 12px;
+  color: #e74c3c;
+  font-weight: bold;
+  display: none;
+  text-align: center;
+  margin-top: 15px;
+  background: #ffeaea;
+  padding: 4px;
+  border-radius: 4px;
+}
+.holiday-cell.is-holiday .holiday-label {
+  display: block;
+}

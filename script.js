@@ -68,6 +68,9 @@ function handleRouting() {
     if (path === 'daily') {
       renderDailyTable();
     }
+    if (path === 'holiday-setting') {
+      renderHolidayCalendar();
+    }
   }
 
   const titles = {
@@ -80,7 +83,8 @@ function handleRouting() {
     'employee-detail': '従業員管理 (詳細)',
     'employee-edit': '従業員管理 (編集)',
     'employee-create': '新しい従業員を作成',
-    'timeline-detail': '詳細タイムライン'
+    'timeline-detail': '詳細タイムライン',
+    'holiday-setting': '休日設定'
   };
   document.getElementById('page-title').textContent = titles[path] || '勤怠管理';
 
@@ -1610,6 +1614,7 @@ function openMonthPicker(e, target) {
   if (target === 'overtime') targetDate = currentOvertimeDate;
   if (target === 'daily') targetDate = currentDailyDate;
   if (target === 'dashboard') targetDate = (typeof currentDashboardDate !== 'undefined') ? currentDashboardDate : new Date();
+  if (target === 'holiday') targetDate = currentHolidayDate;
   pickerSelectedYear = targetDate.getFullYear();
 
   // 年セレクトボックスの生成
@@ -1679,6 +1684,9 @@ function selectSmaregiMonth(year, month) {
   } else if (currentPickerTarget === 'dashboard') {
     currentDashboardDate = newDate;
     renderDashboard();
+  } else if (currentPickerTarget === 'holiday') {
+    currentHolidayDate = newDate;
+    renderHolidayCalendar();
   }
   
   closeMonthPicker();
@@ -1750,4 +1758,81 @@ function closeBrowserWindow() {
   if (msgEl) {
     msgEl.innerHTML = 'パスワードの設定が完了しました。<br><span style="color: #e74c3c; font-weight: bold;">※お使いの環境により自動で画面が閉じられない場合があります。その場合は手動でブラウザのタブを閉じてください。</span>';
   }
+}
+// ==========================================
+// 休日設定機能
+// ==========================================
+let currentHolidayDate = new Date();
+// クライアント側で設定状態を保持 (API実装前のため localStorage に保存)
+let holidaySettingsMap = JSON.parse(localStorage.getItem('holidaySettingsMap')) || {};
+
+function changeHolidayMonth(offset) {
+  if (offset === 0) {
+    currentHolidayDate = new Date();
+  } else {
+    currentHolidayDate.setMonth(currentHolidayDate.getMonth() + offset);
+  }
+  renderHolidayCalendar();
+}
+
+function renderHolidayCalendar() {
+  const year = currentHolidayDate.getFullYear();
+  const month = currentHolidayDate.getMonth() + 1;
+  document.getElementById('holiday-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
+
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const lastDate = new Date(year, month, 0).getDate();
+
+  let html = '<tr>';
+  let dayCount = 0;
+
+  // 空白セル
+  for (let i = 0; i < firstDay; i++) {
+    html += '<td style="background-color: #fafbfc;"></td>';
+    dayCount++;
+  }
+
+  // 日付セル
+  for (let d = 1; d <= lastDate; d++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isHoliday = holidaySettingsMap[dateStr] ? 'is-holiday' : '';
+    
+    html += `
+      <td class="holiday-cell ${isHoliday}" onclick="toggleHoliday('${dateStr}', this)">
+        <span class="holiday-date-num">${d}</span>
+        <span class="holiday-label">休日</span>
+      </td>
+    `;
+    
+    dayCount++;
+    if (dayCount % 7 === 0 && d !== lastDate) {
+      html += '</tr><tr>';
+    }
+  }
+  
+  // 末尾の空白セル
+  while (dayCount % 7 !== 0) {
+    html += '<td style="background-color: #fafbfc;"></td>';
+    dayCount++;
+  }
+  html += '</tr>';
+
+  document.getElementById('holiday-tbody').innerHTML = html;
+}
+
+function toggleHoliday(dateStr, cellElement) {
+  const isCurrentlyHoliday = holidaySettingsMap[dateStr] || false;
+  holidaySettingsMap[dateStr] = !isCurrentlyHoliday;
+  
+  if (holidaySettingsMap[dateStr]) {
+    cellElement.classList.add('is-holiday');
+  } else {
+    cellElement.classList.remove('is-holiday');
+  }
+}
+
+function saveHolidaySettings() {
+  // バックエンドへ一括送信する想定ですが、まずはブラウザのローカルに永続保存します
+  localStorage.setItem('holidaySettingsMap', JSON.stringify(holidaySettingsMap));
+  showToast('休日設定を一括保存しました。');
 }

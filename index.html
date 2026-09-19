@@ -112,6 +112,7 @@
         <div id="attendance-sub" class="submenu">
           <div class="nav-item" onclick="switchPage('monthly', this)">月表示</div>
           <div class="nav-item" onclick="switchPage('daily', this)">日表示</div>
+          <div class="nav-item" onclick="switchPage('holiday-setting', this)">休日設定</div>
         </div>
 
         <!-- 従業員管理 -->
@@ -297,6 +298,44 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- ページ: 休日設定 -->
+        <div id="page-holiday-setting" class="page-content hidden">
+          <div class="monthly-container">
+            <div class="monthly-header-bar">
+              <div class="monthly-actions-left">
+                <!-- 空要素 -->
+              </div>
+              <div class="month-selector">
+                <span class="current-month-title" id="holiday-month-title">2026年 09月度</span>
+                <div class="month-btn-group">
+                  <button class="btn-sub" onclick="changeHolidayMonth(-1)">＜</button>
+                  <button class="btn-sub" onclick="openMonthPicker(event, 'holiday')">📅</button>
+                  <button class="btn-sub" onclick="changeHolidayMonth(0)">今月</button>
+                  <button class="btn-sub" onclick="changeHolidayMonth(1)">＞</button>
+                </div>
+              </div>
+              <div class="monthly-actions">
+                <button class="btn-primary" onclick="saveHolidaySettings()" style="background-color: #27ae60;">設定を一括保存</button>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 15px; color: var(--text-sub); font-size: 13px;">
+              ※休日にしたい日付をクリックするとON/OFFが切り替わります。翌月以降も設定後に「設定を一括保存」を押すことでまとめて保存されます。
+            </div>
+
+            <table class="holiday-calendar-table">
+              <thead>
+                <tr>
+                  <th class="sun">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat">土</th>
+                </tr>
+              </thead>
+              <tbody id="holiday-tbody">
+                <!-- JSで動的にカレンダーを生成 -->
+              </tbody>
+            </table>
           </div>
         </div>
 
