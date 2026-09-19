@@ -1257,9 +1257,17 @@ async function renderDailyTable() {
       `;
     }
 
+    // アイコン間の間隔を以前の幅（枠4つ分）に戻すための透明スペーサー
+    const emptySpacer = '<div style="width: 46px; height: 46px;"></div>';
+    const middleSlots = `${emptySpacer}${emptySpacer}${emptySpacer}${emptySpacer}`;
+    
+    // 出退勤どちらか片方しかない場合の位置合わせ用
+    const inFinal = inSlotHtml || emptySpacer;
+    const outFinal = outSlotHtml || '';
+
     // 打刻が一つもなければハイフンを表示し、あれば横並びにする
     const mapBoxHtml = (inSlotHtml || outSlotHtml) 
-      ? `<div class="avatar-slot-group">${inSlotHtml}${outSlotHtml}</div>` 
+      ? `<div class="avatar-slot-group">${inFinal}${middleSlots}${outFinal}</div>` 
       : '<span style="color: #ccc; font-size: 13px;">-</span>';
 
     return `
