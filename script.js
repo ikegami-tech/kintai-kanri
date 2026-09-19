@@ -1114,7 +1114,8 @@ async function renderMatrixTable() {
       
       // 退職者がいる場合は onclick を付けず、完全にロックする
       if (retireDateObj) {
-        tbodyHtml += `<td class="${tdClass}" ${isAfterRetire ? 'style="background-color: #f4f7f9;"' : ''}>${cellData}</td>`;
+        // pointer-events: auto; を追加し、クリック不可を維持したままマウスホバー判定だけを復活させる
+        tbodyHtml += `<td class="${tdClass}" style="pointer-events: auto; ${isAfterRetire ? 'background-color: #f4f7f9;' : ''}">${cellData}</td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
