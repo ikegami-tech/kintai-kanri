@@ -71,6 +71,10 @@ function handleRouting() {
     if (path === 'holiday-setting') {
       renderHolidayCalendar();
     }
+    // ★追加：残業集計表が開かれた時も最新データで再計算する
+    if (path === 'overtime') {
+      renderOvertimeTable();
+    }
   }
 
   const titles = {
