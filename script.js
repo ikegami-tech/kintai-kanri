@@ -9,26 +9,70 @@ document.getElementById('login-form').addEventListener('submit', async function(
 
   const loginId = document.getElementById('login-id').value;
   const loginPw = document.getElementById('login-pw').value;
-  console.log('[API MOCK] POST /api/auth/login', { loginId, loginPw });
   
-  await new Promise(resolve => setTimeout(resolve, 600));
+  try {
+    // 実際のバックエンドAPIへログイン要求
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loginId, password: loginPw })
+    });
 
-  document.getElementById('login-view').classList.add('hidden');
-  document.getElementById('app-view').classList.remove('hidden');
+    if (!response.ok) {
+      throw new Error('ログイン情報が正しくありません');
+    }
 
-  // ログイン時は常にダッシュボードを表示
-  location.hash = '#/dashboard';
-  handleRouting();
+    // サーバーから返ってきたユーザー情報を取得
+    const responseData = await response.json();
+    
+    // ★追加：ブラウザのlocalStorageにログインしたユーザー情報を保存（再読み込みしても消えないようにする）
+    if (responseData.user) {
+      localStorage.setItem('loggedInUser', JSON.stringify(responseData.user));
+    }
 
-  btn.textContent = 'ログイン';
-  btn.disabled = false;
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('app-view').classList.remove('hidden');
+
+    // ログイン時は常にダッシュボードを表示
+    location.hash = '#/dashboard';
+    handleRouting();
+  } catch (error) {
+    console.error('ログインエラー:', error);
+    alert('ログインに失敗しました。IDまたはパスワードが間違っています。');
+  } finally {
+    btn.textContent = 'ログイン';
+    btn.disabled = false;
+  }
 });
 
 function logout() {
+  if (!confirm('ログアウトしますか？')) return;
+
+  // ★追加：ブラウザに記憶しているユーザー情報を削除
+  localStorage.removeItem('loggedInUser');
+
+  // 画面の切り替えと入力欄のリセット
   document.getElementById('app-view').classList.add('hidden');
   document.getElementById('login-view').classList.remove('hidden');
-  location.hash = ''; // ★追加：ログアウト時にURLのパスを綺麗にリセットする
+  const loginIdEl = document.getElementById('login-id');
+  const loginPwEl = document.getElementById('login-pw');
+  if (loginIdEl) loginIdEl.value = '';
+  if (loginPwEl) loginPwEl.value = '';
+  
+  // ログイン画面へ戻す
+  location.hash = ''; 
 }
+
+// ★追加：ページ読み込み時にログイン状態をチェックする処理
+window.addEventListener('DOMContentLoaded', () => {
+  const loggedInUser = localStorage.getItem('loggedInUser');
+  // すでにログイン済みの場合は自動でアプリ画面へ
+  if (loggedInUser && !location.hash.includes('password-setup')) {
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('app-view').classList.remove('hidden');
+    handleRouting();
+  }
+});
 
 // ==========================================
 // 2. UI制御 & URLルーティング (SPA画面切り替え)
@@ -55,6 +99,15 @@ window.addEventListener('hashchange', handleRouting);
 function handleRouting() {
   const path = location.hash.replace(/^#\//, '') || 'dashboard';
   
+  // ★追加：メールのリンクから別タブで開かれた想定のルーティング
+  if (path === 'password-setup') {
+    document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('password-setup-view').classList.remove('hidden');
+    document.getElementById('password-complete-view').classList.add('hidden');
+    return;
+  }
+
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
 
@@ -1810,20 +1863,34 @@ function selectSmaregiMonth(year, month) {
 }
 
 // ==========================================
-// パスワード設定メール送信機能 (バックエンド連携モック)
+// パスワード設定メール送信機能 (API連携)
 // ==========================================
-function sendPwSetupEmail(emailAddress) {
+async function sendPwSetupEmail(emailAddress) {
   if (!emailAddress || emailAddress === '-' || emailAddress.trim() === '') {
     showToast('メールアドレスが登録されていません。');
     return;
   }
   
-  // バックエンドAPIへの送信リクエストを想定
-  console.log(`[API MOCK] POST /api/auth/send-setup-email`, { email: emailAddress });
-  
-  // UI上で送信されたメール内容を確認できるプレビューモーダルを表示
-  document.getElementById('email-preview-to').textContent = emailAddress;
-  document.getElementById('modal-email-preview').classList.remove('hidden');
+  try {
+    // 実際のバックエンドAPIへメール送信要求を送る
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailAddress })
+    });
+    
+    if (!response.ok) throw new Error('メール送信APIエラー');
+
+    // UI上で送信されたメール内容を確認できるプレビューモーダルを表示
+    document.getElementById('email-preview-to').textContent = emailAddress;
+    document.getElementById('modal-email-preview').classList.remove('hidden');
+    
+  } catch (error) {
+    console.error('メール送信APIエラー:', error);
+    // バックエンド未実装時でもフロントの挙動を確認できるよう、プレビューを表示しておく
+    document.getElementById('email-preview-to').textContent = emailAddress;
+    document.getElementById('modal-email-preview').classList.remove('hidden');
+  }
 }
 
 function closeEmailPreview() {
@@ -1831,11 +1898,9 @@ function closeEmailPreview() {
 }
 
 function openPasswordSetup() {
-  // デモ用：メール内のURLをクリックした想定で設定画面へ遷移
   closeEmailPreview();
-  document.getElementById('app-view').classList.add('hidden');
-  document.getElementById('login-view').classList.add('hidden');
-  document.getElementById('password-setup-view').classList.remove('hidden');
+  // 実際のメール内リンクをクリックした挙動を再現し、別タブでパスワード設定画面を開く
+  window.open(window.location.pathname + '#/password-setup', '_blank');
 }
 
 // パスワード設定完了処理
@@ -1843,6 +1908,8 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   e.preventDefault();
   const pw1 = document.getElementById('setup-pw1').value;
   const pw2 = document.getElementById('setup-pw2').value;
+  // デモ画面のプレビューからメールアドレスを取得
+  const email = document.getElementById('email-preview-to').textContent;
   
   if (pw1 !== pw2) {
     showModal('エラー', 'パスワードが一致しません。');
@@ -1853,17 +1920,32 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   btn.textContent = '設定中...';
   btn.disabled = true;
 
-  // パスワード更新APIへの送信を想定
-  console.log('[API MOCK] POST /api/auth/setup-password', { password: pw1 });
-  await new Promise(resolve => setTimeout(resolve, 800));
+  try {
+    // 実際のバックエンドAPIへパスワード設定をリクエスト
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/setup-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pw1 })
+    });
 
-  // 完了画面へ遷移
-  document.getElementById('password-setup-view').classList.add('hidden');
-  document.getElementById('password-complete-view').classList.remove('hidden');
-  this.reset();
-  
-  btn.textContent = '設定する';
-  btn.disabled = false;
+    if (!response.ok) throw new Error('パスワード設定APIエラー');
+
+    // 完了画面へ遷移
+    document.getElementById('password-setup-view').classList.add('hidden');
+    document.getElementById('password-complete-view').classList.remove('hidden');
+    this.reset();
+  } catch (error) {
+    console.error('設定エラー:', error);
+    alert('サーバー側の実装を確認してください。(APIモックとして次へ進みます)');
+    
+    // API未実装時でもUIフローを進められるようモック動作を残す
+    document.getElementById('password-setup-view').classList.add('hidden');
+    document.getElementById('password-complete-view').classList.remove('hidden');
+    this.reset();
+  } finally {
+    btn.textContent = '設定する';
+    btn.disabled = false;
+  }
 });
 
 // 完了画面からブラウザタブを閉じる処理
