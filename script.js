@@ -134,7 +134,7 @@ function handleRouting() {
 
   const titles = {
     'dashboard': 'ダッシュボード',
-    'monthly': '月表示 (マトリクス表)',
+    'monthly': '月表示',
     'daily': '日表示',
     'overtime': '残業時間集計',
     'employees': '従業員一覧',
