@@ -2093,3 +2093,32 @@ td:hover .memo-icon::before {
 .col-sum {
   min-width: 55px !important;
 }
+/* メモアイコンの右上固定と重なり防止 */
+.monthly-matrix-table div {
+  position: relative !important;
+}
+
+.memo-icon {
+  position: absolute !important;
+  top: 0px !important;
+  right: 0px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  z-index: 2 !important;
+  cursor: pointer;
+}
+
+/* ツールチップ（黒い吹き出し）を右上に逃がして数字の被りを防止 */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  z-index: 9999 !important;
+}
+
+/* ホバー時の吹き出し位置を右寄りにオフセット */
+.memo-icon[data-tooltip]:hover::after {
+  transform: translate(20%, -100%) !important;
+}

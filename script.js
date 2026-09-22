@@ -1175,7 +1175,7 @@ async function renderMatrixTable() {
           if (att.memo) {
             if (att.memo.includes('管理者修正')) timeText = `<span class="time-edited">${timeText}</span>`;
             const pureMemo = att.memo.replace(/管理者修正/g, '').replace(/直行/g, '').replace(/直帰/g, '').replace(/・/g, '').trim();
-            if (pureMemo) memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}" style="position:absolute; top:2px; right:2px;">💬</span>`;
+            if (pureMemo) memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
           }
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
           const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
