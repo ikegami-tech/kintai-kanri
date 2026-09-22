@@ -799,11 +799,11 @@ body {
 .monthly-matrix-table th, 
 .monthly-matrix-table td {
   border: 1px solid var(--border-color);
-  padding: 6px 2px;
+  padding: 6px 1px;
   vertical-align: middle;
   line-height: 1.4;
-  min-width: 55px; /* ★時間の途中改行を防ぐため最小幅を設定 */
-  white-space: nowrap !important; /* ★数字の自動折返しを防止 */
+  min-width: 32px; /* 全画面表示に綺麗に収まるサイズへ最適化 */
+  white-space: nowrap !important;
   word-break: keep-all !important;
 }
 
@@ -2077,15 +2077,19 @@ td:hover .memo-icon::before {
 .holiday-cell.is-holiday .holiday-label {
   display: block;
 }
-/* マトリクス表の時間文字の途中折返しを防止 */
+/* マトリクス表の時間文字の途中折返し防止 & レスポンシブ最適化 */
 .monthly-matrix-table th, 
 .monthly-matrix-table td {
-  min-width: 55px;
+  min-width: 32px;
   white-space: nowrap !important;
   word-break: keep-all !important;
 }
 
 .col-emp-name {
-  min-width: 110px !important;
+  min-width: 95px !important;
   background-color: #ffffff !important;
+}
+
+.col-sum {
+  min-width: 55px !important;
 }
