@@ -711,28 +711,28 @@
               <h3>基本情報</h3>
             </div>
 
-            <form id="employee-edit-form" onsubmit="saveEmployeeEdit(event, currentEmpTargetId)">
+            <form id="employee-edit-form" onsubmit="saveEmployeeEdit(event, currentEmpTargetId)" autocomplete="off">
               <table class="edit-form-table">
                 <tbody>
                   <tr>
                     <th>名前 <span class="badge-req">必須</span></th>
-                    <td><input type="text" class="form-input" id="edit-name" value="阿久津 幸一" placeholder="例）東宝太郎" required></td>
+                    <td><input type="text" class="form-input" id="edit-name" value="" placeholder="例）東宝太郎" required></td>
                   </tr>
                   <tr>
                     <th>フリガナ <span class="badge-req">必須</span></th>
-                    <td><input type="text" class="form-input" id="edit-kana" value="アクツ コウイチ" placeholder="例）トウホウタロウ" required></td>
+                    <td><input type="text" class="form-input" id="edit-kana" value="" placeholder="例）トウホウタロウ" required></td>
                   </tr>
                   <tr>
                     <th>性別 <span class="badge-req">必須</span></th>
                     <td>
                       <label><input type="radio" name="gender" value="未選択"> 未選択</label>
-                      <label style="margin-left: 15px;"><input type="radio" name="gender" value="男性" checked> 男性</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="gender" value="男性"> 男性</label>
                       <label style="margin-left: 15px;"><input type="radio" name="gender" value="女性"> 女性</label>
                     </td>
                   </tr>
                   <tr>
                     <th>メールアドレス</th>
-                    <td>akutsu@toho-next.com</td>
+                    <td><span id="edit-email"></span></td>
                   </tr>
                   <tr>
                     <th>所属 <span class="badge-req">必須</span></th>

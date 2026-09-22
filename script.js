@@ -807,38 +807,34 @@ function openEditEmployee() {
   if (!emp) return;
 
   document.getElementById('edit-emp-name').textContent = emp.name;
-  document.getElementById('edit-name').value = emp.name;
-  document.getElementById('edit-kana').value = emp.kana;
+  document.getElementById('edit-name').value = emp.name || '';
+  document.getElementById('edit-kana').value = emp.kana || '';
   
-  // ★追加：選択した従業員のメールアドレスを反映
+  // メールアドレスを画面へ反映
   const emailEl = document.getElementById('edit-email');
   if (emailEl) {
-    if (emailEl.tagName === 'INPUT') {
-      emailEl.value = emp.email || '';
-    } else {
-      emailEl.textContent = emp.email || '-';
-    }
+    emailEl.textContent = emp.email || '-';
   }
 
   // 性別のラジオボタン
   const genderRadios = document.querySelectorAll('input[name="gender"]');
-  genderRadios.forEach(r => r.checked = (r.value === emp.gender));
+  genderRadios.forEach(r => r.checked = (r.value === (emp.gender || '未選択')));
 
   // 所属
   const deptSelect = document.querySelector('#employee-edit-form .form-select');
-  if (deptSelect) deptSelect.value = emp.office;
+  if (deptSelect) deptSelect.value = emp.office || 'NEXT';
 
   // 権限
   const roleRadios = document.querySelectorAll('input[name="role"]');
-  roleRadios.forEach(r => r.checked = (r.value === emp.role));
+  roleRadios.forEach(r => r.checked = (r.value === (emp.role || '一般')));
 
   // 勤怠表示
   const attRadios = document.querySelectorAll('input[name="attendance_display"]');
   attRadios.forEach(r => r.checked = (emp.show_attendance ? r.value === 'あり' : r.value === 'なし'));
 
   // 入社日・退職日
-  document.getElementById('edit-join-date').value = emp.joinDate !== '-' ? emp.joinDate : '';
-  document.getElementById('edit-retire-date').value = emp.retireDate !== '-' ? emp.retireDate : '';
+  document.getElementById('edit-join-date').value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate.replace(/\//g, '-') : '';
+  document.getElementById('edit-retire-date').value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate.replace(/\//g, '-') : '';
 
   location.hash = '#/employee-edit';
 }
