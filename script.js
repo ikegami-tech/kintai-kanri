@@ -2164,7 +2164,7 @@ document.getElementById('password-request-form').addEventListener('submit', asyn
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
+      body: JSON.stringify({ email: email, type: 'reset' }) // ★type: 'reset' を追加
     });
 
     if (!response.ok) throw new Error('送信エラー');

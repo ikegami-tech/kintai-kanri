@@ -165,30 +165,38 @@ app.delete('/api/attendances/record/:id', (req, res) => {
 // 認証・パスワード設定API (★復活・修正部分)
 // ==========================================
 
-// 1. パスワード設定メールの送信 (AWS SES経由)
+// 1. パスワード設定・再設定メールの送信 (AWS SES経由)
 app.post('/api/auth/send-setup-email', async (req, res) => {
-  const { email } = req.body;
+  const { email, type } = req.body;
   if (!email) {
     return res.status(400).json({ error: 'メールアドレスが指定されていません' });
   }
 
-  // 実際のCloudFrontのURLに変更（末尾にemailパラメータを付与）
   const setupUrl = `https://d2pm7hk78s0552.cloudfront.net/#/password-setup?email=${encodeURIComponent(email)}`; 
 
+  // 再設定時と新規登録時で件名・文面を切り替え
+  const isReset = (type === 'reset');
+  const subjectText = isReset 
+    ? "【勤怠管理システム】パスワード再設定のご案内" 
+    : "【勤怠管理システム】パスワード設定のお願い";
+    
+  const bodyText = isReset
+    ? `パスワード再設定のリクエストを受け付けました。\n以下のリンクより新しいパスワードの再設定を行ってください。\n\n${setupUrl}\n\n※このリンクの有効期限は24時間です。\n※心当たりのない場合は本メールを破棄してください。`
+    : `従業員登録が完了しました。\n以下のリンクよりパスワードの設定を行ってください。\n\n${setupUrl}\n\n※このリンクの有効期限は24時間です。`;
+
   const params = {
-    // 認証済みのドメインを指定
     Source: "kintai-kanri@toho-next.com", 
     Destination: {
       ToAddresses: [email],
     },
     Message: {
       Subject: {
-        Data: "【勤怠管理システム】パスワード設定のお願い",
+        Data: subjectText,
         Charset: "UTF-8",
       },
       Body: {
         Text: {
-          Data: `従業員登録が完了しました。\n以下のリンクよりパスワードの設定を行ってください。\n\n${setupUrl}\n\n※このリンクの有効期限は24時間です。`,
+          Data: bodyText,
           Charset: "UTF-8",
         },
       },
