@@ -541,6 +541,7 @@ async function submitRecordEdit() {
   const finalMemo = memoParts.join('\n');
 
   const payload = {
+    id: currentRecordId, // ★追加：編集対象のレコードIDを送信
     employee_id: emp.id,
     work_date: dateVal,
     clock_in: clockIn,
