@@ -2077,3 +2077,15 @@ td:hover .memo-icon::before {
 .holiday-cell.is-holiday .holiday-label {
   display: block;
 }
+/* マトリクス表の時間文字の途中折返しを防止 */
+.monthly-matrix-table th, 
+.monthly-matrix-table td {
+  min-width: 55px;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+
+.col-emp-name {
+  min-width: 110px !important;
+  background-color: #ffffff !important;
+}

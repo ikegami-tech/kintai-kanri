@@ -568,42 +568,24 @@ async function submitRecordEdit() {
 }
 
 async function submitRecordDelete() {
-  const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
-  
-  if (!emp) {
-    alert('従業員データが見つかりません');
+  if (!currentRecordId) {
+    alert('削除対象のデータIDが見つかりません。');
     return;
   }
-
-  const dateVal = document.getElementById('edit-date').value.replace(/\//g, '-');
 
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/record/${currentRecordId}`, {
       method: 'DELETE'
     });
 
-    if (!response.ok) {
-      // DELETEが未実装の場合はPOSTでデータ消去
-      await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employee_id: emp.id,
-          work_date: dateVal,
-          clock_in: null,
-          clock_out: null,
-          memo: null
-        })
-      });
-    }
+    if (!response.ok) throw new Error('削除リクエストに失敗しました');
 
     showToast('実績を削除しました');
     closeRecordModal('modal-record-edit');
     await renderMatrixTable();
   } catch (error) {
     console.error('削除エラー:', error);
-    alert('削除処理に失敗しました。');
+    alert('削除処理に失敗しました。サーバーの状態を確認してください。');
   }
 }
 
@@ -1157,15 +1139,17 @@ async function renderMatrixTable() {
       // 退職日より後であっても、すでに入力されているデータは取得する
       let cellData = '';
       if (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) {
-        const records = attendanceMap[emp.id][dateKey];
-        // 時間が早い順にソート（時間が未入力のものは下に回す）
-        records.sort((a, b) => {
+        // 出勤時間・退勤時間・メモのいずれも存在しない空データを除外
+        const validRecords = attendanceMap[emp.id][dateKey].filter(att => att.clock_in || att.clock_out || att.memo);
+
+        // 時間が早い順にソート
+        validRecords.sort((a, b) => {
           if (!a.clock_in) return 1;
           if (!b.clock_in) return -1;
           return a.clock_in.localeCompare(b.clock_in);
         });
 
-        cellData = records.map((att, idx) => {
+        cellData = validRecords.map((att, idx) => {
           let timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
           let memoHtml = '';
           if (att.memo) {
