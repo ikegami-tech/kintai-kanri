@@ -97,7 +97,9 @@ function toggleAttendanceMenu() {
 window.addEventListener('hashchange', handleRouting);
 
 function handleRouting() {
-  const path = location.hash.replace(/^#\//, '') || 'dashboard';
+  let path = location.hash.replace(/^#\//, '') || 'dashboard';
+  // ★追加: URLに「?email=...」などのパラメータが付いている場合、画面名だけを切り出す
+  path = path.split('?')[0];
   
   // ★追加：メールのリンクから別タブで開かれた想定のルーティング
   if (path === 'password-setup') {
@@ -1899,8 +1901,9 @@ function closeEmailPreview() {
 
 function openPasswordSetup() {
   closeEmailPreview();
-  // 実際のメール内リンクをクリックした挙動を再現し、別タブでパスワード設定画面を開く
-  window.open(window.location.pathname + '#/password-setup', '_blank');
+  const email = document.getElementById('email-preview-to').textContent;
+  // URLにメールアドレスのパラメータを付与して別タブを開く
+  window.open(window.location.pathname + '#/password-setup?email=' + encodeURIComponent(email), '_blank');
 }
 
 // パスワード設定完了処理
@@ -1908,8 +1911,19 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   e.preventDefault();
   const pw1 = document.getElementById('setup-pw1').value;
   const pw2 = document.getElementById('setup-pw2').value;
-  // デモ画面のプレビューからメールアドレスを取得
-  const email = document.getElementById('email-preview-to').textContent;
+  
+  // URLのパラメータからメールアドレスを取得する
+  let email = '';
+  const hashParts = window.location.hash.split('?');
+  if (hashParts.length > 1) {
+    const params = new URLSearchParams(hashParts[1]);
+    email = params.get('email');
+  }
+
+  // 万が一URLから取れなかった場合はプレビューから取得
+  if (!email) {
+    email = document.getElementById('email-preview-to').textContent;
+  }
   
   if (pw1 !== pw2) {
     showModal('エラー', 'パスワードが一致しません。');
