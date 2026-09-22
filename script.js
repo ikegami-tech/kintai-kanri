@@ -299,7 +299,7 @@ let currentCellElement = null;
 let currentRecordId = null; 
 let isDragging = false; // ★追加：ドラッグスクロール中かどうかを判定するフラグ
 
-// 余白クリック時 (新規作成用)
+// 余白クリック時 (新規作成・編集・メモ用)
 function openCellMenu(event, empName, dateStr) {
   if (isDragging) return;
   event.stopPropagation();
@@ -312,6 +312,8 @@ function openCellMenu(event, empName, dateStr) {
   menu.innerHTML = `
     <div class="popover-header" id="cell-menu-title">${empName} - ${dateStr}</div>
     <div class="popover-item" onclick="handleCellAction('新規作成')">➕ 新規作成</div>
+    <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
+    <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
   `;
   menu.style.left = `${event.pageX}px`;
   menu.style.top = `${event.pageY}px`;
@@ -594,7 +596,7 @@ async function submitRecordDelete() {
   }
 }
 
-// 【API通信実装】従業員メモの保存処理
+// 【API通信実装】従業員メモの保存処理 (既存打刻の特定・重複防止対応)
 async function submitRecordMemo() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
@@ -603,38 +605,41 @@ async function submitRecordMemo() {
   const dateVal = document.getElementById('memo-date').textContent.replace(/\//g, '-');
   const memoText = document.getElementById('modal-employee-memo').querySelector('textarea').value.trim();
 
-  // 既存の時間と「管理者修正」の赤文字フラグを維持する
-  let startH = '', startM = '', endH = '', endM = '';
-  let isEdited = false;
+  let targetRecordId = currentRecordId;
+  let clockIn = null, clockOut = null;
 
   if (currentCellElement) {
-    const text = currentCellElement.innerText.trim();
-    if (text) {
-      const lines = text.split(/\r?\n|\s+/);
-      if (lines.length >= 1 && lines[0].includes(':')) {
-        const [h, m] = lines[0].split(':');
-        startH = h; startM = m;
+    // 打刻ブロック(div)が直接クリックされた場合
+    if (currentCellElement.dataset && (currentCellElement.dataset.clockIn !== undefined || currentCellElement.dataset.clockOut !== undefined)) {
+      if (currentCellElement.dataset.clockIn) clockIn = currentCellElement.dataset.clockIn.length === 5 ? `${currentCellElement.dataset.clockIn}:00` : currentCellElement.dataset.clockIn;
+      if (currentCellElement.dataset.clockOut) clockOut = currentCellElement.dataset.clockOut.length === 5 ? `${currentCellElement.dataset.clockOut}:00` : currentCellElement.dataset.clockOut;
+    } else {
+      // セルの余白(td)がクリックされた場合、セル内の既存打刻ブロック(div)を探してIDと時間を自動抽出
+      const recordDiv = currentCellElement.querySelector('div[onclick*="openEditMenu"]');
+      if (recordDiv) {
+        const onclickAttr = recordDiv.getAttribute('onclick');
+        if (onclickAttr) {
+          const matches = onclickAttr.match(/openEditMenu\([^,]+,\s*[^,]+,\s*[^,]+,\s*(\d+),\s*'([^']*)',\s*'([^']*)'/);
+          if (matches) {
+            targetRecordId = matches[1];
+            if (matches[2]) clockIn = matches[2].length === 5 ? `${matches[2]}:00` : matches[2];
+            if (matches[3]) clockOut = matches[3].length === 5 ? `${matches[3]}:00` : matches[3];
+          }
+        }
       }
-      if (lines.length >= 2 && lines[1].includes(':')) {
-        const [h, m] = lines[1].split(':');
-        endH = h; endM = m;
-      }
-    }
-    if (currentCellElement.querySelector('.time-edited')) {
-      isEdited = true;
     }
   }
 
-  // DBに保存するメモ内容（赤文字フラグと結合）
-  let finalMemo = memoText;
-  if (isEdited && memoText) finalMemo = `管理者修正\n${memoText}`;
-  else if (isEdited && !memoText) finalMemo = `管理者修正`;
+  let memoParts = ['管理者修正'];
+  if (memoText) memoParts.push(memoText);
+  const finalMemo = memoParts.join('\n');
 
   const payload = {
+    id: targetRecordId || null, // 既存IDがあればUPDATE（重複生成を完全防止）
     employee_id: emp.id,
     work_date: dateVal,
-    clock_in: startH ? `${startH}:${startM}:00` : null,
-    clock_out: endH ? `${endH}:${endM}:00` : null,
+    clock_in: clockIn,
+    clock_out: clockOut,
     memo: finalMemo
   };
 
