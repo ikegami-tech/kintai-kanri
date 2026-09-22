@@ -295,10 +295,12 @@ function closeMapModal() {
 let currentEmpName = '';
 let currentDate = '';
 let currentCellElement = null; 
-let currentRecordId = null; // 新規追加：選択されたレコードIDを保持
+let currentRecordId = null; 
+let isDragging = false; // ★追加：ドラッグスクロール中かどうかを判定するフラグ
 
 // 余白クリック時 (新規作成・編集用)
 function openCellMenu(event, empName, dateStr) {
+  if (isDragging) return; // ★追加：ドラッグ移動された場合はメニューを開かない
   event.stopPropagation();
   currentEmpName = empName;
   currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
@@ -320,6 +322,7 @@ function openCellMenu(event, empName, dateStr) {
 
 // 予定ブロッククリック時 (編集用)
 function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo) {
+  if (isDragging) return; // ★追加：ドラッグ移動された場合はメニューを開かない
   event.stopPropagation();
   currentEmpName = empName;
   currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
@@ -1196,6 +1199,7 @@ async function renderMatrixTable() {
   });
 
   document.getElementById('matrix-tbody').innerHTML = tbodyHtml;
+  setupMatrixDragScroll(); // ★追加：マトリクス表描画後にドラッグスクロールを有効化
 }
 
 function changeMatrixMonth(offset) {
@@ -2068,3 +2072,60 @@ function toggleHoliday(dateStr, cellElement) {
 }
 
 // ※ saveHolidaySettings() 関数は不要になったため削除
+// ==========================================
+// マトリクス表のドラッグ（パン）スクロール制御
+// ==========================================
+let isMouseDown = false;
+let startX, startY;
+let scrollLeft, scrollTop;
+
+function setupMatrixDragScroll() {
+  const wrapper = document.querySelector('.matrix-scroll-wrapper');
+  const contentArea = document.querySelector('.content-area'); // 全体の縦スクロール用エリア
+  if (!wrapper) return;
+
+  wrapper.addEventListener('mousedown', (e) => {
+    // 右クリックやポップオーバー要素のクリック時は無効化
+    if (e.button !== 0 || e.target.closest('#cell-action-menu')) return;
+
+    isMouseDown = true;
+    isDragging = false;
+    startX = e.pageX - wrapper.offsetLeft;
+    startY = e.pageY - wrapper.offsetTop;
+    scrollLeft = wrapper.scrollLeft;
+    scrollTop = contentArea ? contentArea.scrollTop : 0;
+    wrapper.style.cursor = 'grab';
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isMouseDown) {
+      isMouseDown = false;
+      if (wrapper) wrapper.style.cursor = 'default';
+      // ドラッグフラグの解除をわずかに遅らせてクリックイベントの誤発火を防ぐ
+      setTimeout(() => { isDragging = false; }, 50);
+    }
+  });
+
+  wrapper.addEventListener('mousemove', (e) => {
+    if (!isMouseDown) return;
+
+    const x = e.pageX - wrapper.offsetLeft;
+    const y = e.pageY - wrapper.offsetTop;
+    const walkX = x - startX;
+    const walkY = y - startY;
+
+    // 5ピクセル以上動いたらドラッグ移動と判定
+    if (Math.abs(walkX) > 5 || Math.abs(walkY) > 5) {
+      isDragging = true;
+      wrapper.style.cursor = 'grabbing';
+      e.preventDefault(); // ドラッグ中の文字選択（ハイライト）を防止
+
+      // 横スクロール移動
+      wrapper.scrollLeft = scrollLeft - walkX;
+      // 縦スクロール移動
+      if (contentArea) {
+        contentArea.scrollTop = scrollTop - walkY;
+      }
+    }
+  });
+}
