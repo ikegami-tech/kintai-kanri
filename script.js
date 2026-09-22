@@ -299,9 +299,9 @@ let currentCellElement = null;
 let currentRecordId = null; 
 let isDragging = false; // ★追加：ドラッグスクロール中かどうかを判定するフラグ
 
-// 余白クリック時 (新規作成・編集用)
+// 余白クリック時 (新規作成用)
 function openCellMenu(event, empName, dateStr) {
-  if (isDragging) return; // ★追加：ドラッグ移動された場合はメニューを開かない
+  if (isDragging) return;
   event.stopPropagation();
   currentEmpName = empName;
   currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
@@ -312,33 +312,31 @@ function openCellMenu(event, empName, dateStr) {
   menu.innerHTML = `
     <div class="popover-header" id="cell-menu-title">${empName} - ${dateStr}</div>
     <div class="popover-item" onclick="handleCellAction('新規作成')">➕ 新規作成</div>
-    <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
-    <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
-    <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
   `;
   menu.style.left = `${event.pageX}px`;
   menu.style.top = `${event.pageY}px`;
   menu.classList.remove('hidden');
 }
 
-// 予定ブロッククリック時 (編集用)
+// 予定ブロッククリック時 (編集・個別の従業員メモ用)
 function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo) {
-  if (isDragging) return; // ★追加：ドラッグ移動された場合はメニューを開かない
+  if (isDragging) return;
   event.stopPropagation();
   currentEmpName = empName;
   currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
   currentCellElement = event.currentTarget;
   currentRecordId = recordId;
   
-  // 編集用のデータを一時保持
+  // 編集・メモ用のデータを一時保持
   currentCellElement.dataset.clockIn = clockIn;
   currentCellElement.dataset.clockOut = clockOut;
+  currentCellElement.dataset.rawMemo = memo || '';
   
   const menu = document.getElementById('cell-action-menu');
   menu.innerHTML = `
     <div class="popover-header" id="cell-menu-title">${empName} - ${dateStr} (編集)</div>
     <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
-    <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
+    <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
   `;
   menu.style.left = `${event.pageX}px`;
   menu.style.top = `${event.pageY}px`;
@@ -402,22 +400,24 @@ function handleCellAction(actionType) {
     document.getElementById('memo-emp-name').textContent = currentEmpName;
     document.getElementById('memo-date').textContent = currentDate;
     
-    // ★追加：既存の吹き出しがあれば内容をセットし、なければ空にする
     const memoTextarea = document.getElementById('modal-employee-memo').querySelector('textarea');
     let existingMemo = '';
     if (currentCellElement) {
-      const memoIcon = currentCellElement.querySelector('.memo-icon');
-      if (memoIcon) {
-        existingMemo = memoIcon.getAttribute('data-tooltip');
+      if (currentCellElement.dataset.rawMemo) {
+        existingMemo = currentCellElement.dataset.rawMemo
+          .replace(/管理者修正/g, '')
+          .replace(/直行/g, '')
+          .replace(/直帰/g, '')
+          .replace(/・/g, '')
+          .trim();
+      } else {
+        const memoIcon = currentCellElement.querySelector('.memo-icon');
+        if (memoIcon) existingMemo = memoIcon.getAttribute('data-tooltip') || '';
       }
     }
     memoTextarea.value = existingMemo;
 
     document.getElementById('modal-employee-memo').classList.remove('hidden');
-  } else if (actionType === '詳細へ') {
-    document.getElementById('timeline-title').textContent = `${currentDate} 詳細タイムライン`;
-    renderTimeline(currentDate);
-    location.hash = '#/timeline-detail';
   }
 }
 
@@ -461,7 +461,7 @@ async function submitRecordCreate() {
   if (createCheckboxes[0] && createCheckboxes[0].checked) directMemoList.push('直行');
   if (createCheckboxes[1] && createCheckboxes[1].checked) directMemoList.push('直帰');
 
-  let memoParts = [];
+  let memoParts = ['管理者修正']; // ★新規作成時も赤字表示にする
   
   // 休日設定されている日付なら自動で「休日出勤」を付与
   if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
@@ -1221,34 +1221,6 @@ function changeMatrixMonth(offset) {
     currentMatrixDate.setMonth(currentMatrixDate.getMonth() + offset);
   }
   renderMatrixTable();
-}
-
-// --- 詳細タイムライン (ガントチャート) ---
-async function renderTimeline(dateStr) {
-  console.log(`[API MOCK] GET /api/attendance/timeline?date=${dateStr}`);
-  const data = [
-    { name: '安藤 健太郎', memo: '[NEXTメモ]\n休日出勤', barLeft: '70.4%', barWidth: '14.7%', timeText: '18:28-21:43', hasRest: false },
-    { name: '五十嵐 由樹', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
-    { name: '池上 裕士', memo: '[NEXTメモ]\n休憩あり', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
-    { name: '池谷 あや子', memo: '', barLeft: '0', barWidth: '0', timeText: '', hasRest: false },
-    { name: '石井 秀龍', memo: '[NEXTメモ]\n修正済み', barLeft: '26.8%', barWidth: '42.4%', timeText: '08:52-18:12 [休08:53-09:53]', hasRest: true },
-    { name: '岩本 勇祐', memo: '[NEXTメモ]\n午後出勤', barLeft: '40.5%', barWidth: '25.5%', timeText: '11:54-17:31', hasRest: false },
-    { name: '岡田 光平', memo: '[NEXTメモ]\n午前中のみ', barLeft: '31.3%', barWidth: '7.1%', timeText: '09:52-11:26', hasRest: false }
-  ];
-
-  document.getElementById('gantt-tbody').innerHTML = data.map(emp => {
-    const memoHtml = emp.memo ? `<span class="memo-icon" data-tooltip="${emp.memo}">💬</span>` : '';
-    const barHtml = emp.barWidth !== '0' ? `
-      <div class="gantt-bar" style="left: ${emp.barLeft}; width: ${emp.barWidth};">${emp.timeText}</div>
-      ${emp.hasRest ? `<div class="gantt-bar-stripe" style="left: ${emp.barLeft}; width: 4.5%;"></div>` : ''}
-    ` : '';
-    return `
-      <tr>
-        <td class="gantt-emp-col">${emp.name} ${memoHtml}</td>
-        <td colspan="22" class="gantt-track">${barHtml}</td>
-      </tr>
-    `;
-  }).join('');
 }
 
 // --- 日表示 ---
