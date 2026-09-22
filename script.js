@@ -1158,7 +1158,7 @@ async function renderMatrixTable() {
             if (pureMemo) memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}" style="position:absolute; top:2px; right:2px;">💬</span>`;
           }
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
-          const borderStyle = idx !== records.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
+          const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
           
           // 予定ブロック用のクリックイベントを追加
           return `<div style="padding:4px 0; position:relative; ${borderStyle}" onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')">${timeText}${memoHtml}</div>`;
