@@ -131,25 +131,33 @@ app.get('/api/attendances/monthly', (req, res) => {
   });
 });
 
-// 打刻の新規作成または更新 (UPSERT)
+// 打刻の新規作成または更新
 app.post('/api/attendances', (req, res) => {
-  const { employee_id, work_date, clock_in, clock_out, memo } = req.body;
+  const { id, employee_id, work_date, clock_in, clock_out, memo } = req.body;
   
-  const sql = `
-    INSERT INTO attendances (employee_id, work_date, clock_in, clock_out, memo)
-    VALUES (?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      clock_in = VALUES(clock_in),
-      clock_out = VALUES(clock_out),
-      memo = VALUES(memo)
-  `;
+  if (id) {
+    // 編集 (UPDATE)
+    const sql = `UPDATE attendances SET clock_in = ?, clock_out = ?, memo = ? WHERE id = ?`;
+    db.query(sql, [clock_in || null, clock_out || null, memo || null, id], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: '更新しました' });
+    });
+  } else {
+    // 新規作成 (INSERT)
+    const sql = `INSERT INTO attendances (employee_id, work_date, clock_in, clock_out, memo) VALUES (?, ?, ?, ?, ?)`;
+    db.query(sql, [employee_id, work_date, clock_in || null, clock_out || null, memo || null], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: '作成しました' });
+    });
+  }
+});
 
-  db.query(sql, [employee_id, work_date, clock_in || null, clock_out || null, memo || null], (err, result) => {
-    if (err) {
-      console.error('打刻保存エラー:', err);
-      return res.status(500).json({ error: '打刻の保存に失敗しました' });
-    }
-    res.json({ message: '打刻データを保存しました' });
+// レコードID指定の削除APIを追加
+app.delete('/api/attendances/record/:id', (req, res) => {
+  const sql = 'DELETE FROM attendances WHERE id = ?';
+  db.query(sql, [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: '削除成功' });
   });
 });
 

@@ -294,16 +294,47 @@ function closeMapModal() {
 // ==========================================
 let currentEmpName = '';
 let currentDate = '';
-let currentCellElement = null; // ★追加：クリックしたセルを記憶する変数
+let currentCellElement = null; 
+let currentRecordId = null; // 新規追加：選択されたレコードIDを保持
 
+// 余白クリック時 (新規作成用)
 function openCellMenu(event, empName, dateStr) {
   event.stopPropagation();
   currentEmpName = empName;
   currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
-  currentCellElement = event.currentTarget; // ★追加：クリックされたHTML要素を保存
+  currentCellElement = event.currentTarget;
+  currentRecordId = null; 
   
   const menu = document.getElementById('cell-action-menu');
-  document.getElementById('cell-menu-title').textContent = `${empName} - ${dateStr}`;
+  menu.innerHTML = `
+    <div class="popover-header" id="cell-menu-title">${empName} - ${dateStr}</div>
+    <div class="popover-item" onclick="handleCellAction('新規作成')">➕ 新規作成</div>
+    <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
+    <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
+  `;
+  menu.style.left = `${event.pageX}px`;
+  menu.style.top = `${event.pageY}px`;
+  menu.classList.remove('hidden');
+}
+
+// 予定ブロッククリック時 (編集用)
+function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo) {
+  event.stopPropagation();
+  currentEmpName = empName;
+  currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
+  currentCellElement = event.currentTarget;
+  currentRecordId = recordId;
+  
+  // 編集用のデータを一時保持
+  currentCellElement.dataset.clockIn = clockIn;
+  currentCellElement.dataset.clockOut = clockOut;
+  
+  const menu = document.getElementById('cell-action-menu');
+  menu.innerHTML = `
+    <div class="popover-header" id="cell-menu-title">${empName} - ${dateStr} (編集)</div>
+    <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
+    <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
+  `;
   menu.style.left = `${event.pageX}px`;
   menu.style.top = `${event.pageY}px`;
   menu.classList.remove('hidden');
@@ -334,24 +365,17 @@ function handleCellAction(actionType) {
     document.getElementById('edit-emp-name').textContent = currentEmpName;
     document.getElementById('edit-date').value = currentDate;
     
-    // セルの内容から時間を読み取ってセット。空なら未選択状態にする
     let startH = '--', startM = '--', endH = '--', endM = '--';
     if (currentCellElement) {
-      // innerTextを使ってHTMLタグ（赤文字設定など）を除外した「純粋な時間テキスト」を取得
-      const text = currentCellElement.innerText.trim();
-      if (text) {
-        // 改行や空白で分割して、出勤・退勤時間に割り当て
-        const lines = text.split(/\r?\n|\s+/);
-        if (lines.length >= 1 && lines[0].includes(':')) {
-          const [h, m] = lines[0].split(':');
-          startH = h.padStart(2, '0');
-          startM = m.padStart(2, '0');
-        }
-        if (lines.length >= 2 && lines[1].includes(':')) {
-          const [h, m] = lines[1].split(':');
-          endH = h.padStart(2, '0');
-          endM = m.padStart(2, '0');
-        }
+      const clockIn = currentCellElement.dataset.clockIn;
+      const clockOut = currentCellElement.dataset.clockOut;
+      if (clockIn && clockIn.includes(':')) {
+        const [h, m] = clockIn.split(':');
+        startH = h; startM = m;
+      }
+      if (clockOut && clockOut.includes(':')) {
+        const [h, m] = clockOut.split(':');
+        endH = h; endM = m;
       }
     }
     
@@ -554,7 +578,7 @@ async function submitRecordDelete() {
   const dateVal = document.getElementById('edit-date').value.replace(/\//g, '-');
 
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/${emp.id}/${dateVal}`, {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/record/${currentRecordId}`, {
       method: 'DELETE'
     });
 
@@ -1067,71 +1091,39 @@ async function renderMatrixTable() {
     console.error('マトリクスデータ取得エラー:', error);
   }
 
-  // 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
+// 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
   const attendanceMap = {};
   const summaryMap = {}; // 追加: 各従業員の合計時間・日数を保持
 
   attendancesData.forEach(att => {
-    // バックエンドから "YYYY-MM-DD" で返ってくるので、JSでの変換を省いてそのままキーにする
     const dateStr = att.work_date;
     
     if (!summaryMap[att.employee_id]) {
       summaryMap[att.employee_id] = { days: 0, workMins: 0 };
     }
 
-    // === 合計時間と日数の計算 ===
     if (att.clock_in && att.clock_out) {
       summaryMap[att.employee_id].days++;
-      
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
-      
       let inMinutes = inH * 60 + inM;
-      if (inMinutes < 540) inMinutes = 540; // 9:00前カット
-
+      if (inMinutes < 540) inMinutes = 540;
       let outMinutes = outH * 60 + outM;
-      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60; // 翌日退勤対応
-      
+      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60;
       let stayMinutes = outMinutes - inMinutes;
       if (stayMinutes < 0) stayMinutes = 0;
-
       let workMinutes = stayMinutes;
       if (stayMinutes > 360) {
-        workMinutes = stayMinutes - 60; // 6時間超えで1時間マイナス
+        workMinutes = stayMinutes - 60;
         if (workMinutes < 360) workMinutes = 360;
       }
-      
       summaryMap[att.employee_id].workMins += workMinutes;
     }
     
-    if (!attendanceMap[att.employee_id]) {
-      attendanceMap[att.employee_id] = {};
-    }
-    // 時間も "HH:mm" で返ってくるのでそのまま使用
-    let timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
-    let memoHtml = '';
-
-    if (att.memo) {
-      // 1. 「管理者修正」が含まれていれば時間を赤文字にする
-      if (att.memo.includes('管理者修正')) {
-        timeText = `<span class="time-edited">${timeText}</span>`;
-      }
-      
-      // 2. システム用の判定テキスト（管理者修正・直行・直帰）を除外した純粋なメモを取り出す
-      const pureMemo = att.memo
-        .replace(/管理者修正/g, '')
-        .replace(/直行/g, '')
-        .replace(/直帰/g, '')
-        .replace(/・/g, '')
-        .trim();
-      
-      // 3. 純粋なユーザーメモが残っている場合のみ吹き出しアイコン（💬）を表示する
-      if (pureMemo) {
-        memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
-      }
-    }
-
-    attendanceMap[att.employee_id][dateStr] = `${timeText}${memoHtml}`;
+    if (!attendanceMap[att.employee_id]) attendanceMap[att.employee_id] = {};
+    if (!attendanceMap[att.employee_id][dateStr]) attendanceMap[att.employee_id][dateStr] = [];
+    
+    attendanceMap[att.employee_id][dateStr].push(att);
   });
 
   // 4. 従業員一覧（currentEmployeeList）をもとに表の行を生成
@@ -1162,7 +1154,31 @@ async function renderMatrixTable() {
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
       
       // 退職日より後であっても、すでに入力されているデータは取得する
-      let cellData = (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) || '';
+      let cellData = '';
+      if (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) {
+        const records = attendanceMap[emp.id][dateKey];
+        // 時間が早い順にソート（時間が未入力のものは下に回す）
+        records.sort((a, b) => {
+          if (!a.clock_in) return 1;
+          if (!b.clock_in) return -1;
+          return a.clock_in.localeCompare(b.clock_in);
+        });
+
+        cellData = records.map((att, idx) => {
+          let timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
+          let memoHtml = '';
+          if (att.memo) {
+            if (att.memo.includes('管理者修正')) timeText = `<span class="time-edited">${timeText}</span>`;
+            const pureMemo = att.memo.replace(/管理者修正/g, '').replace(/直行/g, '').replace(/直帰/g, '').replace(/・/g, '').trim();
+            if (pureMemo) memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}" style="position:absolute; top:2px; right:2px;">💬</span>`;
+          }
+          const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
+          const borderStyle = idx !== records.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
+          
+          // 予定ブロック用のクリックイベントを追加
+          return `<div style="padding:4px 0; position:relative; ${borderStyle}" onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')">${timeText}${memoHtml}</div>`;
+        }).join('');
+      }
 
       if (isAfterRetire) {
         tdClass += ' cell-retired'; // 退職日より後のマス用
