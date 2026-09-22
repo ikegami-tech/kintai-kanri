@@ -457,6 +457,12 @@ async function submitRecordCreate() {
   const clockIn = (startH !== '--' && startM !== '--') ? `${startH}:${startM}:00` : null;
   const clockOut = (endH !== '--' && endM !== '--') ? `${endH}:${endM}:00` : null;
 
+  // ★追加：出勤時間が入力（選択）されていない場合は保存を中止する
+  if (!clockIn) {
+    alert('出勤時間を指定してください。');
+    return;
+  }
+
   // 新規作成モーダル(#modal-record-create)から直行・直帰のチェック状態を取得
   const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
   let directMemoList = [];
