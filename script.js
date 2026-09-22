@@ -316,11 +316,11 @@ function handleCellAction(actionType) {
     document.getElementById('create-emp-name').textContent = currentEmpName;
     document.getElementById('create-date').value = currentDate;
     
-    // ★追加：フォームを完全にリセット（空にする）
-    document.getElementById('create-start-h').value = '09';
-    document.getElementById('create-start-m').value = '00';
-    document.getElementById('create-end-h').value = '18';
-    document.getElementById('create-end-m').value = '00';
+    // フォームの時間を未選択状態にリセット
+    document.getElementById('create-start-h').value = '--';
+    document.getElementById('create-start-m').value = '--';
+    document.getElementById('create-end-h').value = '--';
+    document.getElementById('create-end-m').value = '--';
     const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
     createCheckboxes.forEach(cb => {
       cb.checked = false;
@@ -334,8 +334,8 @@ function handleCellAction(actionType) {
     document.getElementById('edit-emp-name').textContent = currentEmpName;
     document.getElementById('edit-date').value = currentDate;
     
-    // ★追加：セルの内容から時間を読み取ってセット。空ならデフォルト値でリセット
-    let startH = '09', startM = '00', endH = '18', endM = '00';
+    // セルの内容から時間を読み取ってセット。空なら未選択状態にする
+    let startH = '--', startM = '--', endH = '--', endM = '--';
     if (currentCellElement) {
       // innerTextを使ってHTMLタグ（赤文字設定など）を除外した「純粋な時間テキスト」を取得
       const text = currentCellElement.innerText.trim();
@@ -423,6 +423,9 @@ async function submitRecordCreate() {
   const endH = document.getElementById('create-end-h').value;
   const endM = document.getElementById('create-end-m').value;
 
+  const clockIn = (startH !== '--' && startM !== '--') ? `${startH}:${startM}:00` : null;
+  const clockOut = (endH !== '--' && endM !== '--') ? `${endH}:${endM}:00` : null;
+
   // 新規作成モーダル(#modal-record-create)から直行・直帰のチェック状態を取得
   const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
   let directMemoList = [];
@@ -442,8 +445,8 @@ async function submitRecordCreate() {
   const payload = {
     employee_id: emp.id,
     work_date: dateVal,
-    clock_in: `${startH}:${startM}:00`,
-    clock_out: `${endH}:${endM}:00`,
+    clock_in: clockIn,
+    clock_out: clockOut,
     memo: memoParts.join('\n')
   };
 
@@ -483,6 +486,9 @@ async function submitRecordEdit() {
   const endH = document.getElementById('edit-end-h').value;
   const endM = document.getElementById('edit-end-m').value;
 
+  const clockIn = (startH !== '--' && startM !== '--') ? `${startH}:${startM}:00` : null;
+  const clockOut = (endH !== '--' && endM !== '--') ? `${endH}:${endM}:00` : null;
+
   // 直行・直帰チェック状態を取得
   const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
   let directMemoList = [];
@@ -512,8 +518,8 @@ async function submitRecordEdit() {
   const payload = {
     employee_id: emp.id,
     work_date: dateVal,
-    clock_in: `${startH}:${startM}:00`,
-    clock_out: `${endH}:${endM}:00`,
+    clock_in: clockIn,
+    clock_out: clockOut,
     memo: finalMemo
   };
 
@@ -1736,9 +1742,21 @@ async function renderEmployees() {
 // 6. 初期化
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+  // 実績登録・編集モーダルの「時」選択肢を生成
+  const hourSelectIds = ['create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h'];
+  let hoursHtml = '<option value="--">--</option>';
+  for (let h = 0; h < 24; h++) {
+    const hrStr = String(h).padStart(2, '0');
+    hoursHtml += `<option value="${hrStr}">${hrStr}</option>`;
+  }
+  hourSelectIds.forEach(id => {
+    const selectEl = document.getElementById(id);
+    if (selectEl) selectEl.innerHTML = hoursHtml;
+  });
+
   // 実績登録・編集モーダルの「分」選択肢を1分単位(00〜59)で生成
   const minuteSelectIds = ['create-start-m', 'create-end-m', 'edit-start-m', 'edit-end-m'];
-  let minutesHtml = '';
+  let minutesHtml = '<option value="--">--</option>';
   for (let m = 0; m < 60; m++) {
     const minStr = String(m).padStart(2, '0');
     minutesHtml += `<option value="${minStr}">${minStr}</option>`;
