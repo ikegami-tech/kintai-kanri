@@ -96,12 +96,16 @@ function toggleAttendanceMenu() {
 // ▼ URL（ハッシュ）が変更された時や「戻る/進む」を押した時に自動で発火するルーター
 window.addEventListener('hashchange', handleRouting);
 
-function handleRouting() {
-  let path = location.hash.replace(/^#\//, '') || 'dashboard';
-  // ★追加: URLに「?email=...」などのパラメータが付いている場合、画面名だけを切り出す
-  path = path.split('?')[0];
-  
-  // ★追加：メールのリンクから別タブで開かれた想定のルーティング
+async function handleRouting() {
+  let fullHash = location.hash.replace(/^#\//, '') || 'dashboard';
+  let path = fullHash.split('?')[0];
+  const urlParams = new URLSearchParams(fullHash.includes('?') ? fullHash.split('?')[1] : '');
+  const urlEmpId = urlParams.get('id');
+
+  if (urlEmpId) {
+    currentEmpTargetId = Number(urlEmpId);
+  }
+
   if (path === 'password-setup') {
     document.getElementById('app-view').classList.add('hidden');
     document.getElementById('login-view').classList.add('hidden');
@@ -110,26 +114,23 @@ function handleRouting() {
     return;
   }
 
+  // リロード等で従業員データが未読み込みの場合は先に自動取得
+  if (currentEmployeeList.length === 0 && (path.includes('employee') || path === 'monthly' || path === 'daily' || path === 'overtime')) {
+    await renderEmployees();
+  }
+
   const pages = document.querySelectorAll('.page-content');
   pages.forEach(page => page.classList.add('hidden'));
 
   const targetElement = document.getElementById('page-' + path);
   if (targetElement) {
     targetElement.classList.remove('hidden');
-    if (path === 'dashboard') {
-      renderDashboard();
-    }
-    // ★追加：日表示が開かれた時も最新の打刻データを再描画する
-    if (path === 'daily') {
-      renderDailyTable();
-    }
-    if (path === 'holiday-setting') {
-      renderHolidayCalendar();
-    }
-    // ★追加：残業集計表が開かれた時も最新データで再計算する
-    if (path === 'overtime') {
-      renderOvertimeTable();
-    }
+    if (path === 'dashboard') renderDashboard();
+    if (path === 'daily') renderDailyTable();
+    if (path === 'holiday-setting') renderHolidayCalendar();
+    if (path === 'overtime') renderOvertimeTable();
+    if (path === 'employee-detail' && currentEmpTargetId) showEmployeeDetail(currentEmpTargetId);
+    if (path === 'employee-edit' && currentEmpTargetId) openEditEmployee();
   }
 
   const titles = {
@@ -775,19 +776,17 @@ async function executeEmpAction() {
 }
 
 function showEmployeeDetail(identifier) {
-  // IDまたは名前で該当の従業員データを探す
   let emp;
-  if (typeof identifier === 'number') {
-    emp = currentEmployeeList.find(e => e.id === identifier);
+  if (typeof identifier === 'number' || !isNaN(Number(identifier))) {
+    emp = currentEmployeeList.find(e => Number(e.id) === Number(identifier));
   } else {
     emp = currentEmployeeList.find(e => e.name === identifier);
   }
   
   if (!emp) return;
 
-  currentEmpTargetId = emp.id; // 現在選択中の従業員IDを記録
+  currentEmpTargetId = emp.id;
 
-  // 画面の各項目を実際のデータで書き換える
   document.getElementById('detail-emp-name').textContent = emp.name;
   document.getElementById('val-name').textContent = emp.name;
   document.getElementById('val-kana').textContent = emp.kana;
@@ -799,17 +798,12 @@ function showEmployeeDetail(identifier) {
   document.getElementById('val-join-date').textContent = emp.joinDate;
   document.getElementById('val-retire-date').textContent = emp.retireDate;
 
-  location.hash = '#/employee-detail';
+  location.hash = `#/employee-detail?id=${emp.id}`;
 }
 
 function openEditEmployee() {
-  // 数値/文字列の型違いによる不一致を防ぐため e.id == currentEmpTargetId で判定
-  const emp = currentEmployeeList.find(e => e.id == currentEmpTargetId);
-  if (!emp) {
-    alert('選択された従業員データが見つかりません。従業員一覧に戻ります。');
-    location.hash = '#/employees';
-    return;
-  }
+  const emp = currentEmployeeList.find(e => Number(e.id) === Number(currentEmpTargetId));
+  if (!emp) return;
 
   document.getElementById('edit-emp-name').textContent = emp.name;
   document.getElementById('edit-name').value = emp.name || '';
@@ -835,7 +829,7 @@ function openEditEmployee() {
   document.getElementById('edit-join-date').value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate.replace(/\//g, '-') : '';
   document.getElementById('edit-retire-date').value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate.replace(/\//g, '-') : '';
 
-  location.hash = '#/employee-edit';
+  location.hash = `#/employee-edit?id=${emp.id}`;
 }
 
 function closeEditEmployee() {
