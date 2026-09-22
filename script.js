@@ -803,36 +803,35 @@ function showEmployeeDetail(identifier) {
 }
 
 function openEditEmployee() {
-  const emp = currentEmployeeList.find(e => e.id === currentEmpTargetId);
-  if (!emp) return;
+  // 数値/文字列の型違いによる不一致を防ぐため e.id == currentEmpTargetId で判定
+  const emp = currentEmployeeList.find(e => e.id == currentEmpTargetId);
+  if (!emp) {
+    alert('選択された従業員データが見つかりません。従業員一覧に戻ります。');
+    location.hash = '#/employees';
+    return;
+  }
 
   document.getElementById('edit-emp-name').textContent = emp.name;
   document.getElementById('edit-name').value = emp.name || '';
   document.getElementById('edit-kana').value = emp.kana || '';
   
-  // メールアドレスを画面へ反映
   const emailEl = document.getElementById('edit-email');
   if (emailEl) {
     emailEl.textContent = emp.email || '-';
   }
 
-  // 性別のラジオボタン
   const genderRadios = document.querySelectorAll('input[name="gender"]');
   genderRadios.forEach(r => r.checked = (r.value === (emp.gender || '未選択')));
 
-  // 所属
   const deptSelect = document.querySelector('#employee-edit-form .form-select');
   if (deptSelect) deptSelect.value = emp.office || 'NEXT';
 
-  // 権限
   const roleRadios = document.querySelectorAll('input[name="role"]');
   roleRadios.forEach(r => r.checked = (r.value === (emp.role || '一般')));
 
-  // 勤怠表示
   const attRadios = document.querySelectorAll('input[name="attendance_display"]');
   attRadios.forEach(r => r.checked = (emp.show_attendance ? r.value === 'あり' : r.value === 'なし'));
 
-  // 入社日・退職日
   document.getElementById('edit-join-date').value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate.replace(/\//g, '-') : '';
   document.getElementById('edit-retire-date').value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate.replace(/\//g, '-') : '';
 
@@ -846,20 +845,30 @@ function closeEditEmployee() {
 // 【API通信実装】実際のデータベース（バックエンド）へ編集内容を更新保存する
 async function saveEmployeeEdit(event) {
   event.preventDefault();
+
+  const nameVal = document.getElementById('edit-name').value.trim();
+  const kanaVal = document.getElementById('edit-kana').value.trim();
+
+  // 空文字によるDB破損を防止
+  if (!nameVal || !kanaVal) {
+    alert('名前とフリガナは必須項目です。空のまま保存することはできません。');
+    return;
+  }
+
+  const currentEmp = currentEmployeeList.find(e => e.id == currentEmpTargetId);
+
   const btn = event.target.querySelector('.btn-save');
   btn.textContent = '保存中...';
   btn.disabled = true;
 
   const form = event.target;
-  const currentEmp = currentEmployeeList.find(e => e.id === currentEmpTargetId);
-
   const genderEl = form.querySelector('input[name="gender"]:checked');
   const roleEl = form.querySelector('input[name="role"]:checked');
   const attEl = form.querySelector('input[name="attendance_display"]:checked');
 
   const payload = {
-    name: document.getElementById('edit-name').value,
-    kana: document.getElementById('edit-kana').value,
+    name: nameVal,
+    kana: kanaVal,
     gender: genderEl ? genderEl.value : (currentEmp ? currentEmp.gender : '未選択'),
     email: currentEmp ? currentEmp.email : '',
     department: form.querySelector('.form-select') ? form.querySelector('.form-select').value : 'NEXT',
