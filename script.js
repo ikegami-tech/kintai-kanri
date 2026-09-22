@@ -810,6 +810,16 @@ function openEditEmployee() {
   document.getElementById('edit-name').value = emp.name;
   document.getElementById('edit-kana').value = emp.kana;
   
+  // ★追加：選択した従業員のメールアドレスを反映
+  const emailEl = document.getElementById('edit-email');
+  if (emailEl) {
+    if (emailEl.tagName === 'INPUT') {
+      emailEl.value = emp.email || '';
+    } else {
+      emailEl.textContent = emp.email || '-';
+    }
+  }
+
   // 性別のラジオボタン
   const genderRadios = document.querySelectorAll('input[name="gender"]');
   genderRadios.forEach(r => r.checked = (r.value === emp.gender));
