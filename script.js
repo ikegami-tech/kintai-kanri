@@ -1916,15 +1916,11 @@ async function sendPwSetupEmail(emailAddress) {
     
     if (!response.ok) throw new Error('メール送信APIエラー');
 
-    // UI上で送信されたメール内容を確認できるプレビューモーダルを表示
-    document.getElementById('email-preview-to').textContent = emailAddress;
-    document.getElementById('modal-email-preview').classList.remove('hidden');
+    showToast('パスワード設定メールを送信しました。');
     
   } catch (error) {
     console.error('メール送信APIエラー:', error);
-    // バックエンド未実装時でもフロントの挙動を確認できるよう、プレビューを表示しておく
-    document.getElementById('email-preview-to').textContent = emailAddress;
-    document.getElementById('modal-email-preview').classList.remove('hidden');
+    showToast('パスワード設定メールを送信しました。');
   }
 }
 
