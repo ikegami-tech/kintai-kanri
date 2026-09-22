@@ -290,7 +290,6 @@ body {
   font-size: 13px;
 }
 
-/* サイドバー最下部の折りたたみボタン（スマレジ風） */
 .sidebar-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px 18px;
@@ -309,7 +308,7 @@ body {
    3. メインコンテンツエリア
    ================================================== */
 .main-wrapper {
-  margin-left: 60px; /* 縮小時のサイドバー幅分を確保 */
+  margin-left: 60px;
   width: calc(100vw - 60px);
   display: flex;
   flex-direction: column;
@@ -705,8 +704,9 @@ body {
 .emp-popover-menu .text-danger {
   color: #e74c3c;
 }
+
 /* ==================================================
-   月表示（マトリクス表）デザイン (スマレジ再現 × TOHOカラー)
+   月表示（マトリクス表）デザイン (改行崩れ防止 & 改良版)
    ================================================== */
 .monthly-container {
   background: white;
@@ -721,10 +721,6 @@ body {
   align-items: center;
   margin-bottom: 25px;
   gap: 15px;
-}
-
-.monthly-actions-left {
-  /* 空要素で中央寄せのバランスを維持 */
 }
 
 .month-selector {
@@ -795,26 +791,27 @@ body {
 
 .monthly-matrix-table {
   width: 100%;
-  table-layout: fixed; /* テーブル幅を均等割りに強制 */
   border-collapse: collapse;
   font-size: 11px;
   text-align: center;
-  word-wrap: break-word; /* はみ出し防止で折り返しを許可 */
 }
 
 .monthly-matrix-table th, 
 .monthly-matrix-table td {
   border: 1px solid var(--border-color);
-  padding: 8px 4px; /* 余白を広げて本家のようなサイズ感へ */
+  padding: 6px 2px;
   vertical-align: middle;
   line-height: 1.4;
+  min-width: 55px; /* ★時間の途中改行を防ぐため最小幅を設定 */
+  white-space: nowrap !important; /* ★数字の自動折返しを防止 */
+  word-break: keep-all !important;
 }
 
 .monthly-matrix-table th {
   background-color: #f8fafc;
   font-weight: bold;
   color: var(--sidebar-dark);
-  font-size: 10px; /* 曜日のフォントサイズを縮小 */
+  font-size: 10px;
 }
 
 .monthly-matrix-table th.sat {
@@ -827,107 +824,103 @@ body {
 
 /* 行ごとのストライプ（白・薄いTOHOカラー）設定 */
 .monthly-matrix-table tbody tr:nth-child(even) td {
-  background-color: #f0f7ff; /* 薄いTOHOブルー */
+  background-color: #f0f7ff;
 }
 .monthly-matrix-table tbody tr:nth-child(odd) td {
-  background-color: #ffffff; /* 白 */
-}
-
-/* ホバー時の色は少し濃くする */
-.monthly-matrix-table tbody tr td.cell-click:hover {
-  background-color: #e2f0fd !important;
+  background-color: #ffffff;
 }
 
 .col-emp-name {
   position: sticky;
   left: 0;
-  background: white;
+  background-color: #ffffff !important; /* ★スクロール時に背後が透けないように背景色固定 */
   font-weight: bold;
-  z-index: 2;
+  z-index: 10;
   text-align: left;
   padding-left: 8px !important;
-  width: 100px; /* 名前列の幅を固定 */
+  min-width: 110px !important;
   color: var(--toho-blue);
   font-size: 12px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.monthly-matrix-table tbody tr:nth-child(even) .col-emp-name {
+  background-color: #f0f7ff !important;
 }
 
 .col-sum {
-  background-color: #f8fafc;
+  background-color: #f8fafc !important;
   font-weight: bold;
   color: var(--text-sub);
-  width: 40px; /* 計の列を少し狭く設定 */
+  min-width: 75px !important;
 }
 
 .cell-click {
   cursor: pointer;
   position: relative;
   height: 45px;
-  font-size: 10px; /* 打刻時間のフォントを縮小 */
+  font-size: 10px;
 }
 
 .cell-click:hover {
   background-color: #eef7ff !important;
 }
 
-/* 管理者修正による赤文字（仕様書要件） */
+/* 管理者修正による赤文字 */
 .time-edited {
   color: #e74c3c;
   font-weight: bold;
+  white-space: nowrap !important;
 }
 
-/* 退職日以降の無効化セル（背景色は変えず、クリックのみ不可） */
+/* 退職日以降の無効化セル */
 .cell-retired {
   cursor: not-allowed !important;
   pointer-events: none;
 }
 
-/* 退職者の退職日以前のセル（クリック不可だが、アイコン配置などの基本構造は維持） */
 .cell-readonly {
   position: relative;
   height: 45px;
   font-size: 10px;
 }
 
-/* 退職者の入力済み実績の背景を上・左右の端まで広げる（下は少し空ける） */
 .retired-time-box {
   background-color: #e2e8f0;
   display: block;
-  margin: -8px -4px 0 -4px; /* セルのpadding(上8px, 左右4px)を相殺して端まで密着させる */
-  padding: 8px 4px 4px 4px; /* 内側の余白を再設定 */
+  margin: -6px -2px 0 -2px;
+  padding: 6px 2px 2px 2px;
 }
 
 .memo-icon {
-  color: transparent; /* 元の絵文字を見えなくする */
+  color: transparent;
   font-size: 14px;
   display: inline-block;
-  width: 13px; /* 少しだけ小さくして圧迫感を減らす */
+  width: 13px;
   height: 13px;
   position: absolute;
-  top: 2px; /* セル上辺ギリギリに配置 */
-  right: 2px; /* セル右辺ギリギリに配置 */
+  top: 2px;
+  right: 2px;
   cursor: pointer;
   z-index: 5;
-  /* スマレジ本家と同じ、濃い紺色＋白点のSVGアイコンを描画 */
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%232b3856" d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/><circle cx="8" cy="10" r="1.5" fill="%23fff"/><circle cx="12" cy="10" r="1.5" fill="%23fff"/><circle cx="16" cy="10" r="1.5" fill="%23fff"/></svg>');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
 }
 
-/* セル（td）にホバーした時点で吹き出しを表示 */
 td:hover .memo-icon::after,
 td:hover .memo-icon::before {
   display: block !important;
 }
 
-/* 吹き出し本体（💬アイコンの上方向へ配置） */
 .memo-icon::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: 100%;                /* 💬アイコンの上方向に配置 */
+  bottom: 100%;
   left: 50%;
-  transform: translateX(-50%); /* アイコン水平中央揃え */
-  margin-bottom: 8px;          /* 打刻文字やカーソルと被らない隙間を確保 */
+  transform: translateX(-50%);
+  margin-bottom: 8px;
   background: #111111;
   color: #ffffff;
   padding: 6px 10px;
@@ -938,14 +931,13 @@ td:hover .memo-icon::before {
   text-align: left;
   line-height: 1.4;
   display: none;
-  z-index: 3000;              /* テーブルや他の要素より最前面へ */
+  z-index: 3000;
   width: max-content;
   max-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  pointer-events: none;       /* マウスカーソルが通過・ホバーしても干渉しない設定 */
+  pointer-events: none;
 }
 
-/* 吹き出しの三角形（下向き） */
 .memo-icon::before {
   content: '';
   position: absolute;
@@ -995,6 +987,7 @@ td:hover .memo-icon::before {
   background: #f4f7f9;
   color: var(--toho-blue);
 }
+
 /* ==================================================
    日表示デザイン (スマレジ1枚目完全再現 × TOHOカラー)
    ================================================== */
@@ -1037,10 +1030,6 @@ td:hover .memo-icon::before {
   gap: 12px;
 }
 
-.control-right {
-  /* 空要素で中央寄せのバランスを維持 */
-}
-
 .btn-office-select {
   background: white;
   border: 1px solid var(--border-color);
@@ -1058,12 +1047,6 @@ td:hover .memo-icon::before {
   border-radius: 50%;
   padding: 1px 6px;
   font-size: 11px;
-}
-
-.control-center {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .daily-date-text {
@@ -1091,7 +1074,7 @@ td:hover .memo-icon::before {
 .daily-table-wrapper {
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  overflow: visible; /* 吹き出しが枠外へ飛び出しても削られないよう解除 */
+  overflow: visible;
 }
 
 .daily-status-table {
@@ -1107,7 +1090,7 @@ td:hover .memo-icon::before {
   border-right: 1px solid #edf2f7;
   padding: 12px 16px;
   vertical-align: middle;
-  position: relative; /* メモ用吹き出しの位置基準を確保 */
+  position: relative;
 }
 
 .daily-status-table th {
@@ -1154,7 +1137,7 @@ td:hover .memo-icon::before {
   color: var(--text-sub);
 }
 
-/* スマレジ再現：アバター＆📍地図バッジ */
+/* スマレジ再現：アバター＆📍地図バッジ (重複コードを整理統合) */
 .avatar-map-box {
   display: flex;
   flex-direction: column;
@@ -1185,7 +1168,7 @@ td:hover .memo-icon::before {
 .btn-map-badge {
   position: absolute;
   bottom: -4px;
-  background-color: var(--toho-blue);
+  background-color: #27ae60; /* ★デフォルトを緑バッジに統一 */
   color: white;
   border: none;
   border-radius: 10px;
@@ -1198,7 +1181,7 @@ td:hover .memo-icon::before {
 }
 
 .btn-map-badge:hover {
-  background-color: var(--toho-blue-hover);
+  background-color: #219150;
 }
 
 /* アイコンホバー時のツールチップ表示 */
@@ -1244,28 +1227,9 @@ td:hover .memo-icon::before {
   display: block;
 }
 
-.btn-map-badge {
-  position: absolute;
-  bottom: -4px;
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: bold;
-  cursor: pointer;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-.btn-map-badge:hover {
-  background-color: #219150;
-}
-
-/* 地図モーダル専用スタイル（スマレジ完全再現） */
+/* 地図モーダル専用スタイル */
 .map-modal-body {
-  width: 700px !important; /* 520px から 700px へ拡大 */
+  width: 700px !important;
   padding: 0 !important;
   text-align: left !important;
   overflow: hidden;
@@ -1293,14 +1257,13 @@ td:hover .memo-icon::before {
   gap: 20px;
 }
 
-/* 直行直帰でメールを表示する際、モーダルの幅を拡張するクラス */
 .map-modal-wide {
   width: 960px !important; 
 }
 
 .map-preview {
   width: 100%;
-  height: 500px; /* 350px から 500px へ拡大 */
+  height: 500px;
   background: #e5e3df;
   border-radius: 4px;
   border: 1px solid var(--border-color);
@@ -1331,6 +1294,7 @@ td:hover .memo-icon::before {
   font-size: 10px;
   color: #777;
 }
+
 /* ==================================================
    従業員詳細・編集画面デザイン (TOHOカラー)
    ================================================== */
@@ -1456,6 +1420,7 @@ td:hover .memo-icon::before {
   margin-left: 8px;
   vertical-align: middle;
 }
+
 /* ==================================================
    従業員編集フォーム & トースト通知 (TOHOカラー)
    ================================================== */
@@ -1520,7 +1485,7 @@ td:hover .memo-icon::before {
 }
 
 .btn-save {
-  background-color: #27ae60; /* スマレジ風の保存緑 */
+  background-color: #27ae60;
   color: white;
   border: none;
   padding: 12px 30px;
@@ -1551,6 +1516,7 @@ td:hover .memo-icon::before {
   opacity: 1;
   transition: opacity 0.5s ease-in-out;
 }
+
 /* ==================================================
    新規従業員作成画面専用デザイン (TOHOカラー)
    ================================================== */
@@ -1568,6 +1534,7 @@ td:hover .memo-icon::before {
   margin-bottom: 15px;
   font-weight: bold;
 }
+
 /* ==================================================
    月表示 セルクリック モーダル専用デザイン (TOHOカラー)
    ================================================== */
@@ -1628,12 +1595,6 @@ td:hover .memo-icon::before {
 .record-form-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #f0f3f6;
-}
-
-.time-select-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .time-select-group {
@@ -1733,6 +1694,7 @@ td:hover .memo-icon::before {
 .btn-danger:hover {
   background: #c0392b;
 }
+
 /* ==================================================
    詳細タイムライン (ガントチャート) デザイン (TOHOカラー)
    ================================================== */
@@ -1784,7 +1746,6 @@ td:hover .memo-icon::before {
   position: relative;
   height: 45px;
   padding: 0 !important;
-  /* 22列分のグリッド線を背景グラデーションで擬似描画 */
   background-size: calc(100% / 22) 100%;
   background-image: linear-gradient(to right, transparent 98%, #f0f3f6 100%);
 }
@@ -1810,7 +1771,6 @@ td:hover .memo-icon::before {
   position: absolute;
   top: 8px;
   height: 29px;
-  /* 休憩時間などを表す斜めストライプ（仕様書連動イメージ） */
   background: repeating-linear-gradient(
     45deg,
     rgba(255, 255, 255, 0.2),
@@ -1884,17 +1844,16 @@ td:hover .memo-icon::before {
 .overtime-table th:hover .sort-icon {
   opacity: 1 !important;
 }
+
 /* ==================================================
    印刷用スタイル設定
    ================================================== */
 @media print {
-  /* 用紙をデフォルトで横向きに設定 */
   @page {
     size: landscape;
     margin: 10mm;
   }
 
-  /* 印刷時に不要なUI（サイドバー、ヘッダー、ボタン類）を隠す */
   .sidebar,
   .header,
   .month-btn-group,
@@ -1904,7 +1863,6 @@ td:hover .memo-icon::before {
     display: none !important;
   }
 
-  /* 画面全体の余白をリセットして、紙面を広く使う */
   .main-wrapper {
     margin-left: 0 !important;
     width: 100% !important;
@@ -1915,7 +1873,6 @@ td:hover .memo-icon::before {
     overflow: visible !important;
   }
 
-  /* 表をスクロールバーなしで全開にする */
   .matrix-scroll-wrapper {
     overflow: visible !important;
     border: none !important;
@@ -1928,13 +1885,13 @@ td:hover .memo-icon::before {
     box-shadow: none !important;
   }
 
-  /* 印刷用のフォントサイズ微調整 */
   .monthly-matrix-table th, 
   .monthly-matrix-table td {
     font-size: 8pt !important;
     padding: 2px !important;
   }
 }
+
 /* ==================================================
    スマレジ風 年月選択ポップアップ デザイン
    ================================================== */
@@ -2020,6 +1977,7 @@ td:hover .memo-icon::before {
   border-color: var(--toho-blue);
   font-weight: bold;
 }
+
 /* 日表示: 出退勤マルチアバターレイアウト (スマレジ再現) */
 .avatar-slot-group {
   display: flex;
@@ -2060,6 +2018,7 @@ td:hover .memo-icon::before {
 .btn-map-badge.direct-badge:hover {
   background-color: #d35400;
 }
+
 /* ==================================================
    休日設定 カレンダーデザイン
    ================================================== */

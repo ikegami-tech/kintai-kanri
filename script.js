@@ -297,7 +297,7 @@ let currentDate = '';
 let currentCellElement = null; 
 let currentRecordId = null; // 新規追加：選択されたレコードIDを保持
 
-// 余白クリック時 (新規作成用)
+// 余白クリック時 (新規作成・編集用)
 function openCellMenu(event, empName, dateStr) {
   event.stopPropagation();
   currentEmpName = empName;
@@ -309,6 +309,7 @@ function openCellMenu(event, empName, dateStr) {
   menu.innerHTML = `
     <div class="popover-header" id="cell-menu-title">${empName} - ${dateStr}</div>
     <div class="popover-item" onclick="handleCellAction('新規作成')">➕ 新規作成</div>
+    <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
     <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
     <div class="popover-item" onclick="handleCellAction('詳細へ')">📊 該当日の詳細へ</div>
   `;
