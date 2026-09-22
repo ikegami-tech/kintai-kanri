@@ -811,7 +811,7 @@ function openEditEmployee() {
   
   const emailEl = document.getElementById('edit-email');
   if (emailEl) {
-    emailEl.textContent = emp.email || '-';
+    emailEl.value = emp.email || '';
   }
 
   const genderRadios = document.querySelectorAll('input[name="gender"]');
@@ -860,11 +860,13 @@ async function saveEmployeeEdit(event) {
   const roleEl = form.querySelector('input[name="role"]:checked');
   const attEl = form.querySelector('input[name="attendance_display"]:checked');
 
+  const emailInput = document.getElementById('edit-email');
+
   const payload = {
     name: nameVal,
     kana: kanaVal,
     gender: genderEl ? genderEl.value : (currentEmp ? currentEmp.gender : '未選択'),
-    email: currentEmp ? currentEmp.email : '',
+    email: emailInput ? emailInput.value.trim() : (currentEmp ? currentEmp.email : ''),
     department: form.querySelector('.form-select') ? form.querySelector('.form-select').value : 'NEXT',
     role: roleEl ? roleEl.value : (currentEmp ? currentEmp.role : '一般'),
     show_attendance: attEl ? (attEl.value === 'あり' ? 1 : 0) : 1,
