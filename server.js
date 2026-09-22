@@ -1,6 +1,11 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+// ▼ ここから追加
+const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
+const bcrypt = require('bcryptjs');
+const sesClient = new SESClient({ region: "ap-northeast-1" }); // 東京リージョン
+// ▲ ここまで追加
 
 const app = express();
 const port = 3000;
@@ -145,6 +150,117 @@ app.post('/api/attendances', (req, res) => {
       return res.status(500).json({ error: '打刻の保存に失敗しました' });
     }
     res.json({ message: '打刻データを保存しました' });
+  });
+});
+
+// ==========================================
+// 認証・パスワード設定API (★復活・修正部分)
+// ==========================================
+
+// 1. パスワード設定メールの送信 (AWS SES経由)
+app.post('/api/auth/send-setup-email', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'メールアドレスが指定されていません' });
+  }
+
+  // 実際のCloudFrontのURLに変更（末尾にemailパラメータを付与）
+  const setupUrl = `https://d2pm7hk78s0552.cloudfront.net/#/password-setup?email=${encodeURIComponent(email)}`; 
+
+  const params = {
+    // 認証済みのドメインを指定
+    Source: "kintai-kanri@toho-next.com", 
+    Destination: {
+      ToAddresses: [email],
+    },
+    Message: {
+      Subject: {
+        Data: "【勤怠管理システム】パスワード設定のお願い",
+        Charset: "UTF-8",
+      },
+      Body: {
+        Text: {
+          Data: `従業員登録が完了しました。\n以下のリンクよりパスワードの設定を行ってください。\n\n${setupUrl}\n\n※このリンクの有効期限は24時間です。`,
+          Charset: "UTF-8",
+        },
+      },
+    },
+  };
+
+  try {
+    const command = new SendEmailCommand(params);
+    await sesClient.send(command);
+    res.status(200).json({ message: 'メールを送信しました' });
+  } catch (error) {
+    console.error("SESメール送信エラー:", error);
+    res.status(500).json({ error: 'メールの送信に失敗しました' });
+  }
+});
+
+// 2. パスワードの設定処理 (DBへ保存・★ハッシュ化)
+app.post('/api/auth/setup-password', async (req, res) => {
+  const { email, password } = req.body;
+  
+  try {
+    // パスワードをハッシュ化 (不可逆の暗号文字に変換)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ハッシュ化したパスワードを保存
+    const sql = 'UPDATE employees SET password = ? WHERE email = ?';
+    db.query(sql, [hashedPassword, email], (err, result) => {
+      if (err) {
+        console.error('パスワード更新エラー:', err);
+        return res.status(500).json({ error: 'データベースの更新に失敗しました' });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: '指定されたメールアドレスの従業員が見つかりません' });
+      }
+      res.json({ message: 'パスワードを設定しました' });
+    });
+  } catch (error) {
+    console.error('ハッシュ化エラー:', error);
+    res.status(500).json({ error: 'パスワード処理に失敗しました' });
+  }
+});
+
+// 3. ログイン処理 (DBと照合・★ハッシュ比較)
+app.post('/api/auth/login', (req, res) => {
+  const { loginId, password } = req.body;
+  
+  // まずはメールアドレスだけでユーザーを検索し、ハッシュ化されたパスワードも取り出す
+  const sql = 'SELECT id, name, email, role, password FROM employees WHERE email = ?';
+  db.query(sql, [loginId], async (err, results) => {
+    if (err) {
+      console.error('ログイン照合エラー:', err);
+      return res.status(500).json({ error: 'データベースの照合に失敗しました' });
+    }
+    
+    if (results.length === 0) {
+      return res.status(401).json({ error: 'ログインIDまたはパスワードが間違っています' });
+    }
+    
+    const user = results[0];
+
+    if (!user.password) {
+      return res.status(401).json({ error: 'パスワードが設定されていません。' });
+    }
+
+    try {
+      // 入力されたパスワードと、DBに保存されているハッシュ文字を比較
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(401).json({ error: 'ログインIDまたはパスワードが間違っています' });
+      }
+
+      // ログイン成功 (セキュリティのため、フロントへ返す情報からパスワードを消す)
+      delete user.password;
+      res.json({ message: 'ログイン成功', user: user });
+
+    } catch (error) {
+      console.error('パスワード比較エラー:', error);
+      res.status(500).json({ error: 'ログイン処理中にエラーが発生しました' });
+    }
   });
 });
 
