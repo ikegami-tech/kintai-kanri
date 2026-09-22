@@ -2136,3 +2136,49 @@ function setupMatrixDragScroll() {
     }
   });
 }
+// ==========================================
+// パスワード再設定申請画面の制御
+// ==========================================
+function switchPasswordRequestView() {
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('password-request-view').classList.remove('hidden');
+  location.hash = '#/password-request';
+}
+
+function switchLoginView() {
+  document.getElementById('password-request-view').classList.add('hidden');
+  document.getElementById('login-view').classList.remove('hidden');
+  location.hash = '';
+}
+
+// パスワード再設定メール送信フォーム処理
+document.getElementById('password-request-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('.btn-login');
+  btn.textContent = '送信中...';
+  btn.disabled = true;
+
+  const email = document.getElementById('request-email').value.trim();
+
+  try {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    });
+
+    if (!response.ok) throw new Error('送信エラー');
+
+    showToast('再設定用メールを送信しました。');
+    switchLoginView();
+    this.reset();
+  } catch (error) {
+    console.error('メール送信エラー:', error);
+    showToast('再設定用メールを送信しました。');
+    switchLoginView();
+    this.reset();
+  } finally {
+    btn.textContent = '送信する';
+    btn.disabled = false;
+  }
+});

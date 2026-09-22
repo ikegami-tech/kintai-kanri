@@ -28,20 +28,35 @@
         <div class="login-action-row">
           <button type="submit" class="btn-login">ログイン</button>
           <div class="login-links">
-            <div><a href="#" onclick="showModal('パスワード再設定', '管理者へお問い合わせください。')">パスワードをお忘れの場合</a></div>
-            <div><a href="#" onclick="showModal('ヘルプ', 'システム管理者へご連絡ください。')">その他ログインでお困りの場合</a></div>
+            <div><a href="#" onclick="switchPasswordRequestView()">パスワードをお忘れの場合</a></div>
           </div>
         </div>
       </form>
-
-      <div class="login-subtext">
-        アカウントをお持ちですか？ <a href="#" style="color: #0073ea; text-decoration: none;" onclick="showModal('新規登録', '管理者にお問い合わせください。')">今すぐアカウント作成</a>
-      </div>
 
       <div class="login-footer">
         クラウドサービス 勤怠管理シリーズ<br>
         © TOHO Systems Inc.
       </div>
+    </div>
+  </div>
+
+  <!-- パスワード再設定用 メールアドレス入力画面 -->
+  <div id="password-request-view" class="hidden">
+    <div class="login-container">
+      <div class="login-logo-title">
+        勤怠管理 <span class="badge">TIME CARD</span>
+      </div>
+      <h2 class="login-heading">パスワード再設定</h2>
+      <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 20px;">ご登録のメールアドレスを入力してください。<br>再設定用リンクをお送りします。</p>
+      <form id="password-request-form">
+        <div class="form-group">
+          <input type="email" id="request-email" placeholder="メールアドレス" required autocomplete="off">
+        </div>
+        <div class="login-action-row" style="flex-direction: column; gap: 10px;">
+          <button type="submit" class="btn-login" style="width: 100%;">送信する</button>
+          <button type="button" class="btn-sub" style="width: 100%; padding: 10px;" onclick="switchLoginView()">ログイン画面に戻る</button>
+        </div>
+      </form>
     </div>
   </div>
 
