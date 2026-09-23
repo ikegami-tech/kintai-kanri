@@ -432,17 +432,45 @@ function handleCellAction(actionType) {
     const memoTextarea = document.getElementById('modal-employee-memo').querySelector('textarea');
     let existingMemo = '';
     if (currentCellElement) {
-      if (currentCellElement.dataset.rawMemo) {
-        existingMemo = currentCellElement.dataset.rawMemo
-          .replace(/管理者修正/g, '')
-          .replace(/直行/g, '')
-          .replace(/直帰/g, '')
-          .replace(/・/g, '')
-          .trim();
-      } else {
-        const memoIcon = currentCellElement.querySelector('.memo-icon');
-        if (memoIcon) existingMemo = memoIcon.getAttribute('data-tooltip') || '';
-      }
+      const raw = currentCellElement.dataset.rawMemo || '';
+
+      // 1. 直行・直帰タグの抽出
+      const hasDirectIn = raw.includes('直行');
+      const hasDirectOut = raw.includes('直帰');
+      let directTags = [];
+      if (hasDirectIn) directTags.push('直行');
+      if (hasDirectOut) directTags.push('直帰');
+
+      // 2. GPSタグ・システムタグ・直行直帰キーワードの除去
+      let cleanMemo = raw
+        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/管理者修正/g, '')
+        .replace(/休日出勤/g, '')
+        .replace(/直行/g, '')
+        .replace(/直帰/g, '');
+
+      // 3. メール定型句（テンプレート文面）の除去
+      const mailKeywords = [
+        'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
+        '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
+        'その他：', 'その他 :', '以上にて', '本日もよろしく'
+      ];
+
+      let lines = cleanMemo.split('\n').filter(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return false;
+        return !mailKeywords.some(kw => trimmed.includes(kw));
+      });
+
+      let otherMemo = lines.join('\n').trim();
+
+      // 4. メモ欄用の表示テキスト作成（「直行・直帰」＋手動メモのみ）
+      let memoParts = [];
+      if (directTags.length > 0) memoParts.push(directTags.join('・'));
+      if (otherMemo) memoParts.push(otherMemo);
+
+      existingMemo = memoParts.join('\n').trim();
     }
     memoTextarea.value = existingMemo;
 
@@ -629,7 +657,7 @@ async function submitRecordDelete() {
   }
 }
 
-// 【API通信実装】従業員メモの保存処理 (既存打刻の特定・重複防止対応)
+// 【API通信実装】従業員メモの保存処理 (GPS位置情報・直行直帰メール保持対応)
 async function submitRecordMemo() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
@@ -640,14 +668,14 @@ async function submitRecordMemo() {
 
   let targetRecordId = currentRecordId;
   let clockIn = null, clockOut = null;
+  let rawMemo = '';
 
   if (currentCellElement) {
-    // 打刻ブロック(div)が直接クリックされた場合
+    rawMemo = currentCellElement.dataset.rawMemo || '';
     if (currentCellElement.dataset && (currentCellElement.dataset.clockIn !== undefined || currentCellElement.dataset.clockOut !== undefined)) {
       if (currentCellElement.dataset.clockIn) clockIn = currentCellElement.dataset.clockIn.length === 5 ? `${currentCellElement.dataset.clockIn}:00` : currentCellElement.dataset.clockIn;
       if (currentCellElement.dataset.clockOut) clockOut = currentCellElement.dataset.clockOut.length === 5 ? `${currentCellElement.dataset.clockOut}:00` : currentCellElement.dataset.clockOut;
     } else {
-      // セルの余白(td)がクリックされた場合、セル内の既存打刻ブロック(div)を探してIDと時間を自動抽出
       const recordDiv = currentCellElement.querySelector('div[onclick*="openEditMenu"]');
       if (recordDiv) {
         const onclickAttr = recordDiv.getAttribute('onclick');
@@ -663,17 +691,25 @@ async function submitRecordMemo() {
     }
   }
 
+  // 既存のGPS位置情報タグ（[IN_LOC:...], [OUT_LOC:...]）を維持
+  let inLoc = '', outLoc = '';
+  const inMatch = rawMemo.match(/\[IN_LOC:([^\]]+)\]/);
+  if (inMatch) inLoc = inMatch[1];
+  const outMatch = rawMemo.match(/\[OUT_LOC:([^\]]+)\]/);
+  if (outMatch) outLoc = outMatch[1];
+
   let memoParts = ['管理者修正'];
+  if (inLoc) memoParts.push(`[IN_LOC:${inLoc}]`);
+  if (outLoc) memoParts.push(`[OUT_LOC:${outLoc}]`);
   if (memoText) memoParts.push(memoText);
-  const finalMemo = memoParts.join('\n');
 
   const payload = {
-    id: targetRecordId || null, // 既存IDがあればUPDATE（重複生成を完全防止）
+    id: targetRecordId || null,
     employee_id: emp.id,
     work_date: dateVal,
     clock_in: clockIn,
     clock_out: clockOut,
-    memo: finalMemo
+    memo: memoParts.join('\n').trim()
   };
 
   try {
