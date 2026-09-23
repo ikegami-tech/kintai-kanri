@@ -283,7 +283,21 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
     if (emailSubject) emailSubject.textContent = `${typeStr} ${lastName}`;
-    if (emailText) emailText.textContent = emailContent || '※メール内容が登録されていません。';
+
+    // ★直行・直帰それぞれのメール文章のみを分離抽出（重複表示防止）
+    let targetText = emailContent || '';
+    if (targetText.includes('直行') && targetText.includes('直帰')) {
+      const parts = targetText.split('直帰');
+      if (typeStr === '直行') {
+        targetText = parts[0].replace(/直行/g, '').replace(/管理者修正/g, '').replace(/休日出勤/g, '').trim();
+      } else {
+        targetText = parts[1] ? parts[1].replace(/直帰/g, '').replace(/管理者修正/g, '').replace(/休日出勤/g, '').trim() : '';
+      }
+    } else {
+      targetText = targetText.replace(/直行/g, '').replace(/直帰/g, '').replace(/管理者修正/g, '').replace(/休日出勤/g, '').trim();
+    }
+
+    if (emailText) emailText.textContent = targetText || '※メール内容が登録されていません。';
   } else {
     modalBody.classList.remove('map-modal-wide');
     emailArea.classList.add('hidden');
@@ -2459,7 +2473,7 @@ async function submitTcMailAndClock() {
   await saveTcAttendance(currentTcActionType, body, { to, subject, body });
 }
 
-// 実際のAPI送信共通関数（自動メール送信対応）
+// 実際のAPI送信共通関数（自動メール送信＆メモ整頓・重複防止対応）
 async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   const now = new Date();
   const year = now.getFullYear();
@@ -2472,23 +2486,44 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   let clockIn = att ? att.clock_in : null;
   let clockOut = att ? att.clock_out : null;
 
-  let memoParts = [];
-  if (att && att.memo) {
-    memoParts.push(att.memo);
+  if (actionType === '出勤' || actionType === '直行') {
+    clockIn = timeVal;
+  } else if (actionType === '退勤' || actionType === '直帰') {
+    clockOut = timeVal;
   }
 
-  if (actionType === '出勤') {
-    clockIn = timeVal;
-  } else if (actionType === '退勤') {
-    clockOut = timeVal;
-  } else if (actionType === '直行') {
-    clockIn = timeVal;
-    memoParts.push('直行');
-    if (mailBodyText) memoParts.push(mailBodyText);
-  } else if (actionType === '直帰') {
-    clockOut = timeVal;
-    memoParts.push('直帰');
-    if (mailBodyText) memoParts.push(mailBodyText);
+  // メモの整理と重複蓄積防止ロジック
+  let existingMemo = att && att.memo ? att.memo : '';
+  let finalMemoParts = [];
+
+  // システムタグの維持
+  if (existingMemo.includes('管理者修正')) finalMemoParts.push('管理者修正');
+  if (existingMemo.includes('休日出勤')) finalMemoParts.push('休日出勤');
+
+  // 既存の直行・直帰文章の切り分け抽出
+  let directInText = '';
+  let directOutText = '';
+
+  if (existingMemo.includes('直行') && existingMemo.includes('直帰')) {
+    const parts = existingMemo.split('直帰');
+    directInText = parts[0].replace(/直行|管理者修正|休日出勤/g, '').trim();
+    directOutText = parts[1] ? parts[1].trim() : '';
+  } else if (existingMemo.includes('直行')) {
+    directInText = existingMemo.replace(/直行|管理者修正|休日出勤/g, '').trim();
+  } else if (existingMemo.includes('直帰')) {
+    directOutText = existingMemo.replace(/直帰|管理者修正|休日出勤/g, '').trim();
+  }
+
+  // 今回の打刻に応じて最新文章に更新
+  if (actionType === '直行') directInText = mailBodyText || '';
+  if (actionType === '直帰') directOutText = mailBodyText || '';
+
+  // メモの構造化結合
+  if (directInText || actionType === '直行') {
+    finalMemoParts.push('直行\n' + directInText);
+  }
+  if (directOutText || actionType === '直帰') {
+    finalMemoParts.push('直帰\n' + directOutText);
   }
 
   const payload = {
@@ -2497,7 +2532,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     work_date: dateVal,
     clock_in: clockIn,
     clock_out: clockOut,
-    memo: memoParts.join('\n'),
+    memo: finalMemoParts.join('\n').trim(),
     // バックエンドで直接SES送信するためのパラメータ
     mail_to: mailData ? mailData.to : null,
     mail_subject: mailData ? mailData.subject : null,
