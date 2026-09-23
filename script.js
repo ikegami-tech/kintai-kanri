@@ -260,7 +260,7 @@ function toggleDirectMailArea(modalId) {
 }
 
 function openMapModal(empName, actionStr, addressStr, emailContent = '') {
-  // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (五十嵐 由樹)"）
+  // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (安藤 健太郎)"）
   document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
   
   const displayAddress = addressStr && addressStr !== '位置情報未取得' ? `打刻位置 (GPS): ${addressStr}` : '位置情報が記録されていません';
@@ -268,7 +268,6 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   
   const mapIframe = document.getElementById('map-iframe');
   if (mapIframe) {
-    // 取得した実座標（例: 35.681236,139.767125）またはデフォルト検索クエリをGoogleマップに渡す
     const mapQuery = addressStr && addressStr !== '位置情報未取得' ? addressStr : '東京都千代田区有楽町1-1-1';
     mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
   }
@@ -283,13 +282,15 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
     modalBody.classList.add('map-modal-wide');
     emailArea.classList.remove('hidden');
     
-    // 直行/直帰の判定をして件名を組み立てる（苗字のみ表示）
+    // 件名の組み立て（全角スペース区切りで苗字のみ表示 例: 直行 安藤）
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
     if (emailSubject) emailSubject.textContent = `${typeStr} ${lastName}`;
 
-    // ★直行・直帰それぞれのメール文章のみを分離抽出（重複表示防止）
+    // メール文章のクリーニング（位置情報タグ [IN_LOC:...] や [OUT_LOC:...] を除去）
     let targetText = emailContent || '';
+    targetText = targetText.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '').trim();
+
     if (targetText.includes('直行') && targetText.includes('直帰')) {
       const parts = targetText.split('直帰');
       if (typeStr === '直行') {
