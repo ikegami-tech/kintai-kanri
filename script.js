@@ -2446,6 +2446,25 @@ function renderTcEmpList() {
   if (!container) return;
 
   let list = currentEmployeeList.length > 0 ? currentEmployeeList : [];
+
+  // 退職日が設定されている（退職日を過ぎている）従業員を打刻画面から除外
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  list = list.filter(emp => {
+    if (emp.retireDate && emp.retireDate !== '-') {
+      const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const retireDateObj = new Date(cleanDate);
+      if (!isNaN(retireDateObj)) {
+        retireDateObj.setHours(0, 0, 0, 0);
+        // 本日が退職日を過ぎている場合は出退勤リストに表示しない
+        if (today > retireDateObj) {
+          return false;
+        }
+      }
+    }
+    return true;
+  });
   
   if (tcInitialFilter !== 'ALL') {
     const initialMap = {
