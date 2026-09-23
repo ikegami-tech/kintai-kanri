@@ -282,14 +282,14 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
     modalBody.classList.add('map-modal-wide');
     emailArea.classList.remove('hidden');
     
-    // 件名の組み立て（全角スペース区切りで苗字のみ表示 例: 直行 安藤）
+    // 件名の組み立て（「件名t直行 苗字」形式で1行表示）
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
-    if (emailSubject) emailSubject.textContent = `${typeStr} ${lastName}`;
+    if (emailSubject) emailSubject.textContent = `件名 ${typeStr} ${lastName}`;
 
     // メール文章のクリーニング（位置情報タグ [IN_LOC:...] や [OUT_LOC:...] を除去）
     let targetText = emailContent || '';
-    targetText = targetText.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '').trim();
+    targetText = targetText.replace(/\[(IN|OUT)_LOC:[^\]]+\]/g, '').trim();
 
     if (targetText.includes('直行') && targetText.includes('直帰')) {
       const parts = targetText.split('直帰');
@@ -1368,8 +1368,8 @@ async function renderDailyTable() {
       if (outMatch) outCoords = outMatch[1];
     }
 
-    // クリーニングしたツールチップ用のメモ文章
-    const displayMemoText = pureMemo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '').trim();
+    // 既存の直行・直帰文章の切り分け抽出
+  let cleanMemo = existingMemo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '');
 
     // 各スロットの位置を固定するための透明スペーサー
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
