@@ -279,9 +279,10 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
     modalBody.classList.add('map-modal-wide');
     emailArea.classList.remove('hidden');
     
-    // 直行/直帰の判定をして件名を組み立てる
+    // 直行/直帰の判定をして件名を組み立てる（苗字のみ表示）
+    const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
-    if (emailSubject) emailSubject.textContent = `${typeStr} ${empName}`;
+    if (emailSubject) emailSubject.textContent = `${typeStr} ${lastName}`;
     if (emailText) emailText.textContent = emailContent || '※メール内容が登録されていません。';
   } else {
     modalBody.classList.remove('map-modal-wide');
@@ -2412,6 +2413,8 @@ function openTcMailModal(actionType) {
   if (!modal) return;
 
   const empName = tcSelectedEmp ? tcSelectedEmp.name : '';
+  // 従業員名から苗字（姓）のみを抽出（スペース区切り対応）
+  const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
 
   document.getElementById('tc-mail-modal-title').textContent = `${actionType}連絡メールの確認`;
   
@@ -2419,8 +2422,8 @@ function openTcMailModal(actionType) {
   const mailToInput = document.getElementById('tc-mail-to');
   if (mailToInput) mailToInput.value = 'kintai@toho-next.com';
 
-  // 件名設定（例: 直行 五十嵐 / 直帰 石井）
-  document.getElementById('tc-mail-subject').value = `${actionType} ${empName}`;
+  // 件名設定（例: 直行 岩本 / 直帰 高坂）
+  document.getElementById('tc-mail-subject').value = `${actionType} ${lastName}`;
 
   // 画像指定通りのデフォルト本文を設定
   let defaultBody = '';

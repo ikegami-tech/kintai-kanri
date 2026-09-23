@@ -131,28 +131,53 @@ app.get('/api/attendances/monthly', (req, res) => {
   });
 });
 
-// 打刻の新規作成または更新
+// 打刻の新規作成または更新 (1日複数予定・個別編集対応 & 直行直帰SES自動メール送信)
 app.post('/api/attendances', (req, res) => {
-  const { id, employee_id, work_date, clock_in, clock_out, memo } = req.body;
+  const { id, employee_id, work_date, clock_in, clock_out, memo, mail_to, mail_subject, mail_body, mail_from_name } = req.body;
   
+  // 直行・直帰メール送信関数（送信元表示名を実際の従業員名に変更）
+  const sendTcEmail = async () => {
+    if (mail_to && mail_subject && mail_body) {
+      const fromName = mail_from_name || "勤怠管理";
+      const emailParams = {
+        Source: `"${fromName}" <kintai-kanri@toho-next.com>`, // ★送信元表示名を「従業員名」に設定
+        Destination: {
+          ToAddresses: [mail_to],
+        },
+        Message: {
+          Subject: { Data: mail_subject, Charset: "UTF-8" },
+          Body: { Text: { Data: mail_body, Charset: "UTF-8" } },
+        },
+      };
+      try {
+        await sesClient.send(new SendEmailCommand(emailParams));
+        console.log("直行直帰メールをSESで送信しました:", mail_to);
+      } catch (emailError) {
+        console.error("SESメール送信エラー:", emailError);
+      }
+    }
+  };
+
   if (id) {
-    // 編集 (UPDATE)
+    // 既存レコードの更新
     const sql = `UPDATE attendances SET clock_in = ?, clock_out = ?, memo = ? WHERE id = ?`;
-    db.query(sql, [clock_in || null, clock_out || null, memo || null, id], (err) => {
+    db.query(sql, [clock_in || null, clock_out || null, memo || null, id], async (err) => {
       if (err) return res.status(500).json({ error: err.message });
+      await sendTcEmail();
       res.json({ message: '更新しました' });
     });
   } else {
-    // 新規作成 (INSERT)
+    // 新規レコードの追加
     const sql = `INSERT INTO attendances (employee_id, work_date, clock_in, clock_out, memo) VALUES (?, ?, ?, ?, ?)`;
-    db.query(sql, [employee_id, work_date, clock_in || null, clock_out || null, memo || null], (err) => {
+    db.query(sql, [employee_id, work_date, clock_in || null, clock_out || null, memo || null], async (err) => {
       if (err) return res.status(500).json({ error: err.message });
+      await sendTcEmail();
       res.json({ message: '作成しました' });
     });
   }
 });
 
-// レコードID指定の削除APIを追加
+// レコードID指定の削除API
 app.delete('/api/attendances/record/:id', (req, res) => {
   const sql = 'DELETE FROM attendances WHERE id = ?';
   db.query(sql, [req.params.id], (err) => {
@@ -172,7 +197,7 @@ app.post('/api/auth/send-setup-email', async (req, res) => {
     return res.status(400).json({ error: 'メールアドレスが指定されていません' });
   }
 
-  const setupUrl = `https://d2pm7hk78s0552.cloudfront.net/#/password-setup?email=${encodeURIComponent(email)}`; 
+  const setupUrl = `https://kintai.thnsys.com/#/password-setup?email=${encodeURIComponent(email)}`; 
 
   // 再設定時と新規登録時で件名・文面を切り替え
   const isReset = (type === 'reset');
