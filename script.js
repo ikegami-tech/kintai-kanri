@@ -1217,21 +1217,18 @@ async function renderMatrixTable() {
       }
     }
 
-    for (let i = 1; i <= daysInMonth; i++) {
+for (let i = 1; i <= daysInMonth; i++) {
       const currentDateObj = new Date(year, month - 1, i);
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
-      // 退職者がいる場合は行全体を cell-readonly (クリック不可) にする
-      let tdClass = retireDateObj ? 'cell-readonly' : 'cell-click';
+      // 退職日の翌日以降かを判定
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
+      let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : 'cell-click';
       
-      // 退職日より後であっても、すでに入力されているデータは取得する
       let cellData = '';
       if (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) {
-        // 出勤時間・退勤時間・メモのいずれも存在しない空データを除外
         const validRecords = attendanceMap[emp.id][dateKey].filter(att => att.clock_in || att.clock_out || att.memo);
 
-        // 時間が早い順にソート
         validRecords.sort((a, b) => {
           if (!a.clock_in) return 1;
           if (!b.clock_in) return -1;
@@ -1244,23 +1241,20 @@ async function renderMatrixTable() {
           if (att.memo) {
             if (att.memo.includes('管理者修正')) timeText = `<span class="time-edited">${timeText}</span>`;
             
-            // 1. 直行・直帰タグの抽出
             const hasDirectIn = att.memo.includes('直行');
             const hasDirectOut = att.memo.includes('直帰');
             let directTags = [];
             if (hasDirectIn) directTags.push('直行');
             if (hasDirectOut) directTags.push('直帰');
 
-            // 2. GPSタグ・角カッコタグ・システムタグ・直行直帰タグの完全除去
             let cleanMemo = att.memo
-              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, '')
               .replace(/休日出勤/g, '')
               .replace(/直行/g, '')
               .replace(/直帰/g, '');
 
-            // 3. メール文章（定型句）の除去
             const mailKeywords = [
               'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
               '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
@@ -1275,7 +1269,6 @@ async function renderMatrixTable() {
 
             let otherMemo = lines.join('\n').trim();
 
-            // 4. 吹き出し（ツールチップ）用テキストの生成
             let tooltipParts = [];
             if (directTags.length > 0) {
               tooltipParts.push(directTags.join('・'));
@@ -1292,24 +1285,22 @@ async function renderMatrixTable() {
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
           const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
           
-          // 予定ブロック用のクリックイベントを追加
-          return `<div style="padding:4px 0; position:relative; ${borderStyle}" onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')">${timeText}${memoHtml}</div>`;
+          // 退職日の翌日以降のマスは編集モーダルのクリックイベントを削除して無効化
+          const blockOnClick = isAfterRetire 
+            ? '' 
+            : `onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')"`;
+
+          return `<div style="padding:4px 0; position:relative; ${borderStyle}" ${blockOnClick}>${timeText}${memoHtml}</div>`;
         }).join('');
       }
 
-      if (isAfterRetire) {
-        tdClass += ' cell-retired'; // 退職日より後のマス用
-      }
-      
-      // 退職者のデータは、過去・未来問わずグレーアウト用のdivで囲む
-      if (retireDateObj && cellData) {
+      if (isAfterRetire && cellData) {
         cellData = `<div class="retired-time-box">${cellData}</div>`;
       }
       
-      // 退職者がいる場合は onclick を付けず、完全にロックする
-      if (retireDateObj) {
-        // cursor: default; を追加して禁止マークを出さないようにする
-        tbodyHtml += `<td class="${tdClass}" style="pointer-events: auto; cursor: default; ${isAfterRetire ? 'background-color: #f4f7f9;' : ''}">${cellData}</td>`;
+      // 退職日の翌日以降は灰色背景でクリック（新規作成・編集）を完全ロック
+      if (isAfterRetire) {
+        tbodyHtml += `<td class="${tdClass}" style="background-color: #f4f7f9; cursor: not-allowed;">${cellData}</td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
