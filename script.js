@@ -1352,6 +1352,34 @@ function changeDailyDate(offset) {
   renderDailyTable();
 }
 
+// 緯度経度文字列を実際の住所文字列に変換する関数
+async function reverseGeocode(coordsStr) {
+  if (!coordsStr || coordsStr === '位置情報未取得') return '位置情報未取得';
+  if (!/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(coordsStr.trim())) {
+    return coordsStr;
+  }
+  const [lat, lng] = coordsStr.split(',').map(s => s.trim());
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.address) {
+        const a = data.address;
+        const state = a.province || a.state || '';
+        const city = a.city || a.ward || a.city_district || a.town || '';
+        const suburb = a.suburb || a.neighbourhood || a.quarter || '';
+        const road = a.road || '';
+        const houseNumber = a.house_number || '';
+        const addr = `${state}${city}${suburb}${road}${houseNumber}`.trim();
+        return addr || data.display_name || coordsStr;
+      }
+    }
+  } catch (e) {
+    console.error('住所変換エラー:', e);
+  }
+  return coordsStr;
+}
+
 async function renderDailyTable() {
   const year = currentDailyDate.getFullYear();
   const month = currentDailyDate.getMonth() + 1;
@@ -1391,7 +1419,8 @@ async function renderDailyTable() {
     return;
   }
 
-  tbody.innerHTML = empList.map(emp => {
+  // 従業員一覧を並列で処理してGPS座標を住所に自動変換
+  const rowHtmlList = await Promise.all(empList.map(async emp => {
     const att = todayAttendanceMap[emp.id];
     const formatTime = (t) => t ? t.substring(0, 5) : '';
     
@@ -1422,9 +1451,8 @@ async function renderDailyTable() {
         timeStr = `<span class="time-edited">${timeStr}</span>`;
       }
       
-      // メール本文や定型フレーズ、システムタグを除外して純粋なメモを取り出す
       let cleanMemo = att.memo
-        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
         .replace(/休日出勤/g, '')
@@ -1464,8 +1492,11 @@ async function renderDailyTable() {
       if (outMatch) outCoords = outMatch[1];
     }
 
-    // 地図モーダル表示用メモ（位置情報タグのみを除去したもの）
-    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
+    // GPS座標を実際の日本語住所に逆ジオコーディング変換
+    const inAddress = inCoords ? await reverseGeocode(inCoords) : '位置情報未取得';
+    const outAddress = outCoords ? await reverseGeocode(outCoords) : '位置情報未取得';
+
+    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
 
     // 各スロットの位置を固定するための透明スペーサー
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
@@ -1482,7 +1513,7 @@ async function renderDailyTable() {
 
       const html = `
         <div class="avatar-map-box">
-          <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n位置:${targetInLoc}">
+          <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n住所:${inAddress}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
           <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${targetInLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
@@ -1505,7 +1536,7 @@ async function renderDailyTable() {
 
       const html = `
         <div class="avatar-map-box">
-          <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n位置:${targetOutLoc}">
+          <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n住所:${outAddress}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
           <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${targetOutLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
@@ -1532,7 +1563,9 @@ async function renderDailyTable() {
         <td>${mapBoxHtml}</td>
       </tr>
     `;
-  }).join('');
+  }));
+
+  tbody.innerHTML = rowHtmlList.join('');
 }
 
 // --- 残業時間集計表 ---
