@@ -993,6 +993,38 @@
     </div>
   </div>
 
+  <!-- Web打刻用 直行・直帰メール確認モーダル -->
+  <div id="modal-tc-mail" class="modal-overlay hidden">
+    <div class="record-modal-body" style="width: 520px;">
+      <div class="record-modal-header">
+        <h3 id="tc-mail-modal-title">直行連絡メールの確認</h3>
+        <button class="btn-close-icon" onclick="closeTcMailModal()">×</button>
+      </div>
+      <div class="record-modal-content">
+        <table class="record-form-table">
+          <tr>
+            <th style="width: 100px;">宛先</th>
+            <td><input type="email" id="tc-mail-to" class="form-input" value="kintai-kanri@toho-next.com"></td>
+          </tr>
+          <tr>
+            <th>件名</th>
+            <td><input type="text" id="tc-mail-subject" class="form-input"></td>
+          </tr>
+          <tr>
+            <th style="vertical-align: top; padding-top: 15px;">メール本文</th>
+            <td>
+              <textarea id="tc-mail-body" class="form-input" rows="6" style="resize: vertical; font-size: 13px; line-height: 1.5;"></textarea>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="record-modal-footer">
+        <button class="btn-cancel" onclick="closeTcMailModal()">キャンセル</button>
+        <button class="btn-primary" onclick="submitTcMailAndClock()">Gmail送信＆打刻</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 新規追加：デモ用 メール送信シミュレーションモーダル -->
   <div id="modal-email-preview" class="modal-overlay hidden">
     <div class="modal-body" style="width: 500px; text-align: left;">

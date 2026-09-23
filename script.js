@@ -2373,20 +2373,76 @@ function setBtnState(btnEl, enable) {
   }
 }
 
-// 打刻実行処理（位置情報チェック & API送信）
+let currentTcActionType = '';
+
+// 打刻実行処理（位置情報チェック & 分岐制御）
 async function executeWebTimeclock(actionType) {
   if (!tcSelectedEmp) return;
 
-  // ★ 1. 位置情報がOFFの場合は警告モーダルを表示して処理を中断
+  // 1. 位置情報がOFFの場合は警告モーダルを表示して処理を中断
   if (!isTcLocationOn) {
     showModal('打刻できません。', 'この端末では、出勤時に位置情報を送信設定する必要があります。ページ右上にある位置情報ボタンをオンにして操作をやり直してください。');
     return;
   }
 
-  // ★ 2. 位置情報がONの場合は確認ダイアログを表示
+  currentTcActionType = actionType;
+
+  // 2. 「直行」「直帰」の場合はメール作成・確認モーダルを開く
+  if (actionType === '直行' || actionType === '直帰') {
+    openTcMailModal(actionType);
+    return;
+  }
+
+  // 3. 通常の「出勤」「退勤」の場合は確認ダイアログ後に打刻実行
   const confirmed = confirm(`${actionType}します。よろしいですか？`);
   if (!confirmed) return;
 
+  await saveTcAttendance(actionType, '');
+}
+
+// 直行・直帰メールモーダルを開く
+function openTcMailModal(actionType) {
+  const modal = document.getElementById('modal-tc-mail');
+  if (!modal) return;
+
+  document.getElementById('tc-mail-modal-title').textContent = `${actionType}連絡メールの確認`;
+  document.getElementById('tc-mail-subject').value = `【${actionType}連絡】${tcSelectedEmp ? tcSelectedEmp.name : ''}`;
+
+  const defaultBody = actionType === '直行' 
+    ? '訪問先：株式会社〇〇\n業務内容：システム導入の打ち合わせ\n直行いたします。'
+    : '訪問先：株式会社〇〇\n業務内容：システム導入の打ち合わせ\nそのまま直帰いたします。';
+
+  document.getElementById('tc-mail-body').value = defaultBody;
+  modal.classList.remove('hidden');
+}
+
+function closeTcMailModal() {
+  const modal = document.getElementById('modal-tc-mail');
+  if (modal) modal.classList.add('hidden');
+}
+
+// Gmail起動 & 打刻データの保存処理
+async function submitTcMailAndClock() {
+  const to = document.getElementById('tc-mail-to').value.trim();
+  const subject = document.getElementById('tc-mail-subject').value.trim();
+  const body = document.getElementById('tc-mail-body').value.trim();
+
+  if (!body) {
+    alert('メール本文を入力してください。');
+    return;
+  }
+
+  // Gmailの新規作成Web画面（URL）を起動
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(gmailUrl, '_blank');
+
+  // 打刻データの保存（memoにメール本文を紐付け）
+  closeTcMailModal();
+  await saveTcAttendance(currentTcActionType, body);
+}
+
+// 実際のAPI送信共通関数
+async function saveTcAttendance(actionType, mailBodyText) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -2397,7 +2453,11 @@ async function executeWebTimeclock(actionType) {
   const att = tcTodayAttendances[tcSelectedEmp.id];
   let clockIn = att ? att.clock_in : null;
   let clockOut = att ? att.clock_out : null;
-  let memoParts = att && att.memo ? [att.memo] : [];
+
+  let memoParts = [];
+  if (att && att.memo) {
+    memoParts.push(att.memo);
+  }
 
   if (actionType === '出勤') {
     clockIn = timeVal;
@@ -2405,10 +2465,12 @@ async function executeWebTimeclock(actionType) {
     clockOut = timeVal;
   } else if (actionType === '直行') {
     clockIn = timeVal;
-    if (!memoParts.includes('直行')) memoParts.push('直行');
+    memoParts.push('直行');
+    if (mailBodyText) memoParts.push(mailBodyText);
   } else if (actionType === '直帰') {
     clockOut = timeVal;
-    if (!memoParts.includes('直帰')) memoParts.push('直帰');
+    memoParts.push('直帰');
+    if (mailBodyText) memoParts.push(mailBodyText);
   }
 
   const payload = {
