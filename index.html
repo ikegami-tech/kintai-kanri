@@ -355,8 +355,8 @@
         </div>
 
 <!-- 位置情報確認モーダル（スマレジ完全再現） -->
-        <div id="map-modal" class="modal-overlay hidden">
-          <div class="modal-body map-modal-body" id="map-modal-body">
+        <div id="map-modal" class="modal-overlay hidden" onclick="closeMapModal()">
+          <div class="modal-body map-modal-body" id="map-modal-body" onclick="event.stopPropagation()">
             <div class="map-modal-header">
               <h3 id="map-modal-title">出勤</h3>
               <button class="btn-close-icon" onclick="closeMapModal()">×</button>
