@@ -271,17 +271,23 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
 
   const modalBody = document.getElementById('map-modal-body');
   const emailArea = document.getElementById('map-modal-email-area');
+  const emailSubject = document.getElementById('map-modal-email-subject');
   const emailText = document.getElementById('map-modal-email-text');
 
   // 「直行」または「直帰」が含まれる場合のみメール内容を表示して幅を広げる
   if (actionStr.includes('直行') || actionStr.includes('直帰')) {
     modalBody.classList.add('map-modal-wide');
     emailArea.classList.remove('hidden');
-    emailText.textContent = emailContent || '※メール内容が登録されていません。';
+    
+    // 直行/直帰の判定をして件名を組み立てる
+    const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
+    if (emailSubject) emailSubject.textContent = `${typeStr} ${empName}`;
+    if (emailText) emailText.textContent = emailContent || '※メール内容が登録されていません。';
   } else {
     modalBody.classList.remove('map-modal-wide');
     emailArea.classList.add('hidden');
-    emailText.textContent = '';
+    if (emailSubject) emailSubject.textContent = '';
+    if (emailText) emailText.textContent = '';
   }
 
   document.getElementById('map-modal').classList.remove('hidden');
@@ -2492,7 +2498,8 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     // バックエンドで直接SES送信するためのパラメータ
     mail_to: mailData ? mailData.to : null,
     mail_subject: mailData ? mailData.subject : null,
-    mail_body: mailData ? mailData.body : null
+    mail_body: mailData ? mailData.body : null,
+    mail_from_name: tcSelectedEmp ? tcSelectedEmp.name : null
   };
 
   try {
