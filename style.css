@@ -2093,7 +2093,7 @@ td:hover .memo-icon::before {
 .col-sum {
   min-width: 55px !important;
 }
-/* メモアイコンの右上固定と重なり防止 */
+/* メモアイコンの個別ホバー表示制御 */
 .monthly-matrix-table div {
   position: relative !important;
 }
@@ -2108,17 +2108,24 @@ td:hover .memo-icon::before {
   cursor: pointer;
 }
 
-/* ツールチップ（黒い吹き出し）を右上に逃がして数字の被りを防止 */
-[data-tooltip] {
-  position: relative;
+/* 他の予定のホバーに連動して表示されないよう非表示を強制 */
+.monthly-matrix-table .memo-icon::before,
+.monthly-matrix-table .memo-icon::after {
+  display: none !important;
+  opacity: 0 !important;
 }
 
-[data-tooltip]:hover::before,
-[data-tooltip]:hover::after {
+/* マウスが直接乗っている予定のメモアイコンのみ表示 */
+.monthly-matrix-table .memo-icon:hover::before,
+.monthly-matrix-table .memo-icon:hover::after,
+.monthly-matrix-table div:hover > .memo-icon::before,
+.monthly-matrix-table div:hover > .memo-icon::after {
+  display: block !important;
+  opacity: 1 !important;
   z-index: 9999 !important;
 }
 
-/* ホバー時の吹き出し位置を右寄りにオフセット */
+/* ホバー時の吹き出し位置調整 */
 .memo-icon[data-tooltip]:hover::after {
   transform: translate(20%, -100%) !important;
 }
