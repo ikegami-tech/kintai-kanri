@@ -1215,9 +1215,10 @@ async function renderMatrixTable() {
             if (hasDirectIn) directTags.push('直行');
             if (hasDirectOut) directTags.push('直帰');
 
-            // 2. GPSタグ・システムタグ・直行直帰タグの除去
+            // 2. GPSタグ・角カッコタグ・システムタグ・直行直帰タグの完全除去
             let cleanMemo = att.memo
-              .replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '')
+              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, '')
               .replace(/休日出勤/g, '')
               .replace(/直行/g, '')
@@ -1387,7 +1388,8 @@ async function renderDailyTable() {
       
       // メール本文や定型フレーズ、システムタグを除外して純粋なメモを取り出す
       let cleanMemo = att.memo
-        .replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '')
+        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
         .replace(/休日出勤/g, '')
         .replace(/直行/g, '')
@@ -1427,7 +1429,7 @@ async function renderDailyTable() {
     }
 
     // 地図モーダル表示用メモ（位置情報タグのみを除去したもの）
-    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '').trim() : '';
+    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
 
     // 各スロットの位置を固定するための透明スペーサー
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
@@ -2740,7 +2742,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   if (outLoc) finalMemoParts.push(`[OUT_LOC:${outLoc}]`);
 
   // 既存の直行・直帰文章の切り分け抽出
-  let cleanMemo = existingMemo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '');
+  let cleanMemo = existingMemo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '');
   let directInText = '';
   let directOutText = '';
 
