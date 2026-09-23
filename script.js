@@ -2424,6 +2424,9 @@ async function loadTcEmpList() {
   const month = now.getMonth() + 1;
   const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+  // 最新の従業員一覧データをDBから再取得
+  currentEmployeeList = await fetchEmployeesAPI('ALL', '');
+
   tcTodayAttendances = {};
   try {
     const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
@@ -2457,8 +2460,8 @@ function renderTcEmpList() {
       const retireDateObj = new Date(cleanDate);
       if (!isNaN(retireDateObj)) {
         retireDateObj.setHours(0, 0, 0, 0);
-        // 本日が退職日を過ぎている場合は出退勤リストに表示しない
-        if (today > retireDateObj) {
+        // 本始（本日）が退職日当日以降の場合は出退勤リストに表示しない
+        if (today >= retireDateObj) {
           return false;
         }
       }
