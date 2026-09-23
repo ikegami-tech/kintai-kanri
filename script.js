@@ -262,11 +262,15 @@ function toggleDirectMailArea(modalId) {
 function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (五十嵐 由樹)"）
   document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
-  document.getElementById('map-modal-address').textContent = `住所: ${addressStr}`;
+  
+  const displayAddress = addressStr && addressStr !== '位置情報未取得' ? `打刻位置 (GPS): ${addressStr}` : '位置情報が記録されていません';
+  document.getElementById('map-modal-address').textContent = displayAddress;
   
   const mapIframe = document.getElementById('map-iframe');
   if (mapIframe) {
-    mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(addressStr)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+    // 取得した実座標（例: 35.681236,139.767125）またはデフォルト検索クエリをGoogleマップに渡す
+    const mapQuery = addressStr && addressStr !== '位置情報未取得' ? addressStr : '東京都千代田区有楽町1-1-1';
+    mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
   }
 
   const modalBody = document.getElementById('map-modal-body');
