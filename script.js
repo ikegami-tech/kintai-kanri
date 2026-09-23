@@ -2400,17 +2400,29 @@ async function executeWebTimeclock(actionType) {
   await saveTcAttendance(actionType, '');
 }
 
-// 直行・直帰メールモーダルを開く
+// 直行・直帰メールモーダルを開く（仕様書デフォルトテンプレート適用）
 function openTcMailModal(actionType) {
   const modal = document.getElementById('modal-tc-mail');
   if (!modal) return;
 
-  document.getElementById('tc-mail-modal-title').textContent = `${actionType}連絡メールの確認`;
-  document.getElementById('tc-mail-subject').value = `【${actionType}連絡】${tcSelectedEmp ? tcSelectedEmp.name : ''}`;
+  const empName = tcSelectedEmp ? tcSelectedEmp.name : '';
 
-  const defaultBody = actionType === '直行' 
-    ? '訪問先：株式会社〇〇\n業務内容：システム導入の打ち合わせ\n直行いたします。'
-    : '訪問先：株式会社〇〇\n業務内容：システム導入の打ち合わせ\nそのまま直帰いたします。';
+  document.getElementById('tc-mail-modal-title').textContent = `${actionType}連絡メールの確認`;
+  
+  // 宛先を kintai@toho-next.com に設定
+  const mailToInput = document.getElementById('tc-mail-to');
+  if (mailToInput) mailToInput.value = 'kintai@toho-next.com';
+
+  // 件名設定（例: 直行 五十嵐 / 直帰 石井）
+  document.getElementById('tc-mail-subject').value = `${actionType} ${empName}`;
+
+  // 画像指定通りのデフォルト本文を設定
+  let defaultBody = '';
+  if (actionType === '直行') {
+    defaultBody = `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。`;
+  } else {
+    defaultBody = `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。`;
+  }
 
   document.getElementById('tc-mail-body').value = defaultBody;
   modal.classList.remove('hidden');
