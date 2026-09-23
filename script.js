@@ -1384,13 +1384,29 @@ async function renderDailyTable() {
       if (att.memo.includes('管理者修正')) {
         timeStr = `<span class="time-edited">${timeStr}</span>`;
       }
-      // システム用の判定テキスト（管理者修正・直行・直帰）を除外して純粋なメモを取り出す
-      pureMemo = att.memo
+      
+      // メール本文や定型フレーズ、システムタグを除外して純粋なメモを取り出す
+      let cleanMemo = att.memo
+        .replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '')
         .replace(/管理者修正/g, '')
+        .replace(/休日出勤/g, '')
         .replace(/直行/g, '')
         .replace(/直帰/g, '')
-        .replace(/・/g, '')
-        .trim();
+        .replace(/・/g, '');
+
+      const mailKeywords = [
+        'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
+        '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
+        'その他：', 'その他 :', '以上にて', '本日もよろしく'
+      ];
+
+      let lines = cleanMemo.split('\n').filter(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return false;
+        return !mailKeywords.some(kw => trimmed.includes(kw));
+      });
+
+      pureMemo = lines.join('\n').trim();
 
       if (pureMemo) {
         memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
@@ -1410,8 +1426,8 @@ async function renderDailyTable() {
       if (outMatch) outCoords = outMatch[1];
     }
 
-    // 既存の直行・直帰文章の切り分け抽出
-  let cleanMemo = existingMemo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '');
+    // 地図モーダル表示用メモ（位置情報タグのみを除去したもの）
+    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '').trim() : '';
 
     // 各スロットの位置を固定するための透明スペーサー
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
@@ -1431,7 +1447,7 @@ async function renderDailyTable() {
           <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n位置:${targetInLoc}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
-          <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${targetInLoc}', '${displayMemoText.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
+          <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${targetInLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
         </div>
       `;
       if (isDirectIn) {
@@ -1454,7 +1470,7 @@ async function renderDailyTable() {
           <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n位置:${targetOutLoc}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
-          <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${targetOutLoc}', '${displayMemoText.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
+          <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${targetOutLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
         </div>
       `;
       if (isDirectOut) {
@@ -1464,7 +1480,6 @@ async function renderDailyTable() {
       }
     }
 
-    // 打刻が一つもなければハイフンを表示し、あれば横並びにする（width: 100% を追加して端まで広げる）
     const mapBoxHtml = (att && (att.clock_in || att.clock_out)) 
       ? `<div class="avatar-slot-group" style="display: flex; width: 100%;">${slots.join('')}</div>` 
       : '<span style="color: #ccc; font-size: 13px;">-</span>';
