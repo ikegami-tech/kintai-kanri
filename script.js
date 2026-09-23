@@ -1207,8 +1207,50 @@ async function renderMatrixTable() {
           let memoHtml = '';
           if (att.memo) {
             if (att.memo.includes('管理者修正')) timeText = `<span class="time-edited">${timeText}</span>`;
-            const pureMemo = att.memo.replace(/管理者修正/g, '').replace(/直行/g, '').replace(/直帰/g, '').replace(/・/g, '').trim();
-            if (pureMemo) memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
+            
+            // 1. 直行・直帰タグの抽出
+            const hasDirectIn = att.memo.includes('直行');
+            const hasDirectOut = att.memo.includes('直帰');
+            let directTags = [];
+            if (hasDirectIn) directTags.push('直行');
+            if (hasDirectOut) directTags.push('直帰');
+
+            // 2. GPSタグ・システムタグ・直行直帰タグの除去
+            let cleanMemo = att.memo
+              .replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '')
+              .replace(/管理者修正/g, '')
+              .replace(/休日出勤/g, '')
+              .replace(/直行/g, '')
+              .replace(/直帰/g, '');
+
+            // 3. メール文章（定型句）の除去
+            const mailKeywords = [
+              'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
+              '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
+              'その他：', 'その他 :', '以上にて', '本日もよろしく'
+            ];
+
+            let lines = cleanMemo.split('\n').filter(line => {
+              const trimmed = line.trim();
+              if (!trimmed) return false;
+              return !mailKeywords.some(kw => trimmed.includes(kw));
+            });
+
+            let otherMemo = lines.join('\n').trim();
+
+            // 4. 吹き出し（ツールチップ）用テキストの生成
+            let tooltipParts = [];
+            if (directTags.length > 0) {
+              tooltipParts.push(directTags.join('・'));
+            }
+            if (otherMemo) {
+              tooltipParts.push(otherMemo);
+            }
+
+            const pureMemo = tooltipParts.join('\n').trim();
+            if (pureMemo) {
+              memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
+            }
           }
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
           const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
