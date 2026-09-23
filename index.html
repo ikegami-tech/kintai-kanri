@@ -868,6 +868,79 @@
             </form>
           </div>
         </div>
+
+        <!-- ページ: Web打刻アプリ（NEXT出退勤画面） -->
+        <div id="page-web-timeclock" class="page-content hidden">
+          <div class="timeclock-container">
+            
+            <!-- 左側：時計 & 打刻操作エリア (TOHOブルー背景) -->
+            <div class="timeclock-left-panel">
+              <div class="timeclock-header-title">東宝ハウス NEXT事業部</div>
+              
+              <!-- リアルタイム時計 -->
+              <div class="clock-display-box">
+                <div class="clock-date" id="tc-clock-date">2026年09月23日(水)</div>
+                <div class="clock-time" id="tc-clock-time">12:30:16</div>
+              </div>
+
+              <!-- 選択中の従業員表示 -->
+              <div class="selected-user-display" id="tc-selected-user-name">
+                従業員を選択してください
+              </div>
+
+              <!-- 打刻アクションボタン（出勤 / 退勤 / 直行 / 直帰） -->
+              <div class="timeclock-action-grid">
+                <button class="tc-action-btn disabled" id="tc-btn-clockin" onclick="executeWebTimeclock('出勤')" disabled>
+                  <div class="tc-btn-icon">☀️</div>
+                  <div class="tc-btn-label">出勤</div>
+                </button>
+                <button class="tc-action-btn disabled" id="tc-btn-clockout" onclick="executeWebTimeclock('退勤')" disabled>
+                  <div class="tc-btn-icon">🌙</div>
+                  <div class="tc-btn-label">退勤</div>
+                </button>
+                <button class="tc-action-btn disabled" id="tc-btn-directin" onclick="executeWebTimeclock('直行')" disabled>
+                  <div class="tc-btn-icon">🚶‍♂️</div>
+                  <div class="tc-btn-label">直行</div>
+                </button>
+                <button class="tc-action-btn disabled" id="tc-btn-directout" onclick="executeWebTimeclock('直帰')" disabled>
+                  <div class="tc-btn-icon">🏠</div>
+                  <div class="tc-btn-label">直帰</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- 右側：従業員一覧 & イニシャル絞り込みパネル -->
+            <div class="timeclock-right-panel">
+              <div class="tc-right-header">
+                <div class="tc-tab-title">👥 従業員一覧</div>
+              </div>
+
+              <div class="tc-panel-body">
+                <!-- 従業員リスト -->
+                <div class="tc-emp-list-wrapper" id="tc-emp-list">
+                  <!-- JSで動的生成 -->
+                </div>
+
+                <!-- 右端 イニシャルインデックス -->
+                <div class="tc-initial-sidebar">
+                  <button class="tc-initial-btn active" onclick="filterTcInitial('ALL')">All</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('ア')">ア</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('カ')">カ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('サ')">サ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('タ')">タ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('ナ')">ナ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('ハ')">ハ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('マ')">マ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('ヤ')">ヤ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('ラ')">ラ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('ワ')">ワ</button>
+                  <button class="tc-initial-btn" onclick="filterTcInitial('A-Z')">A-Z</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       
       </div> <!-- /.content-area -->
     </div> <!-- /.main-wrapper -->

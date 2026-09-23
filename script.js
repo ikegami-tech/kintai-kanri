@@ -131,6 +131,7 @@ async function handleRouting() {
     if (path === 'overtime') renderOvertimeTable();
     if (path === 'employee-detail' && currentEmpTargetId) showEmployeeDetail(currentEmpTargetId);
     if (path === 'employee-edit' && currentEmpTargetId) openEditEmployee();
+    if (path === 'web-timeclock') initWebTimeclock(); // ★追加：Web打刻画面初期化
   }
 
   const titles = {
@@ -2165,3 +2166,234 @@ document.getElementById('password-request-form').addEventListener('submit', asyn
     btn.disabled = false;
   }
 });
+
+// ==========================================
+// Web打刻アプリ（NEXT出退勤画面）ロジック
+// ==========================================
+let tcSelectedEmp = null;
+let tcInitialFilter = 'ALL';
+let tcClockTimer = null;
+let tcTodayAttendances = {};
+
+// Web打刻画面の初期化
+async function initWebTimeclock() {
+  startTcClock();
+  await loadTcEmpList();
+}
+
+// リアルタイム時計の開始
+function startTcClock() {
+  if (tcClockTimer) clearInterval(tcClockTimer);
+  
+  function updateClock() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const d = now.getDate();
+    const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
+    const dayOfWeek = daysStr[now.getDay()];
+
+    const dateEl = document.getElementById('tc-clock-date');
+    const timeEl = document.getElementById('tc-clock-time');
+
+    if (dateEl) dateEl.textContent = `${y}年${String(m).padStart(2, '0')}月${String(d).padStart(2, '0')}日(${dayOfWeek})`;
+    if (timeEl) {
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      timeEl.textContent = `${hh}:${mm}:${ss}`;
+    }
+  }
+
+  updateClock();
+  tcClockTimer = setInterval(updateClock, 1000);
+}
+
+// イニシャルフィルター切り替え
+function filterTcInitial(initial) {
+  tcInitialFilter = initial;
+  document.querySelectorAll('.tc-initial-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.trim() === initial);
+  });
+  renderTcEmpList();
+}
+
+// 従業員リストおよび本日打刻データの読み込み
+async function loadTcEmpList() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  // 本日の打刻データ取得
+  tcTodayAttendances = {};
+  try {
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      data.filter(a => a.work_date === todayKey).forEach(a => {
+        tcTodayAttendances[a.employee_id] = a;
+      });
+    }
+  } catch (e) {
+    console.error('打刻データ取得エラー:', e);
+  }
+
+  renderTcEmpList();
+}
+
+// 従業員リストの描画
+function renderTcEmpList() {
+  const container = document.getElementById('tc-emp-list');
+  if (!container) return;
+
+  let list = currentEmployeeList.length > 0 ? currentEmployeeList : [];
+  
+  // イニシャルフィルタリング
+  if (tcInitialFilter !== 'ALL') {
+    const initialMap = {
+      'ア': /^[ア-オあ-お]/, 'カ': /^[カ-ゴか-ご]/, 'サ': /^[サ-ゾさ-ぞ]/,
+      'タ': /^[タ-ドた-ど]/, 'ナ': /^[ナ-ノな-の]/, 'ハ': /^[ハ-ポは-ぽ]/,
+      'マ': /^[マ-モま-も]/, 'ヤ': /^[ヤ-ヨや-よ]/, 'ラ': /^[ラ-ロら-ろ]/,
+      'ワ': /^[ワ-ンわ-ん]/, 'A-Z': /^[A-Za-z]/
+    };
+    const regex = initialMap[tcInitialFilter];
+    if (regex) {
+      list = list.filter(emp => emp.kana && regex.test(emp.kana.trim()));
+    }
+  }
+
+  container.innerHTML = list.map(emp => {
+    const att = tcTodayAttendances[emp.id];
+    let badgeHtml = '<span class="tc-status-badge tc-badge-not-started">未出勤</span>';
+    if (att && att.clock_in && !att.clock_out) {
+      badgeHtml = '<span class="tc-status-badge tc-badge-working">出勤中</span>';
+    } else if (att && att.clock_in && att.clock_out) {
+      badgeHtml = '<span class="tc-status-badge tc-badge-finished">退勤済</span>';
+    }
+
+    const isSelected = tcSelectedEmp && tcSelectedEmp.id === emp.id ? 'selected' : '';
+
+    return `
+      <div class="tc-emp-row ${isSelected}" onclick="selectTcEmp(${emp.id})">
+        <div class="tc-emp-info">
+          <div class="tc-emp-avatar">👤</div>
+          <div class="tc-emp-name">${emp.name}</div>
+        </div>
+        ${badgeHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+// 従業員選択時の処理とボタンON/OFF制御
+function selectTcEmp(empId) {
+  tcSelectedEmp = currentEmployeeList.find(e => e.id === empId);
+  
+  const nameEl = document.getElementById('tc-selected-user-name');
+  if (nameEl && tcSelectedEmp) {
+    nameEl.textContent = tcSelectedEmp.name;
+  }
+
+  renderTcEmpList(); // リストの選択スタイル更新
+  updateTcButtons(); // ボタンの有効/無効判定
+}
+
+// ボタンのON/OFF（活性/非活性）状態を判定・更新
+function updateTcButtons() {
+  const btnClockin = document.getElementById('tc-btn-clockin');
+  const btnClockout = document.getElementById('tc-btn-clockout');
+  const btnDirectin = document.getElementById('tc-btn-directin');
+  const btnDirectout = document.getElementById('tc-btn-directout');
+
+  if (!tcSelectedEmp) {
+    [btnClockin, btnClockout, btnDirectin, btnDirectout].forEach(b => {
+      if (b) { b.classList.add('disabled'); b.disabled = true; }
+    });
+    return;
+  }
+
+  const att = tcTodayAttendances[tcSelectedEmp.id];
+  const isWorking = att && att.clock_in && !att.clock_out;
+
+  if (isWorking) {
+    // 出勤中：退勤と直帰のみ可能
+    setBtnState(btnClockin, false);
+    setBtnState(btnClockout, true);
+    setBtnState(btnDirectin, false);
+    setBtnState(btnDirectout, true);
+  } else {
+    // 未出勤または退勤済：出勤と直行のみ可能
+    setBtnState(btnClockin, true);
+    setBtnState(btnClockout, false);
+    setBtnState(btnDirectin, true);
+    setBtnState(btnDirectout, false);
+  }
+}
+
+function setBtnState(btnEl, enable) {
+  if (!btnEl) return;
+  if (enable) {
+    btnEl.classList.remove('disabled');
+    btnEl.disabled = false;
+  } else {
+    btnEl.classList.add('disabled');
+    btnEl.disabled = true;
+  }
+}
+
+// 打刻実行処理（API送信）
+async function executeWebTimeclock(actionType) {
+  if (!tcSelectedEmp) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const dateVal = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const timeVal = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+
+  const att = tcTodayAttendances[tcSelectedEmp.id];
+  let clockIn = att ? att.clock_in : null;
+  let clockOut = att ? att.clock_out : null;
+  let memoParts = att && att.memo ? [att.memo] : [];
+
+  if (actionType === '出勤') {
+    clockIn = timeVal;
+  } else if (actionType === '退勤') {
+    clockOut = timeVal;
+  } else if (actionType === '直行') {
+    clockIn = timeVal;
+    if (!memoParts.includes('直行')) memoParts.push('直行');
+  } else if (actionType === '直帰') {
+    clockOut = timeVal;
+    if (!memoParts.includes('直帰')) memoParts.push('直帰');
+  }
+
+  const payload = {
+    id: att ? att.id : null,
+    employee_id: tcSelectedEmp.id,
+    work_date: dateVal,
+    clock_in: clockIn,
+    clock_out: clockOut,
+    memo: memoParts.join('\n')
+  };
+
+  try {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error('打刻エラー');
+
+    showToast(`『${tcSelectedEmp.name}』の${actionType}を記録しました。`);
+    await loadTcEmpList();
+    updateTcButtons();
+
+  } catch (error) {
+    console.error('打刻エラー:', error);
+    alert('打刻処理に失敗しました。');
+  }
+}

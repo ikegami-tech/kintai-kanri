@@ -2129,3 +2129,247 @@ td:hover .memo-icon::before {
 .memo-icon[data-tooltip]:hover::after {
   transform: translate(20%, -100%) !important;
 }
+
+/* ==========================================
+   Web打刻画面（NEXT出退勤画面）TOHOスタイル
+   ========================================== */
+.timeclock-container {
+  display: flex;
+  height: calc(100vh - 60px);
+  width: 100%;
+  overflow: hidden;
+  background-color: #f4f7f9;
+}
+
+/* 左側：TOHOブルーパネル */
+.timeclock-left-panel {
+  flex: 1;
+  background: linear-gradient(135deg, #0073ea 0%, #005bb5 100%);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+}
+
+.timeclock-header-title {
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.clock-display-box {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.clock-date {
+  font-size: 18px;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  margin-bottom: 5px;
+}
+
+.clock-time {
+  font-size: 64px;
+  font-weight: bold;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.selected-user-display {
+  font-size: 22px;
+  font-weight: bold;
+  height: 40px;
+  margin-bottom: 30px;
+  padding: 6px 24px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 250px;
+}
+
+/* 打刻ボタン 4つ並び */
+.timeclock-action-grid {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.tc-action-btn {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.tc-action-btn:not(.disabled):hover {
+  background: #ffffff;
+  color: #0073ea;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.tc-action-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: none;
+}
+
+.tc-btn-icon {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.tc-btn-label {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* 右側：従業員一覧パネル */
+.timeclock-right-panel {
+  width: 420px;
+  background: #ffffff;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.tc-right-header {
+  height: 50px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+}
+
+.tc-tab-title {
+  font-weight: bold;
+  color: var(--toho-blue);
+  font-size: 15px;
+}
+
+.tc-panel-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.tc-emp-list-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tc-emp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f4f8;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tc-emp-row:hover {
+  background-color: #f0f7ff;
+}
+
+.tc-emp-row.selected {
+  background-color: #e6f0fa;
+  border-left: 4px solid var(--toho-blue);
+}
+
+.tc-emp-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tc-emp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.tc-emp-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.tc-status-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.tc-badge-working {
+  background-color: #e8f8f0;
+  color: #27ae60;
+}
+
+.tc-badge-not-started {
+  background-color: #fcf3cf;
+  color: #d35400;
+}
+
+.tc-badge-finished {
+  background-color: #f2f4f4;
+  color: #7f8c8d;
+}
+
+/* 右端 イニシャル縦タブ */
+.tc-initial-sidebar {
+  width: 45px;
+  background: #f8fafc;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 0;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.tc-initial-btn {
+  width: 36px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  color: var(--text-sub);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.tc-initial-btn.active, .tc-initial-btn:hover {
+  background: var(--toho-blue);
+  color: #ffffff;
+  font-weight: bold;
+}
