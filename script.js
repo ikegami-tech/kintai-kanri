@@ -2433,7 +2433,7 @@ function closeTcMailModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-// Gmail起動 & 打刻データの保存処理
+// バックエンド自動メール送信 & 打刻データの保存処理
 async function submitTcMailAndClock() {
   const to = document.getElementById('tc-mail-to').value.trim();
   const subject = document.getElementById('tc-mail-subject').value.trim();
@@ -2444,17 +2444,14 @@ async function submitTcMailAndClock() {
     return;
   }
 
-  // Gmailの新規作成Web画面（URL）を起動
-  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.open(gmailUrl, '_blank');
-
-  // 打刻データの保存（memoにメール本文を紐付け）
   closeTcMailModal();
-  await saveTcAttendance(currentTcActionType, body);
+
+  // メール情報を含めて打刻API（バックエンド）を実行
+  await saveTcAttendance(currentTcActionType, body, { to, subject, body });
 }
 
-// 実際のAPI送信共通関数
-async function saveTcAttendance(actionType, mailBodyText) {
+// 実際のAPI送信共通関数（自動メール送信対応）
+async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -2491,7 +2488,11 @@ async function saveTcAttendance(actionType, mailBodyText) {
     work_date: dateVal,
     clock_in: clockIn,
     clock_out: clockOut,
-    memo: memoParts.join('\n')
+    memo: memoParts.join('\n'),
+    // バックエンドで直接SES送信するためのパラメータ
+    mail_to: mailData ? mailData.to : null,
+    mail_subject: mailData ? mailData.subject : null,
+    mail_body: mailData ? mailData.body : null
   };
 
   try {
@@ -2503,7 +2504,7 @@ async function saveTcAttendance(actionType, mailBodyText) {
 
     if (!response.ok) throw new Error('打刻エラー');
 
-    showToast(`『${tcSelectedEmp.name}』の${actionType}を記録しました。`);
+    showToast(`『${tcSelectedEmp.name}』の${actionType}を記録し、メールを送信しました。`);
     await loadTcEmpList();
     updateTcButtons();
 
