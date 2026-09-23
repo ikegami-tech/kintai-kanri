@@ -1350,13 +1350,23 @@ async function renderDailyTable() {
       }
     }
 
-    // 直行・直帰の判定
+    // 直行・直帰およびGPS位置情報の解析
     const isDirectIn = att && att.memo && att.memo.includes('直行');
     const isDirectOut = att && att.memo && att.memo.includes('直帰');
-    const addressStr = '東京都千代田区有楽町1-1-1';
+
+    let inCoords = '';
+    let outCoords = '';
+    if (att && att.memo) {
+      const inMatch = att.memo.match(/\[IN_LOC:([^\]]+)\]/);
+      if (inMatch) inCoords = inMatch[1];
+      const outMatch = att.memo.match(/\[OUT_LOC:([^\]]+)\]/);
+      if (outMatch) outCoords = outMatch[1];
+    }
+
+    // クリーニングしたツールチップ用のメモ文章
+    const displayMemoText = pureMemo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '').trim();
 
     // 各スロットの位置を固定するための透明スペーサー
-    // 真ん中(slots[2])に余白をすべて埋めるフレキシブルなスペーサーを配置して右側を押しやる
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
     const centerSpacer = '<div style="flex-grow: 1;"></div>';
     let slots = [emptySpacer, emptySpacer, centerSpacer, emptySpacer, emptySpacer];
@@ -1367,16 +1377,16 @@ async function renderDailyTable() {
       const inClass = isDirectIn ? 'direct-style' : '';
       const inBadgeClass = isDirectIn ? 'direct-badge' : '';
       const inFullTime = `${month}/${date} ${formatTime(att.clock_in)}`;
+      const targetInLoc = inCoords || '位置情報未取得';
 
       const html = `
         <div class="avatar-map-box">
-          <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n住所:${addressStr}">
+          <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n位置:${targetInLoc}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
-          <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
+          <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${targetInLoc}', '${displayMemoText.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
         </div>
       `;
-      // 直行なら左から2番目、通常出勤なら左端
       if (isDirectIn) {
         slots[1] = html;
       } else {
@@ -1390,16 +1400,16 @@ async function renderDailyTable() {
       const outClass = isDirectOut ? 'direct-style' : '';
       const outBadgeClass = isDirectOut ? 'direct-badge' : '';
       const outFullTime = `${month}/${date} ${formatTime(att.clock_out)}`;
+      const targetOutLoc = outCoords || '位置情報未取得';
 
       const html = `
         <div class="avatar-map-box">
-          <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n住所:${addressStr}">
+          <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n位置:${targetOutLoc}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
-          <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${addressStr}', '${pureMemo.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
+          <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${targetOutLoc}', '${displayMemoText.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
         </div>
       `;
-      // 直帰なら右から2番目(index 3)、通常退勤なら右端(index 4)
       if (isDirectOut) {
         slots[3] = html;
       } else {
@@ -2473,7 +2483,22 @@ async function submitTcMailAndClock() {
   await saveTcAttendance(currentTcActionType, body, { to, subject, body });
 }
 
-// 実際のAPI送信共通関数（自動メール送信＆メモ整頓・重複防止対応）
+// GPS位置情報（緯度・経度）を取得するヘルパー関数
+function getCurrentLocationCoords() {
+  return new Promise((resolve) => {
+    if (navigator.geolocation && isTcLocationOn) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+        (err) => resolve(''),
+        { timeout: 6000, enableHighAccuracy: true }
+      );
+    } else {
+      resolve('');
+    }
+  });
+}
+
+// 実際のAPI送信共通関数（自動メール送信＆GPS位置情報保存対応）
 async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   const now = new Date();
   const year = now.getFullYear();
@@ -2492,6 +2517,9 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     clockOut = timeVal;
   }
 
+  // 打刻した瞬間の実際のGPS座標を取得
+  const currentCoords = await getCurrentLocationCoords();
+
   // メモの整理と重複蓄積防止ロジック
   let existingMemo = att && att.memo ? att.memo : '';
   let finalMemoParts = [];
@@ -2500,18 +2528,36 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   if (existingMemo.includes('管理者修正')) finalMemoParts.push('管理者修正');
   if (existingMemo.includes('休日出勤')) finalMemoParts.push('休日出勤');
 
+  // 既存のGPSタグと直行・直帰文章の抽出
+  let inLoc = '';
+  let outLoc = '';
+  const inLocMatch = existingMemo.match(/\[IN_LOC:([^\]]+)\]/);
+  if (inLocMatch) inLoc = inLocMatch[1];
+  const outLocMatch = existingMemo.match(/\[OUT_LOC:([^\]]+)\]/);
+  if (outLocMatch) outLoc = outLocMatch[1];
+
+  if (actionType === '出勤' || actionType === '直行') {
+    if (currentCoords) inLoc = currentCoords;
+  } else if (actionType === '退勤' || actionType === '直帰') {
+    if (currentCoords) outLoc = currentCoords;
+  }
+
+  if (inLoc) finalMemoParts.push(`[IN_LOC:${inLoc}]`);
+  if (outLoc) finalMemoParts.push(`[OUT_LOC:${outLoc}]`);
+
   // 既存の直行・直帰文章の切り分け抽出
+  let cleanMemo = existingMemo.replace(/\[(IN\vert{}OUT)_LOC:[^\]]+\]/g, '');
   let directInText = '';
   let directOutText = '';
 
-  if (existingMemo.includes('直行') && existingMemo.includes('直帰')) {
-    const parts = existingMemo.split('直帰');
+  if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
+    const parts = cleanMemo.split('直帰');
     directInText = parts[0].replace(/直行|管理者修正|休日出勤/g, '').trim();
     directOutText = parts[1] ? parts[1].trim() : '';
-  } else if (existingMemo.includes('直行')) {
-    directInText = existingMemo.replace(/直行|管理者修正|休日出勤/g, '').trim();
-  } else if (existingMemo.includes('直帰')) {
-    directOutText = existingMemo.replace(/直帰|管理者修正|休日出勤/g, '').trim();
+  } else if (cleanMemo.includes('直行')) {
+    directInText = cleanMemo.replace(/直行|管理者修正|休日出勤/g, '').trim();
+  } else if (cleanMemo.includes('直帰')) {
+    directOutText = cleanMemo.replace(/直帰|管理者修正|休日出勤/g, '').trim();
   }
 
   // 今回の打刻に応じて最新文章に更新
