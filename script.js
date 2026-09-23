@@ -2174,6 +2174,43 @@ let tcSelectedEmp = null;
 let tcInitialFilter = 'ALL';
 let tcClockTimer = null;
 let tcTodayAttendances = {};
+let isTcLocationOn = false; // 位置情報ON/OFFフラグ
+
+// 位置情報ON/OFF切り替え
+function toggleTcLocation() {
+  const btn = document.getElementById('tc-location-toggle-btn');
+  const text = document.getElementById('tc-loc-text');
+
+  if (!isTcLocationOn) {
+    // ブラウザの位置情報アクセス許可ダイアログを呼び出し
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          isTcLocationOn = true;
+          if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
+          if (text) text.textContent = 'ON';
+          showToast('位置情報をオンにしました');
+        },
+        (err) => {
+          // 拒否された場合でも模擬的にONに切り替えできるようにサポート
+          isTcLocationOn = true;
+          if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
+          if (text) text.textContent = 'ON';
+          showToast('位置情報をオンにしました');
+        }
+      );
+    } else {
+      isTcLocationOn = true;
+      if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
+      if (text) text.textContent = 'ON';
+    }
+  } else {
+    isTcLocationOn = false;
+    if (btn) { btn.classList.remove('on'); btn.classList.add('off'); }
+    if (text) text.textContent = 'OFF';
+    showToast('位置情報をオフにしました');
+  }
+}
 
 // Web打刻画面の初期化
 async function initWebTimeclock() {
@@ -2345,6 +2382,16 @@ function setBtnState(btnEl, enable) {
 // 打刻実行処理（API送信）
 async function executeWebTimeclock(actionType) {
   if (!tcSelectedEmp) return;
+
+  // 1. 位置情報がOFFの場合は動画仕様の警告モーダルを表示
+  if (!isTcLocationOn) {
+    showModal('打刻できません。', 'この端末では、出勤時に位置情報を送信設定する必要があります。ページ右上にある位置情報ボタンをオンにして操作をやり直してください。');
+    return;
+  }
+
+  // 2. 位置情報がONの場合は確認ダイアログを表示
+  const confirmed = confirm(`${actionType}します。よろしいですか？`);
+  if (!confirmed) return;
 
   const now = new Date();
   const year = now.getFullYear();

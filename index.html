@@ -911,8 +911,13 @@
 
             <!-- 右側：従業員一覧 & イニシャル絞り込みパネル -->
             <div class="timeclock-right-panel">
-              <div class="tc-right-header">
+              <div class="tc-right-header" style="justify-content: space-between;">
                 <div class="tc-tab-title">👥 従業員一覧</div>
+                <!-- 位置情報ON/OFF切り替えボタン -->
+                <button type="button" id="tc-location-toggle-btn" class="tc-loc-btn off" onclick="toggleTcLocation()">
+                  <span class="tc-loc-icon">📍</span>
+                  <span id="tc-loc-text">OFF</span>
+                </button>
               </div>
 
               <div class="tc-panel-body">
