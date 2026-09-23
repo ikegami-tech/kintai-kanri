@@ -2148,7 +2148,7 @@ document.getElementById('password-request-form').addEventListener('submit', asyn
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, type: 'reset' }) // ★type: 'reset' を追加
+      body: JSON.stringify({ email: email, type: 'reset' })
     });
 
     if (!response.ok) throw new Error('送信エラー');
@@ -2168,21 +2168,20 @@ document.getElementById('password-request-form').addEventListener('submit', asyn
 });
 
 // ==========================================
-// Web打刻アプリ（NEXT出退勤画面）ロジック
+// Web打刻アプリ（NEXT出退勤画面）全ロジック
 // ==========================================
 let tcSelectedEmp = null;
 let tcInitialFilter = 'ALL';
 let tcClockTimer = null;
 let tcTodayAttendances = {};
-let isTcLocationOn = false; // 位置情報ON/OFFフラグ
+let isTcLocationOn = false; // 位置情報ON/OFFフラグ（初期値OFF）
 
-// 位置情報ON/OFF切り替え
+// 位置情報ON/OFF切り替え関数
 function toggleTcLocation() {
   const btn = document.getElementById('tc-location-toggle-btn');
   const text = document.getElementById('tc-loc-text');
 
   if (!isTcLocationOn) {
-    // ブラウザの位置情報アクセス許可ダイアログを呼び出し
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -2192,7 +2191,6 @@ function toggleTcLocation() {
           showToast('位置情報をオンにしました');
         },
         (err) => {
-          // 拒否された場合でも模擬的にONに切り替えできるようにサポート
           isTcLocationOn = true;
           if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
           if (text) text.textContent = 'ON';
@@ -2218,7 +2216,7 @@ async function initWebTimeclock() {
   await loadTcEmpList();
 }
 
-// リアルタイム時計の開始
+// リアルタイム時計
 function startTcClock() {
   if (tcClockTimer) clearInterval(tcClockTimer);
   
@@ -2262,7 +2260,6 @@ async function loadTcEmpList() {
   const month = now.getMonth() + 1;
   const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  // 本日の打刻データ取得
   tcTodayAttendances = {};
   try {
     const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
@@ -2286,7 +2283,6 @@ function renderTcEmpList() {
 
   let list = currentEmployeeList.length > 0 ? currentEmployeeList : [];
   
-  // イニシャルフィルタリング
   if (tcInitialFilter !== 'ALL') {
     const initialMap = {
       'ア': /^[ア-オあ-お]/, 'カ': /^[カ-ゴか-ご]/, 'サ': /^[サ-ゾさ-ぞ]/,
@@ -2332,11 +2328,11 @@ function selectTcEmp(empId) {
     nameEl.textContent = tcSelectedEmp.name;
   }
 
-  renderTcEmpList(); // リストの選択スタイル更新
-  updateTcButtons(); // ボタンの有効/無効判定
+  renderTcEmpList();
+  updateTcButtons();
 }
 
-// ボタンのON/OFF（活性/非活性）状態を判定・更新
+// ボタンの活性/非活性判定
 function updateTcButtons() {
   const btnClockin = document.getElementById('tc-btn-clockin');
   const btnClockout = document.getElementById('tc-btn-clockout');
@@ -2354,13 +2350,11 @@ function updateTcButtons() {
   const isWorking = att && att.clock_in && !att.clock_out;
 
   if (isWorking) {
-    // 出勤中：退勤と直帰のみ可能
     setBtnState(btnClockin, false);
     setBtnState(btnClockout, true);
     setBtnState(btnDirectin, false);
     setBtnState(btnDirectout, true);
   } else {
-    // 未出勤または退勤済：出勤と直行のみ可能
     setBtnState(btnClockin, true);
     setBtnState(btnClockout, false);
     setBtnState(btnDirectin, true);
@@ -2379,17 +2373,17 @@ function setBtnState(btnEl, enable) {
   }
 }
 
-// 打刻実行処理（API送信）
+// 打刻実行処理（位置情報チェック & API送信）
 async function executeWebTimeclock(actionType) {
   if (!tcSelectedEmp) return;
 
-  // 1. 位置情報がOFFの場合は動画仕様の警告モーダルを表示
+  // ★ 1. 位置情報がOFFの場合は警告モーダルを表示して処理を中断
   if (!isTcLocationOn) {
     showModal('打刻できません。', 'この端末では、出勤時に位置情報を送信設定する必要があります。ページ右上にある位置情報ボタンをオンにして操作をやり直してください。');
     return;
   }
 
-  // 2. 位置情報がONの場合は確認ダイアログを表示
+  // ★ 2. 位置情報がONの場合は確認ダイアログを表示
   const confirmed = confirm(`${actionType}します。よろしいですか？`);
   if (!confirmed) return;
 
