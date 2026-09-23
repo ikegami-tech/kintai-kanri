@@ -2493,39 +2493,171 @@ async function executeWebTimeclock(actionType) {
   await saveTcAttendance(actionType, '');
 }
 
-// 直行・直帰メールモーダルを開く（仕様書デフォルトテンプレート適用）
-function openTcMailModal(actionType) {
-  const modal = document.getElementById('modal-tc-mail');
-  if (!modal) return;
+let tcUserTemplates = [];
+let tcActiveTemplateId = null;
 
-  const empName = tcSelectedEmp ? tcSelectedEmp.name : '';
-  // 従業員名から苗字（姓）のみを抽出（スペース区切り対応）
+// 直行・直帰メールモーダルを開く（ユーザー別マルチテンプレート対応）
+async function openTcMailModal(actionType) {
+  const modal = document.getElementById('modal-tc-mail');
+  if (!modal || !tcSelectedEmp) return;
+
+  const empName = tcSelectedEmp.name || '';
   const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
 
   document.getElementById('tc-mail-modal-title').textContent = `${actionType}連絡メールの確認`;
   
-  // 宛先を kintai@toho-next.com に設定
   const mailToInput = document.getElementById('tc-mail-to');
   if (mailToInput) mailToInput.value = 'kintai@toho-next.com';
-
-  // 件名設定（例: 直行 岩本 / 直帰 高坂）
   document.getElementById('tc-mail-subject').value = `${actionType} ${lastName}`;
 
-  // 画像指定通りのデフォルト本文を設定
-  let defaultBody = '';
-  if (actionType === '直行') {
-    defaultBody = `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。`;
-  } else {
-    defaultBody = `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。`;
+  // バックエンドから該当従業員・タイプのテンプレートを取得
+  await loadTcUserTemplates(tcSelectedEmp.id, actionType);
+
+  modal.classList.remove('hidden');
+}
+
+// ユーザーテンプレートの読み込み & 初回自動生成
+async function loadTcUserTemplates(employeeId, actionType) {
+  try {
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates?employee_id=${employeeId}&type=${encodeURIComponent(actionType)}`);
+    if (res.ok) {
+      tcUserTemplates = await res.json();
+    } else {
+      tcUserTemplates = [];
+    }
+  } catch (e) {
+    console.error('テンプレート取得エラー:', e);
+    tcUserTemplates = [];
   }
 
-  document.getElementById('tc-mail-body').value = defaultBody;
-  modal.classList.remove('hidden');
+  // 1つもテンプレートがない場合はデフォルトテンプレート1を初期登録
+  if (tcUserTemplates.length === 0) {
+    const defaultBody = actionType === '直行'
+      ? `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。`
+      : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。`;
+
+    try {
+      const createRes = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: employeeId,
+          type: actionType,
+          name: 'テンプレ1',
+          body: defaultBody
+        })
+      });
+      if (createRes.ok) {
+        const result = await createRes.json();
+        tcUserTemplates = [{ id: result.id, employee_id: employeeId, type: actionType, name: 'テンプレ1', body: defaultBody }];
+      }
+    } catch (e) {
+      console.error('初期テンプレート作成エラー:', e);
+    }
+  }
+
+  // 先頭のテンプレートを選択状態にする
+  if (tcUserTemplates.length > 0) {
+    selectTcTemplate(tcUserTemplates[0].id);
+  }
+}
+
+// テンプレートボタンリストの描画
+function renderTcTemplateButtons() {
+  const container = document.getElementById('tc-template-btn-list');
+  if (!container) return;
+
+  container.innerHTML = tcUserTemplates.map(tpl => {
+    const isActive = tpl.id === tcActiveTemplateId ? 'active' : '';
+    const activeStyle = isActive ? 'background: var(--toho-blue); color: white; border-color: var(--toho-blue); font-weight: bold;' : 'background: #ffffff;';
+    return `<button type="button" class="btn-sub" style="font-size: 12px; padding: 4px 12px; ${activeStyle}" onclick="selectTcTemplate(${tpl.id})">${tpl.name}</button>`;
+  }).join('');
+}
+
+// テンプレートの選択切り替え
+function selectTcTemplate(templateId) {
+  tcActiveTemplateId = templateId;
+  const tpl = tcUserTemplates.find(t => t.id === templateId);
+  if (tpl) {
+    document.getElementById('tc-mail-body').value = tpl.body || '';
+  }
+  renderTcTemplateButtons();
 }
 
 function closeTcMailModal() {
   const modal = document.getElementById('modal-tc-mail');
   if (modal) modal.classList.add('hidden');
+}
+
+let tcTemplateEditMode = 'edit'; // 'edit' or 'add'
+
+// テンプレート編集・追加モーダルを開く
+function openTcTemplateEditModal(mode) {
+  tcTemplateEditMode = mode;
+  const modal = document.getElementById('modal-tc-template-edit');
+  if (!modal) return;
+
+  const titleEl = document.getElementById('tc-tpl-modal-title');
+  const nameInput = document.getElementById('tc-tpl-name-input');
+  const bodyInput = document.getElementById('tc-tpl-body-input');
+
+  if (mode === 'add') {
+    titleEl.textContent = '新規テンプレート追加';
+    nameInput.value = `テンプレ${tcUserTemplates.length + 1}`;
+    bodyInput.value = document.getElementById('tc-mail-body').value || '';
+  } else {
+    titleEl.textContent = 'テンプレートの編集';
+    const activeTpl = tcUserTemplates.find(t => t.id === tcActiveTemplateId);
+    nameInput.value = activeTpl ? activeTpl.name : 'テンプレ1';
+    bodyInput.value = document.getElementById('tc-mail-body').value || '';
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeTcTemplateEditModal() {
+  const modal = document.getElementById('modal-tc-template-edit');
+  if (modal) modal.classList.add('hidden');
+}
+
+// テンプレートの保存処理 (編集・追加)
+async function saveTcTemplate() {
+  const nameInput = document.getElementById('tc-tpl-name-input').value.trim();
+  const bodyInput = document.getElementById('tc-tpl-body-input').value.trim();
+
+  if (!nameInput) {
+    alert('ボタン名を入力してください。');
+    return;
+  }
+
+  const payload = {
+    id: tcTemplateEditMode === 'edit' ? tcActiveTemplateId : null,
+    employee_id: tcSelectedEmp.id,
+    type: currentTcActionType,
+    name: nameInput,
+    body: bodyInput
+  };
+
+  try {
+    const res = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('保存エラー');
+
+    // 保存完了後にモーダルを自動で閉じる
+    closeTcTemplateEditModal();
+    showToast(tcTemplateEditMode === 'edit' ? 'テンプレートを更新しました' : '新しいテンプレートを追加しました');
+
+    // リストを最新化
+    await loadTcUserTemplates(tcSelectedEmp.id, currentTcActionType);
+
+  } catch (e) {
+    console.error('テンプレート保存エラー:', e);
+    alert('テンプレートの保存に失敗しました。');
+  }
 }
 
 // バックエンド自動メール送信 & 打刻データの保存処理

@@ -995,7 +995,7 @@
 
   <!-- Web打刻用 直行・直帰メール確認モーダル -->
   <div id="modal-tc-mail" class="modal-overlay hidden">
-    <div class="record-modal-body" style="width: 520px;">
+    <div class="record-modal-body" style="width: 540px;">
       <div class="record-modal-header">
         <h3 id="tc-mail-modal-title">直行連絡メールの確認</h3>
         <button class="btn-close-icon" onclick="closeTcMailModal()">×</button>
@@ -1014,6 +1014,18 @@
             <th style="vertical-align: top; padding-top: 15px;">メール本文</th>
             <td>
               <textarea id="tc-mail-body" class="form-input" rows="6" style="resize: vertical; font-size: 13px; line-height: 1.5;"></textarea>
+              
+              <!-- テンプレートボタンエリア -->
+              <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                <div style="font-size: 12px; font-weight: bold; color: var(--text-sub); margin-bottom: 6px;">テンプレート切り替え:</div>
+                <div id="tc-template-btn-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                  <!-- JSで動的にボタン生成 -->
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn-sub" style="font-size: 11px; padding: 4px 10px;" onclick="openTcTemplateEditModal('edit')">✏️ 編集</button>
+                  <button type="button" class="btn-sub" style="font-size: 11px; padding: 4px 10px;" onclick="openTcTemplateEditModal('add')">＋ テンプレ追加</button>
+                </div>
+              </div>
             </td>
           </tr>
         </table>
@@ -1021,6 +1033,34 @@
       <div class="record-modal-footer">
         <button class="btn-cancel" onclick="closeTcMailModal()">キャンセル</button>
         <button class="btn-primary" onclick="submitTcMailAndClock()">送信＆打刻</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- テンプレート名・本文編集用モーダル -->
+  <div id="modal-tc-template-edit" class="modal-overlay hidden" style="z-index: 10001 !important;">
+    <div class="record-modal-body" style="width: 460px;">
+      <div class="record-modal-header">
+        <h3 id="tc-tpl-modal-title">テンプレートの編集</h3>
+        <button class="btn-close-icon" onclick="closeTcTemplateEditModal()">×</button>
+      </div>
+      <div class="record-modal-content">
+        <table class="record-form-table">
+          <tr>
+            <th style="width: 100px;">ボタン名</th>
+            <td><input type="text" id="tc-tpl-name-input" class="form-input" placeholder="例) テンプレ1"></td>
+          </tr>
+          <tr>
+            <th style="vertical-align: top; padding-top: 12px;">本文内容</th>
+            <td>
+              <textarea id="tc-tpl-body-input" class="form-input" rows="6" style="resize: vertical; font-size: 12px;"></textarea>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="record-modal-footer">
+        <button class="btn-cancel" onclick="closeTcTemplateEditModal()">キャンセル</button>
+        <button class="btn-primary" onclick="saveTcTemplate()">保存</button>
       </div>
     </div>
   </div>

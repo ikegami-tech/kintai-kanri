@@ -2410,3 +2410,12 @@ td:hover .memo-icon::before {
   color: #ffffff;
   border-color: #27ae60;
 }
+/* テンプレートボタンエリア */
+#tc-template-btn-list .btn-sub {
+  transition: all 0.15s ease;
+  border-radius: 4px;
+}
+#tc-template-btn-list .btn-sub:hover {
+  border-color: var(--toho-blue);
+  color: var(--toho-blue);
+}
