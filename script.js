@@ -270,54 +270,52 @@ async function reverseGeocode(coordsStr) {
     return clean;
   }
 
-  // 小数点第4位で丸めた座標をキャッシュキーにし、不要なリクエストをブロック
+  // 小数点第4位で丸めた座標をキャッシュキーにし、連続・重複リクエストをブロック
   const [latNum, lngNum] = clean.split(',').map(Number);
   const cacheKey = `${latNum.toFixed(4)},${lngNum.toFixed(4)}`;
   if (addressCache[cacheKey]) {
     return addressCache[cacheKey];
   }
 
-  // 1. BigDataCloud Reverse Geocoding API (CORS完全対応・日本語住所対応)
+  let prefecture = ''; // 都道府県 (例: 東京都)
+  let city = '';       // 市区町村 (例: 新宿区)
+  let town = '';       // 町名・丁目 (例: 西新宿六丁目)
+
+  // 1. BigDataCloud API: 都道府県と市区町村を正確に取得するためだけに使用
   try {
-    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latNum}&longitude=${lngNum}&localityLanguage=ja`);
-    if (res.ok) {
-      const data = await res.json();
-      const state = data.principalSubdivision || ''; // 都道府県 (例: 東京都)
-      const city = data.locality || data.city || '';  // 市区町村 (例: 新宿区)
-      
-      let localityName = '';
-      if (data.localityInfo && data.localityInfo.informative) {
-        const sub = data.localityInfo.informative.find(i => i.order === 4 || i.order === 5);
-        if (sub) localityName = sub.name;
-      }
-      
-      const addr = `${state}${city}${localityName}`.trim();
-      if (addr) {
-        addressCache[cacheKey] = addr;
-        return addr;
-      }
+    const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latNum}&longitude=${lngNum}&localityLanguage=ja`);
+    if (bdcRes.ok) {
+      const bdcData = await bdcRes.json();
+      prefecture = bdcData.principalSubdivision || ''; // 「東京都」など
+      city = bdcData.locality || bdcData.city || '';   // 「新宿区」など
     }
   } catch (e) {
     console.warn('BigDataCloud API取得エラー:', e);
   }
 
-  // 2. バックアップ：国土地理院 逆ジオコーディング API (CORS対応)
+  // 2. 国土地理院 API (GSI): 最も正確な「町丁目」部分を取得するために使用
   try {
-    const res = await fetch(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${latNum}&lon=${lngNum}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.results && data.results.lv01Nm) {
-        const addr = data.results.lv01Nm; // 町名・丁目 (例: 西新宿一丁目)
-        if (addr) {
-          addressCache[cacheKey] = addr;
-          return addr;
-        }
+    const gsiRes = await fetch(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${latNum}&lon=${lngNum}`);
+    if (gsiRes.ok) {
+      const gsiData = await gsiRes.json();
+      if (gsiData && gsiData.results && gsiData.results.lv01Nm) {
+         // lv01Nm には 「西新宿六丁目」などの正確な町丁名が入る
+        town = gsiData.results.lv01Nm;
       }
     }
   } catch (e) {
     console.warn('国土地理院 API取得エラー:', e);
   }
 
+  // 3. 取得できた情報を結合して住所文字列を作成
+  const addr = `${prefecture}${city}${town}`.trim();
+
+  if (addr) {
+    addressCache[cacheKey] = addr;
+    return addr;
+  }
+
+  // APIから住所が取得できなかった場合は、元の緯度経度を返す
   return clean;
 }
 
