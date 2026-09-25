@@ -259,6 +259,34 @@ function toggleDirectMailArea(modalId) {
   }
 }
 
+// 緯度経度文字列を実際の住所文字列に変換する関数
+async function reverseGeocode(coordsStr) {
+  if (!coordsStr || coordsStr === '位置情報未取得') return '位置情報未取得';
+  if (!/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(coordsStr.trim())) {
+    return coordsStr;
+  }
+  const [lat, lng] = coordsStr.split(',').map(s => s.trim());
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.address) {
+        const a = data.address;
+        const state = a.province || a.state || '';
+        const city = a.city || a.ward || a.city_district || a.town || '';
+        const suburb = a.suburb || a.neighbourhood || a.quarter || '';
+        const road = a.road || '';
+        const houseNumber = a.house_number || '';
+        const addr = `${state}${city}${suburb}${road}${houseNumber}`.trim();
+        return addr || data.display_name || coordsStr;
+      }
+    }
+  } catch (e) {
+    console.error('住所変換エラー:', e);
+  }
+  return coordsStr;
+}
+
 async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (安藤 健太郎)"）
   document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
