@@ -259,15 +259,43 @@ function toggleDirectMailArea(modalId) {
   }
 }
 
-// 緯度経度文字列を実際の住所文字列に変換する関数
+// 住所変換結果のメモリキャッシュ用オブジェクト
+const addressCache = {};
+
+// 緯度経度文字列を実際の住所文字列に変換する関数 (HeartRails API & キャッシュ対応)
 async function reverseGeocode(coordsStr) {
   if (!coordsStr || coordsStr === '位置情報未取得') return '位置情報未取得';
-  if (!/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(coordsStr.trim())) {
-    return coordsStr;
+  const clean = coordsStr.trim();
+  if (!/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(clean)) {
+    return clean;
   }
-  const [lat, lng] = coordsStr.split(',').map(s => s.trim());
+
+  // 小数点第4位で丸めた座標をキャッシュキーにし、連続・重複リクエストをブロック
+  const [latNum, lngNum] = clean.split(',').map(Number);
+  const cacheKey = `${latNum.toFixed(4)},${lngNum.toFixed(4)}`;
+  if (addressCache[cacheKey]) {
+    return addressCache[cacheKey];
+  }
+
+  // 1. 日本国内向けHeartRails Express API（CORS制限なし・高速処理）
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`);
+    const res = await fetch(`https://express.heartrails.com/api/json?method=getTowns&x=${lngNum}&y=${latNum}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.response && data.response.location && data.response.location.length > 0) {
+        const loc = data.response.location[0];
+        const addr = `${loc.prefecture}${loc.city}${loc.town}`;
+        addressCache[cacheKey] = addr;
+        return addr;
+      }
+    }
+  } catch (e) {
+    console.warn('HeartRails API取得エラー:', e);
+  }
+
+  // 2. バックアップ：Nominatim (OpenStreetMap)
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latNum}&lon=${lngNum}&accept-language=ja`);
     if (res.ok) {
       const data = await res.json();
       if (data && data.address) {
@@ -276,15 +304,18 @@ async function reverseGeocode(coordsStr) {
         const city = a.city || a.ward || a.city_district || a.town || '';
         const suburb = a.suburb || a.neighbourhood || a.quarter || '';
         const road = a.road || '';
-        const houseNumber = a.house_number || '';
-        const addr = `${state}${city}${suburb}${road}${houseNumber}`.trim();
-        return addr || data.display_name || coordsStr;
+        const addr = `${state}${city}${suburb}${road}`.trim();
+        if (addr) {
+          addressCache[cacheKey] = addr;
+          return addr;
+        }
       }
     }
   } catch (e) {
-    console.error('住所変換エラー:', e);
+    console.warn('OSM API取得エラー:', e);
   }
-  return coordsStr;
+
+  return clean;
 }
 
 async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
@@ -1375,34 +1406,6 @@ function changeDailyDate(offset) {
     currentDailyDate.setDate(currentDailyDate.getDate() + offset);
   }
   renderDailyTable();
-}
-
-// 緯度経度文字列を実際の住所文字列に変換する関数
-async function reverseGeocode(coordsStr) {
-  if (!coordsStr || coordsStr === '位置情報未取得') return '位置情報未取得';
-  if (!/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(coordsStr.trim())) {
-    return coordsStr;
-  }
-  const [lat, lng] = coordsStr.split(',').map(s => s.trim());
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.address) {
-        const a = data.address;
-        const state = a.province || a.state || '';
-        const city = a.city || a.ward || a.city_district || a.town || '';
-        const suburb = a.suburb || a.neighbourhood || a.quarter || '';
-        const road = a.road || '';
-        const houseNumber = a.house_number || '';
-        const addr = `${state}${city}${suburb}${road}${houseNumber}`.trim();
-        return addr || data.display_name || coordsStr;
-      }
-    }
-  } catch (e) {
-    console.error('住所変換エラー:', e);
-  }
-  return coordsStr;
 }
 
 async function renderDailyTable() {
