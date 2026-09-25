@@ -262,7 +262,7 @@ function toggleDirectMailArea(modalId) {
 // 住所変換結果のメモリキャッシュ用オブジェクト
 const addressCache = {};
 
-// 緯度経度文字列を実際の住所文字列に変換する関数 (HeartRails API & キャッシュ対応)
+// 緯度経度文字列を実際の住所文字列に変換する関数 (CORS対応API＋キャッシュ対応)
 async function reverseGeocode(coordsStr) {
   if (!coordsStr || coordsStr === '位置情報未取得') return '位置情報未取得';
   const clean = coordsStr.trim();
@@ -270,41 +270,44 @@ async function reverseGeocode(coordsStr) {
     return clean;
   }
 
-  // 小数点第4位で丸めた座標をキャッシュキーにし、連続・重複リクエストをブロック
+  // 小数点第4位で丸めた座標をキャッシュキーにし、不要なリクエストをブロック
   const [latNum, lngNum] = clean.split(',').map(Number);
   const cacheKey = `${latNum.toFixed(4)},${lngNum.toFixed(4)}`;
   if (addressCache[cacheKey]) {
     return addressCache[cacheKey];
   }
 
-  // 1. 日本国内向けHeartRails Express API（CORS制限なし・高速処理）
+  // 1. BigDataCloud Reverse Geocoding API (CORS完全対応・日本語住所対応)
   try {
-    const res = await fetch(`https://express.heartrails.com/api/json?method=getTowns&x=${lngNum}&y=${latNum}`);
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latNum}&longitude=${lngNum}&localityLanguage=ja`);
     if (res.ok) {
       const data = await res.json();
-      if (data && data.response && data.response.location && data.response.location.length > 0) {
-        const loc = data.response.location[0];
-        const addr = `${loc.prefecture}${loc.city}${loc.town}`;
+      const state = data.principalSubdivision || ''; // 都道府県 (例: 東京都)
+      const city = data.locality || data.city || '';  // 市区町村 (例: 新宿区)
+      
+      let localityName = '';
+      if (data.localityInfo && data.localityInfo.informative) {
+        const sub = data.localityInfo.informative.find(i => i.order === 4 || i.order === 5);
+        if (sub) localityName = sub.name;
+      }
+      
+      const addr = `${state}${city}${localityName}`.trim();
+      if (addr) {
         addressCache[cacheKey] = addr;
         return addr;
       }
     }
   } catch (e) {
-    console.warn('HeartRails API取得エラー:', e);
+    console.warn('BigDataCloud API取得エラー:', e);
   }
 
-  // 2. バックアップ：Nominatim (OpenStreetMap)
+  // 2. バックアップ：国土地理院 逆ジオコーディング API (CORS対応)
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latNum}&lon=${lngNum}&accept-language=ja`);
+    const res = await fetch(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${latNum}&lon=${lngNum}`);
     if (res.ok) {
       const data = await res.json();
-      if (data && data.address) {
-        const a = data.address;
-        const state = a.province || a.state || '';
-        const city = a.city || a.ward || a.city_district || a.town || '';
-        const suburb = a.suburb || a.neighbourhood || a.quarter || '';
-        const road = a.road || '';
-        const addr = `${state}${city}${suburb}${road}`.trim();
+      if (data && data.results && data.results.lv01Nm) {
+        const addr = data.results.lv01Nm; // 町名・丁目 (例: 西新宿一丁目)
         if (addr) {
           addressCache[cacheKey] = addr;
           return addr;
@@ -312,7 +315,7 @@ async function reverseGeocode(coordsStr) {
       }
     }
   } catch (e) {
-    console.warn('OSM API取得エラー:', e);
+    console.warn('国土地理院 API取得エラー:', e);
   }
 
   return clean;
@@ -354,7 +357,7 @@ async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
 
     // メール文章のクリーニング（位置情報タグ [IN_LOC:...] や [OUT_LOC:...] を除去）
     let targetText = emailContent || '';
-    targetText = targetText.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '').trim();
+    targetText = targetText.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim();
 
     if (targetText.includes('直行') && targetText.includes('直帰')) {
       const parts = targetText.split('直帰');
@@ -1313,7 +1316,7 @@ for (let i = 1; i <= daysInMonth; i++) {
             if (hasDirectOut) directTags.push('直帰');
 
             let cleanMemo = att.memo
-              .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, '')
               .replace(/休日出勤/g, '')
@@ -1480,7 +1483,7 @@ async function renderDailyTable() {
       }
       
       let cleanMemo = att.memo
-        .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
         .replace(/休日出勤/g, '')
@@ -1524,7 +1527,7 @@ async function renderDailyTable() {
     const inAddress = inCoords ? await reverseGeocode(inCoords) : '位置情報未取得';
     const outAddress = outCoords ? await reverseGeocode(outCoords) : '位置情報未取得';
 
-    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
+    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
 
     // 各スロットの位置を固定するための透明スペーサー
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
