@@ -306,6 +306,35 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ==========================================
+// メールテンプレートAPI (ユーザー別取得・保存)
+// ==========================================
+app.get('/api/mail-templates', (req, res) => {
+  const { employee_id, type } = req.query;
+  const sql = 'SELECT * FROM mail_templates WHERE employee_id = ? AND type = ? ORDER BY id ASC';
+  db.query(sql, [employee_id, type], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+});
+
+app.post('/api/mail-templates', (req, res) => {
+  const { id, employee_id, type, name, body } = req.body;
+  if (id) {
+    const sql = 'UPDATE mail_templates SET name = ?, body = ? WHERE id = ?';
+    db.query(sql, [name, body, id], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'テンプレートを更新しました' });
+    });
+  } else {
+    const sql = 'INSERT INTO mail_templates (employee_id, type, name, body) VALUES (?, ?, ?, ?)';
+    db.query(sql, [employee_id, type, name, body], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'テンプレートを作成しました', id: result.insertId });
+    });
+  }
+});
+
+// ==========================================
 // AWS Lambda 用のエクスポート設定
 // ==========================================
 const serverless = require('serverless-http');
