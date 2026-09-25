@@ -259,11 +259,17 @@ function toggleDirectMailArea(modalId) {
   }
 }
 
-function openMapModal(empName, actionStr, addressStr, emailContent = '') {
+async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (安藤 健太郎)"）
   document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
   
-  const displayAddress = addressStr && addressStr !== '位置情報未取得' ? `打刻位置 (GPS): ${addressStr}` : '位置情報が記録されていません';
+  // 渡された位置情報が緯度経度（数値,数値）の場合は、自動で住所文字列に変換
+  let resolvedAddress = addressStr;
+  if (addressStr && /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(addressStr.trim())) {
+    resolvedAddress = await reverseGeocode(addressStr);
+  }
+
+  const displayAddress = resolvedAddress && resolvedAddress !== '位置情報未取得' ? `打刻位置: ${resolvedAddress}` : '位置情報が記録されていません';
   document.getElementById('map-modal-address').textContent = displayAddress;
   
   const mapIframe = document.getElementById('map-iframe');
@@ -282,14 +288,14 @@ function openMapModal(empName, actionStr, addressStr, emailContent = '') {
     modalBody.classList.add('map-modal-wide');
     emailArea.classList.remove('hidden');
     
-    // 件名の組み立て（「件名t直行 苗字」形式で1行表示）
+    // 件名の組み立て（「件名 直行 苗字」形式で1行表示）
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
     if (emailSubject) emailSubject.textContent = `件名 ${typeStr} ${lastName}`;
 
     // メール文章のクリーニング（位置情報タグ [IN_LOC:...] や [OUT_LOC:...] を除去）
     let targetText = emailContent || '';
-    targetText = targetText.replace(/\[(IN|OUT)_LOC:[^\]]+\]/g, '').trim();
+    targetText = targetText.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '').trim();
 
     if (targetText.includes('直行') && targetText.includes('直帰')) {
       const parts = targetText.split('直帰');
