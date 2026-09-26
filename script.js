@@ -507,29 +507,24 @@ function handleCellAction(actionType) {
       if (hasDirectIn) directTags.push('直行');
       if (hasDirectOut) directTags.push('直帰');
 
-      // 2. GPSタグ・システムタグ・直行直帰キーワードの除去
+// 2. GPSタグ・システムタグの除去
       let cleanMemo = raw
         .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
-        .replace(/休日出勤/g, '')
-        .replace(/直行/g, '')
-        .replace(/直帰/g, '');
+        .replace(/休日出勤/g, '');
 
-      // 3. メール定型句（テンプレート文面）の除去
-      const mailKeywords = [
-        'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
-        '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
-        'その他：', 'その他 :', '以上にて', '本日もよろしく'
-      ];
+      // 3. 「直行」「直帰」が含まれている場合は、それ以降のメール本文をバッサリ削除する
+      if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
+          const parts = cleanMemo.split('直帰');
+          cleanMemo = parts[0].split('直行')[0]; 
+      } else if (cleanMemo.includes('直行')) {
+          cleanMemo = cleanMemo.split('直行')[0];
+      } else if (cleanMemo.includes('直帰')) {
+          cleanMemo = cleanMemo.split('直帰')[0];
+      }
 
-      let lines = cleanMemo.split('\n').filter(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return false;
-        return !mailKeywords.some(kw => trimmed.includes(kw));
-      });
-
-      let otherMemo = lines.join('\n').trim();
+      let otherMemo = cleanMemo.trim(); // 残った純粋な手動メモだけを取得
 
       // 4. メモ欄用の表示テキスト作成（「直行・直帰」＋手動メモのみ）
       let memoParts = [];
@@ -1313,27 +1308,24 @@ for (let i = 1; i <= daysInMonth; i++) {
             if (hasDirectIn) directTags.push('直行');
             if (hasDirectOut) directTags.push('直帰');
 
+// 1. 位置情報タグなどの除去
             let cleanMemo = att.memo
               .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, '')
-              .replace(/休日出勤/g, '')
-              .replace(/直行/g, '')
-              .replace(/直帰/g, '');
+              .replace(/休日出勤/g, '');
 
-            const mailKeywords = [
-              'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
-              '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
-              'その他：', 'その他 :', '以上にて', '本日もよろしく'
-            ];
+            // 2. 「直行」「直帰」が含まれている場合は、それ以降のメール本文をバッサリ削除する
+            if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
+                const parts = cleanMemo.split('直帰');
+                cleanMemo = parts[0].split('直行')[0]; // 直行・直帰両方ある場合は最初の「直行」より前だけ残す
+            } else if (cleanMemo.includes('直行')) {
+                cleanMemo = cleanMemo.split('直行')[0];
+            } else if (cleanMemo.includes('直帰')) {
+                cleanMemo = cleanMemo.split('直帰')[0];
+            }
 
-            let lines = cleanMemo.split('\n').filter(line => {
-              const trimmed = line.trim();
-              if (!trimmed) return false;
-              return !mailKeywords.some(kw => trimmed.includes(kw));
-            });
-
-            let otherMemo = lines.join('\n').trim();
+            let otherMemo = cleanMemo.trim(); // 残った純粋な手動メモだけを取得
 
             let tooltipParts = [];
             if (directTags.length > 0) {
