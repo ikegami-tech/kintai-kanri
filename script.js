@@ -2367,7 +2367,7 @@ let tcSelectedEmp = null;
 let tcInitialFilter = 'ALL';
 let tcClockTimer = null;
 let tcTodayAttendances = {};
-let isTcLocationOn = false; // 位置情報ON/OFFフラグ（初期値OFF）
+let isTcLocationOn = true; // 位置情報ON/OFFフラグ（初期値ONに変更）
 
 // 位置情報ON/OFF切り替え関数
 function toggleTcLocation() {
@@ -2406,6 +2406,13 @@ function toggleTcLocation() {
 // Web打刻画面の初期化
 async function initWebTimeclock() {
   startTcClock();
+  
+  // 画面初期化時にボタンをON状態（緑色）にする
+  const btn = document.getElementById('tc-location-toggle-btn');
+  const text = document.getElementById('tc-loc-text');
+  if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
+  if (text) text.textContent = 'ON';
+
   await loadTcEmpList();
 }
 
@@ -2589,6 +2596,7 @@ function setBtnState(btnEl, enable) {
 }
 
 let currentTcActionType = '';
+let currentTcActionTime = ''; // ★追加：打刻ボタンを押した時間
 
 // 打刻実行処理（位置情報チェック & 分岐制御）
 async function executeWebTimeclock(actionType) {
@@ -2604,6 +2612,10 @@ async function executeWebTimeclock(actionType) {
 
   // 2. 「直行」「直帰」の場合はメール作成・確認モーダルを開く
   if (actionType === '直行' || actionType === '直帰') {
+    // ★追加：ボタンを押した現在時刻を保存 (例: 09:32)
+    const now = new Date();
+    currentTcActionTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
     openTcMailModal(actionType);
     return;
   }
@@ -2654,9 +2666,12 @@ async function loadTcUserTemplates(employeeId, actionType) {
 
   // 1つもテンプレートがない場合はデフォルトテンプレート1を初期登録
   if (tcUserTemplates.length === 0) {
+    // ★修正：末尾に自動送信のフッターを追加
+    const footerText = "\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。";
+    
     const defaultBody = actionType === '直行'
-      ? `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。`
-      : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。`;
+      ? `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。${footerText}`
+      : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。${footerText}`;
 
     try {
       const createRes = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
@@ -2701,7 +2716,14 @@ function selectTcTemplate(templateId) {
   tcActiveTemplateId = templateId;
   const tpl = tcUserTemplates.find(t => t.id === templateId);
   if (tpl) {
-    document.getElementById('tc-mail-body').value = tpl.body || '';
+    let bodyText = tpl.body || '';
+    
+    // ★追加：「打刻：」の行を見つけ、その後ろの文字列を直行直帰ボタンを押した現在時刻で上書きする
+    if (currentTcActionTime) {
+      bodyText = bodyText.replace(/(打刻\s*[:：])([^\n]*)/g, `$1 ${currentTcActionTime}`);
+    }
+    
+    document.getElementById('tc-mail-body').value = bodyText;
   }
   renderTcTemplateButtons();
 }
