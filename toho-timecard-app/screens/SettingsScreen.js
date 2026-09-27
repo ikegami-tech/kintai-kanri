@@ -10,19 +10,23 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
 
 export default function SettingsScreen() {
+  // 既存のステート
   const [defaultEmail, setDefaultEmail] = useState('kintai@toho-next.com');
   const [locationStatus, setLocationStatus] = useState('確認中...');
   const [testingGps, setTestingGps] = useState(false);
   const [gpsResult, setGpsResult] = useState('');
-  
-  // 開いている詳細モーダルの種類 ('mail', 'gps', 'info', null)
   const [activeModal, setActiveModal] = useState(null);
+
+  // 新規追加：スマレジ風トグルスイッチ用ステート
+  const [isPhotoDisplayMode, setIsPhotoDisplayMode] = useState(true);
+  const [isShowBulletin, setIsShowBulletin] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -48,7 +52,7 @@ export default function SettingsScreen() {
     try {
       await AsyncStorage.setItem('@default_mail_to', defaultEmail.trim());
       Alert.alert('保存完了', 'デフォルトの送信先メールアドレスを保存しました。');
-      setActiveModal(null); // 保存後にモーダルを閉じる
+      setActiveModal(null);
     } catch (e) {
       console.error('設定保存エラー:', e);
       Alert.alert('エラー', '設定の保存に失敗しました。');
@@ -88,12 +92,104 @@ export default function SettingsScreen() {
     }
   };
 
+  // 準備中機能のアラート
+  const showComingSoon = () => {
+    Alert.alert('お知らせ', 'この機能は現在準備中です。');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* スマレジ風 リスト形式の設定メニュー */}
-        <Text style={styles.sectionHeader}>アプリ設定</Text>
+        {/* --- グループ1：基本設定 --- */}
+        <View style={[styles.listGroup, { marginTop: 0 }]}>
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>アカウント情報</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.listValue}>toho-next</Text>
+              <Text style={styles.chevron}>＞</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.listItem}>
+            <Text style={styles.listTitle}>写真表示モード</Text>
+            <View style={styles.listRight}>
+              <Switch
+                value={isPhotoDisplayMode}
+                onValueChange={setIsPhotoDisplayMode}
+                trackColor={{ true: COLORS.primary || '#0073ea', false: '#dcdfe6' }}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>従業員選択方法</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.chevron}>＞</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.listItem, { borderBottomWidth: 0 }]}>
+            <Text style={styles.listTitle}>掲示板を表示する</Text>
+            <View style={styles.listRight}>
+              <Switch
+                value={isShowBulletin}
+                onValueChange={setIsShowBulletin}
+                trackColor={{ true: COLORS.primary || '#0073ea', false: '#dcdfe6' }}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* --- グループ2：端末セキュリティロック --- */}
+        <Text style={styles.sectionHeader}>端末セキュリティロック</Text>
+        <View style={styles.listGroup}>
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>利用する</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.listValue}>Off</Text>
+              <Text style={styles.chevron}>＞</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* --- グループ3：事業所 --- */}
+        <Text style={styles.sectionHeader}>事業所</Text>
+        <View style={styles.listGroup}>
+          <View style={styles.listItem}>
+            <Text style={styles.listTitle}>事業所名</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.listValue}>東宝ハウス NEXT 事業部</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>写真を撮る</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.chevron}>＞</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>写真管理</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.chevron}>＞</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>写真撮影を必須にする</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.listValue}>Off</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.listItem} onPress={showComingSoon}>
+            <Text style={styles.listTitle}>位置情報を必須にする</Text>
+            <View style={styles.listRight}>
+              <Text style={[styles.listValue, { color: COLORS.primary || '#0073ea', fontWeight: 'bold' }]}>On</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* --- グループ4：タイムカード専用設定 --- */}
+        <Text style={styles.sectionHeader}>タイムカード連携機能</Text>
         <View style={styles.listGroup}>
           <TouchableOpacity style={styles.listItem} onPress={() => setActiveModal('mail')}>
             <Text style={styles.listTitle}>メール送信設定</Text>
@@ -114,8 +210,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* --- グループ5：システム --- */}
         <Text style={styles.sectionHeader}>システム</Text>
-        <View style={styles.listGroup}>
+        <View style={[styles.listGroup, { marginBottom: 30 }]}>
           <TouchableOpacity style={styles.listItem} onPress={() => setActiveModal('info')}>
             <Text style={styles.listTitle}>アプリ情報</Text>
             <View style={styles.listRight}>
@@ -130,7 +227,6 @@ export default function SettingsScreen() {
       {/* --- 詳細設定モーダル群 --- */}
       <Modal visible={activeModal !== null} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modalContainer}>
-          {/* モーダルヘッダー */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setActiveModal(null)} style={styles.backBtnBox}>
               <Text style={styles.backBtn}>＜ 戻る</Text>
@@ -138,11 +234,10 @@ export default function SettingsScreen() {
             <Text style={styles.modalHeaderTitle}>
               {activeModal === 'mail' ? 'メール送信設定' : activeModal === 'gps' ? '位置情報 (GPS) 診断' : 'アプリ情報'}
             </Text>
-            <View style={styles.backBtnBox} /> {/* レイアウト調整用 */}
+            <View style={styles.backBtnBox} />
           </View>
 
           <View style={styles.modalBody}>
-            {/* 1. メール送信設定の詳細 */}
             {activeModal === 'mail' && (
               <View style={styles.detailCard}>
                 <Text style={styles.inputLabel}>直行・直帰連絡のデフォルト送信先</Text>
@@ -159,7 +254,6 @@ export default function SettingsScreen() {
               </View>
             )}
 
-            {/* 2. GPS診断の詳細 */}
             {activeModal === 'gps' && (
               <View style={styles.detailCard}>
                 <View style={styles.statusRow}>
@@ -168,7 +262,6 @@ export default function SettingsScreen() {
                     {locationStatus}
                   </Text>
                 </View>
-
                 <TouchableOpacity style={styles.testBtn} onPress={testGpsLocation} disabled={testingGps}>
                   {testingGps ? (
                     <ActivityIndicator color="#ffffff" size="small" />
@@ -176,7 +269,6 @@ export default function SettingsScreen() {
                     <Text style={styles.testBtnText}>GPS取得テストを実行</Text>
                   )}
                 </TouchableOpacity>
-
                 {gpsResult !== '' && (
                   <View style={styles.resultBox}>
                     <Text style={styles.resultText}>{gpsResult}</Text>
@@ -185,7 +277,6 @@ export default function SettingsScreen() {
               </View>
             )}
 
-            {/* 3. アプリ情報の詳細 */}
             {activeModal === 'info' && (
               <View style={styles.detailCard}>
                 <View style={styles.infoRow}>
@@ -216,14 +307,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f4f7f9',
   },
   scrollContent: {
-    paddingTop: 10,
+    paddingTop: 20,
   },
   sectionHeader: {
     fontSize: 13,
-    color: '#666666',
+    color: '#888888',
     marginLeft: 16,
     marginBottom: 6,
-    marginTop: 16,
+    marginTop: 24,
   },
   listGroup: {
     backgroundColor: '#ffffff',
@@ -235,7 +326,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f4f8',
@@ -247,7 +338,7 @@ const styles = StyleSheet.create({
   listRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    maxWidth: '50%',
+    maxWidth: '60%',
   },
   listValue: {
     fontSize: 14,
@@ -267,8 +358,6 @@ const styles = StyleSheet.create({
     color: '#e74c3c',
     fontWeight: 'bold',
   },
-  
-  /* --- モーダル (詳細画面) 用スタイル --- */
   modalContainer: {
     flex: 1,
     backgroundColor: '#f4f7f9',
