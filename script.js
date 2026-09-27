@@ -464,9 +464,11 @@ function handleCellAction(actionType) {
     document.getElementById('edit-date').value = currentDate;
     
     let startH = '--', startM = '--', endH = '--', endM = '--';
+    let rawMemo = '';
     if (currentCellElement) {
       const clockIn = currentCellElement.dataset.clockIn;
       const clockOut = currentCellElement.dataset.clockOut;
+      rawMemo = currentCellElement.dataset.rawMemo || '';
       if (clockIn && clockIn.includes(':')) {
         const [h, m] = clockIn.split(':');
         startH = h; startM = m;
@@ -482,9 +484,14 @@ function handleCellAction(actionType) {
     document.getElementById('edit-start-m').value = startM;
     document.getElementById('edit-end-h').value = endH;
     document.getElementById('edit-end-m').value = endM;
+
+    // データに「直行」「直帰」が含まれているか判定してチェックボックスに反映
     const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
+    if (editCheckboxes.length >= 2) {
+      editCheckboxes[0].checked = rawMemo.includes('直行');
+      editCheckboxes[1].checked = rawMemo.includes('直帰');
+    }
     editCheckboxes.forEach(cb => {
-      cb.checked = false;
       cb.onchange = () => toggleDirectMailArea('modal-record-edit');
     });
     toggleDirectMailArea('modal-record-edit');
