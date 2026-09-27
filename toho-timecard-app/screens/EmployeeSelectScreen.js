@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,8 +8,15 @@ import {
   FlatList,
   ActivityIndicator,
   ScrollView,
+  RefreshControl,
+  Dimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../constants/theme';
+
+const screenWidth = Dimensions.get('window').width;
+// 4列にぴったり納めるカード幅の計算
+const cardWidth = (screenWidth - 10) / 4;
 
 // 五十音タブの定義
 const INITIAL_TABS = [
@@ -24,13 +31,41 @@ const INITIAL_TABS = [
   { label: 'ヤ', regex: /^[ヤ-ヨや-よ]/ },
   { label: 'ラ', regex: /^[ラ-ロら-ろ]/ },
   { label: 'ワ', regex: /^[ワ-ンわ-ん]/ },
-  { label: 'A-Z', regex: /^[A-Za-z]/ },
 ];
+
+// スマレジ風 線画顔アイコンコンポーネント
+const SmaregiFaceIcon = ({ isWorking }) => {
+  const color = isWorking ? '#ffffff' : '#788d9e';
+
+  return (
+    <View style={[styles.faceCircle, { borderColor: color }]}>
+      <View style={styles.faceEyesRow}>
+        {isWorking ? (
+          <>
+            {/* 左目: ウインク */}
+            <View style={[styles.winkEye, { borderColor: color }]} />
+            {/* 右目: 点 */}
+            <View style={[styles.openEye, { backgroundColor: color }]} />
+          </>
+        ) : (
+          <>
+            {/* 閉じた目（両目） */}
+            <View style={[styles.closedEye, { borderColor: color }]} />
+            <View style={[styles.closedEye, { borderColor: color }]} />
+          </>
+        )}
+      </View>
+      {/* スマイル口 */}
+      <View style={[styles.smileMouth, { borderColor: color }]} />
+    </View>
+  );
+};
 
 export default function EmployeeSelectScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('ALL');
   const [time, setTime] = useState(new Date());
 
@@ -40,12 +75,21 @@ export default function EmployeeSelectScreen({ navigation }) {
     return () => clearInterval(timer);
   }, []);
 
-  // バックエンドAPIから従業員一覧 & 本日の打刻データを取得
-  useEffect(() => {
-    fetchEmployees();
-    fetchTodayAttendances();
-  }, []);
+  // 従業員一覧データ取得
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const activeEmps = data.filter((e) => e.status !== '利用停止');
+        setEmployees(activeEmps);
+      }
+    } catch (error) {
+      console.error('従業員取得エラー:', error);
+    }
+  };
 
+  // 当日の打刻データ取得
   const fetchTodayAttendances = async () => {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -54,10 +98,13 @@ export default function EmployeeSelectScreen({ navigation }) {
     const todayStr = `${yyyy}-${mm}-${dd}`;
 
     try {
-      const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}`, { cache: 'no-store' });
+      const res = await fetch(
+        `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}`,
+        { cache: 'no-store' }
+      );
       if (res.ok) {
         const data = await res.json();
-        const todayData = data.filter(item => item.work_date === todayStr);
+        const todayData = data.filter((item) => item.work_date === todayStr);
         setAttendances(todayData);
       }
     } catch (e) {
@@ -65,46 +112,52 @@ export default function EmployeeSelectScreen({ navigation }) {
     }
   };
 
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees');
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        // 利用中の従業員のみ表示（退職者などを除く）
-        const activeEmps = data.filter(e => e.status !== '利用停止');
-        setEmployees(activeEmps);
-      }
-    } catch (error) {
-      console.error('従業員データ取得エラー:', error);
-    } finally {
+  // 画面フォーカス時（打刻画面から戻った際）の即時同期 & 1.2秒後の追同期
+  useFocusEffect(
+    useCallback(() => {
+      fetchEmployees();
+      fetchTodayAttendances();
       setLoading(false);
-    }
+
+      // 打刻後のデータベース反映時間考慮（1.2秒後に自動で再同期）
+      const timer = setTimeout(() => {
+        fetchTodayAttendances();
+      }, 1200);
+
+      return () => clearTimeout(timer);
+    }, [])
+  );
+
+  // 手動更新 (Pull to Refresh & 右上更新ボタン)
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchEmployees(), fetchTodayAttendances()]);
+    setRefreshing(false);
   };
 
-  // 各タブごとの該当人数を計算
+  // タブ別人数のカウント計算
   const getCountForTab = (tab) => {
     if (!tab.regex) return employees.length;
-    return employees.filter(e => e.kana && tab.regex.test(e.kana.trim())).length;
+    return employees.filter((e) => e.kana && tab.regex.test(e.kana.trim())).length;
   };
 
-  // 選択中タブに基づく従業員リストの絞り込み
-  const currentTabObj = INITIAL_TABS.find(t => t.label === selectedTab);
-  const filteredEmployees = employees.filter(e => {
+  // フィルタリング処理
+  const currentTabObj = INITIAL_TABS.find((t) => t.label === selectedTab);
+  const filteredEmployees = employees.filter((e) => {
     if (!currentTabObj || !currentTabObj.regex) return true;
     return e.kana && currentTabObj.regex.test(e.kana.trim());
   });
 
-  // 曜日表示のフォーマット
+  // 日時文字列の構築
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dateStr = `${String(time.getMonth() + 1).padStart(2, '0')}/${String(time.getDate()).padStart(2, '0')}`;
   const dayStr = dayNames[time.getDay()];
   const hhmmStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
   const ssStr = `:${String(time.getSeconds()).padStart(2, '0')}`;
 
-  // スマレジ風 4列カードのレンダリング
+  // 従業員カード項目のレンダリング
   const renderEmployeeItem = ({ item }) => {
-    const att = attendances.find(a => Number(a.employee_id) === Number(item.id));
+    const att = attendances.find((a) => Number(a.employee_id) === Number(item.id));
     const isWorking = att && att.clock_in && !att.clock_out;
     const clockInTime = att && att.clock_in ? att.clock_in.substring(0, 5) : '';
 
@@ -114,7 +167,7 @@ export default function EmployeeSelectScreen({ navigation }) {
         activeOpacity={0.8}
         onPress={() => navigation.navigate('TimeClock', { empId: item.id, empName: item.name })}
       >
-        {/* 出勤中時刻バッジ */}
+        {/* 出勤時間バッジ */}
         {isWorking ? (
           <View style={styles.timeBadge}>
             <Text style={styles.timeBadgeText}>○ {clockInTime}</Text>
@@ -123,13 +176,11 @@ export default function EmployeeSelectScreen({ navigation }) {
           <View style={styles.timeBadgePlaceholder} />
         )}
 
-        {/* スマレジ風 表情アイコン (出勤中: 😉 / 未出勤: 😌) */}
-        <View style={styles.faceIconBox}>
-          <Text style={styles.faceIcon}>{isWorking ? '😉' : '😌'}</Text>
-        </View>
+        {/* スマレジ風 線画顔アイコン */}
+        <SmaregiFaceIcon isWorking={isWorking} />
 
         {/* 従業員名 */}
-        <Text style={styles.empNameText} numberOfLines={2}>
+        <Text style={[styles.empNameText, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -138,20 +189,30 @@ export default function EmployeeSelectScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 上部：日付 & リアルタイムデジタル時計 */}
+      {/* 画面上部：リアルタイム時計 & 右上更新ボタン */}
       <View style={styles.headerClockBar}>
-        <Text style={styles.headerDateText}>{dateStr}<Text style={styles.headerDayText}>{dayStr}</Text></Text>
+        <View style={styles.headerDateBox}>
+          <Text style={styles.headerDateText}>
+            {dateStr}
+            <Text style={styles.headerDayText}>{dayStr}</Text>
+          </Text>
+        </View>
+
         <View style={styles.clockBox}>
           <Text style={styles.clockMainText}>{hhmmStr}</Text>
           <Text style={styles.clockSecText}>{ssStr}</Text>
         </View>
+
+        {/* 右上更新ボタン */}
+        <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh} activeOpacity={0.6}>
+          <Text style={styles.refreshIcon}>↻</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* メイン：スマレジ風 4列グリッド従業員一覧 */}
+      {/* メイン：スマレジ風 4列ピッタリ配置リスト */}
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={COLORS.primary || '#0073ea'} />
-          <Text style={styles.loadingText}>従業員データを読み込み中...</Text>
         </View>
       ) : (
         <FlatList
@@ -160,6 +221,9 @@ export default function EmployeeSelectScreen({ navigation }) {
           renderItem={renderEmployeeItem}
           numColumns={4}
           contentContainerStyle={styles.gridContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary || '#0073ea']} />
+          }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Text style={styles.emptyText}>該当する従業員がいません</Text>
@@ -168,7 +232,7 @@ export default function EmployeeSelectScreen({ navigation }) {
         />
       )}
 
-      {/* 画面下部：スマレジ風 五十音別人数カウントタブ */}
+      {/* 画面下部：五十音別人数カウントタブ */}
       <View style={styles.bottomTabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
           {INITIAL_TABS.map((tab) => {
@@ -194,107 +258,155 @@ export default function EmployeeSelectScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#eef4f9',
+    backgroundColor: '#eaf1f8',
   },
-  /* 上部ヘッダー時計 */
+  /* ヘッダー時計 & 右上更新ボタン */
   headerClockBar: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#ffffff',
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#dbe5ef',
-    gap: 16,
+    borderBottomColor: '#d6e2ee',
+  },
+  headerDateBox: {
+    width: 80,
   },
   headerDateText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#334155',
   },
   headerDayText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#64748b',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   clockBox: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   clockMainText: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: 'bold',
     color: COLORS.primary || '#0073ea',
     fontFamily: 'monospace',
   },
   clockSecText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary || '#0073ea',
     fontFamily: 'monospace',
+  },
+  refreshBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  refreshIcon: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primary || '#0073ea',
+    marginTop: -2,
   },
   loadingBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 13,
-    color: COLORS.textSub || '#666666',
-  },
-  /* 4列グリッドリスト */
+  /* 4列ピッタリレイアウト */
   gridContainer: {
-    padding: 6,
+    paddingHorizontal: 3,
+    paddingTop: 4,
     paddingBottom: 20,
   },
   cardItem: {
-    flex: 1,
-    margin: 4,
-    height: 110,
-    borderRadius: 8,
-    padding: 6,
+    width: cardWidth,
+    height: 96,
+    margin: 1,
+    borderRadius: 3,
+    padding: 4,
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
   },
-  /* 出勤中: TOHOブルー鮮やか背景 */
   cardWorking: {
-    backgroundColor: '#80c2ff',
-    borderColor: '#0073ea',
+    backgroundColor: COLORS.primary || '#0073ea',
+    borderColor: '#005bb5',
   },
-  /* 未出勤: 明るいブルーグレー背景 */
   cardOff: {
-    backgroundColor: '#dbe7f2',
-    borderColor: '#c0d3e5',
+    backgroundColor: '#dce7f2',
+    borderColor: '#b8ccdf',
   },
   timeBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: 1,
+    paddingHorizontal: 5,
+    borderRadius: 8,
   },
   timeBadgeText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: 'bold',
     color: COLORS.primary || '#0073ea',
   },
   timeBadgePlaceholder: {
-    height: 16,
+    height: 14,
   },
-  faceIconBox: {
-    alignItems: 'center',
+  /* 線画顔アイコンのCSS描画 */
+  faceCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  faceIcon: {
-    fontSize: 32,
+  faceEyesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 18,
+    marginBottom: 4,
+    alignItems: 'center',
+  },
+  winkEye: {
+    width: 6,
+    height: 3,
+    borderTopWidth: 1.5,
+    borderRadius: 3,
+  },
+  openEye: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  closedEye: {
+    width: 5,
+    height: 3,
+    borderBottomWidth: 1.5,
+    borderRadius: 2,
+  },
+  smileMouth: {
+    width: 14,
+    height: 6,
+    borderBottomWidth: 1.5,
+    borderRadius: 7,
   },
   empNameText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#1e293b',
     textAlign: 'center',
+  },
+  empNameWorkingText: {
+    color: '#ffffff',
   },
   emptyBox: {
     padding: 40,
@@ -302,32 +414,35 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: COLORS.textSub || '#666666',
+    color: '#666666',
   },
   /* 下部五十音タブ */
   bottomTabBar: {
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderTopColor: '#dbe5ef',
+    borderTopColor: '#cbd5e1',
     paddingVertical: 6,
   },
   tabScroll: {
-    paddingHorizontal: 8,
-    gap: 6,
+    paddingHorizontal: 6,
   },
   tabBtn: {
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 5,
     backgroundColor: '#f1f5f9',
-    minWidth: 55,
+    marginHorizontal: 3,
+    minWidth: 52,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
   },
   tabBtnActive: {
     backgroundColor: COLORS.primary || '#0073ea',
+    borderColor: COLORS.primary || '#0073ea',
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#475569',
   },
@@ -335,9 +450,9 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   tabCount: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#64748b',
-    marginTop: 2,
+    marginTop: 1,
   },
   tabCountActive: {
     color: '#ffffff',
