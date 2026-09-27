@@ -1463,37 +1463,48 @@ async function renderDailyTable() {
         fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)}`;
       }
     }
-
-    // メモと管理者修正の判定
+// メモと管理者修正の判定
     let memoHtml = '';
     let pureMemo = '';
     if (att && att.memo) {
       if (att.memo.includes('管理者修正')) {
         timeStr = `<span class="time-edited">${timeStr}</span>`;
       }
-      
+
+      const hasDirectIn = att.memo.includes('直行');
+      const hasDirectOut = att.memo.includes('直帰');
+      let directTags = [];
+      if (hasDirectIn) directTags.push('直行');
+      if (hasDirectOut) directTags.push('直帰');
+
+      // 1. 位置情報タグなどの除去
       let cleanMemo = att.memo
-        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
-        .replace(/休日出勤/g, '')
-        .replace(/直行/g, '')
-        .replace(/直帰/g, '')
-        .replace(/・/g, '');
+        .replace(/休日出勤/g, '');
 
-      const mailKeywords = [
-        'おはようございます', 'お疲れ様です', '業務開始時間', '業務終了時間',
-        '開始場所', '終了場所', '業務内容', '業務相手', '打刻：', '打刻 :',
-        'その他：', 'その他 :', '以上にて', '本日もよろしく'
-      ];
+      // 2. 「直行」「直帰」が含まれている場合は、それ以降のメール本文・フッターをすべてカット
+      if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
+        const parts = cleanMemo.split('直帰');
+        cleanMemo = parts[0].split('直行')[0];
+      } else if (cleanMemo.includes('直行')) {
+        cleanMemo = cleanMemo.split('直行')[0];
+      } else if (cleanMemo.includes('直帰')) {
+        cleanMemo = cleanMemo.split('直帰')[0];
+      }
 
-      let lines = cleanMemo.split('\n').filter(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return false;
-        return !mailKeywords.some(kw => trimmed.includes(kw));
-      });
+      let otherMemo = cleanMemo.trim();
 
-      pureMemo = lines.join('\n').trim();
+      let tooltipParts = [];
+      if (directTags.length > 0) {
+        tooltipParts.push(directTags.join('・'));
+      }
+      if (otherMemo) {
+        tooltipParts.push(otherMemo);
+      }
+
+      pureMemo = tooltipParts.join('\n').trim();
 
       if (pureMemo) {
         memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
