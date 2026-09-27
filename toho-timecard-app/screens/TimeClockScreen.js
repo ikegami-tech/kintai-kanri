@@ -187,7 +187,14 @@ export default function TimeClockScreen({ route, navigation }) {
 
     setActionType(type);
     setActionTimeStr(hhmm);
-    setMailTo('kintai@toho-next.com');
+
+    // 保存されたメール設定を取得（未設定時はデフォルト値）
+    try {
+      const savedEmail = await AsyncStorage.getItem('@default_mail_to');
+      setMailTo(savedEmail || 'kintai@toho-next.com');
+    } catch (e) {
+      setMailTo('kintai@toho-next.com');
+    }
 
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     setMailSubject(`${type} ${lastName}`);
