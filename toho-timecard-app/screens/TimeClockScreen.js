@@ -340,42 +340,28 @@ export default function TimeClockScreen({ route, navigation }) {
         <Text style={styles.clockText}>{formatTime(time)}</Text>
       </View>
 
-      {/* 下部：4つの打刻ボタン */}
-      <View style={styles.actionGrid}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: COLORS.statusWorking }]}
-          activeOpacity={0.8}
-          onPress={() => handleSimpleClock('出勤')}
-        >
-          <Text style={styles.btnIcon}>☀️</Text>
-          <Text style={styles.btnLabel}>出勤</Text>
+      {/* 下部：スマレジ風 4等分フラットボタン */}
+      <View style={styles.actionGridSquare}>
+        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleSimpleClock('出勤')}>
+          <Text style={styles.btnLabelSquare}>出勤</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}
-          activeOpacity={0.8}
-          onPress={() => handleSimpleClock('退勤')}
-        >
-          <Text style={styles.btnIcon}>🌙</Text>
-          <Text style={styles.btnLabel}>退勤</Text>
+        
+        <View style={styles.btnDivider} />
+        
+        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleSimpleClock('退勤')}>
+          <Text style={styles.btnLabelSquare}>退勤</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: COLORS.statusDirect }]}
-          activeOpacity={0.8}
-          onPress={() => handleDirectClock('直行')}
-        >
-          <Text style={styles.btnIcon}>🚶‍♂️</Text>
-          <Text style={styles.btnLabel}>直行</Text>
+        
+        <View style={styles.btnDivider} />
+        
+        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleDirectClock('直行')}>
+          <Text style={styles.btnLabelSquare}>直行</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: COLORS.statusDirect }]}
-          activeOpacity={0.8}
-          onPress={() => handleDirectClock('直帰')}
-        >
-          <Text style={styles.btnIcon}>🏠</Text>
-          <Text style={styles.btnLabel}>直帰</Text>
+        
+        <View style={styles.btnDivider} />
+        
+        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleDirectClock('直帰')}>
+          <Text style={styles.btnLabelSquare}>直帰</Text>
         </TouchableOpacity>
       </View>
 
@@ -594,32 +580,28 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     letterSpacing: 2,
   },
-  actionGrid: {
+  /* スマレジ風 下部4等分ボタン */
+  actionGridSquare: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingBottom: 40,
-    paddingHorizontal: 10,
+    width: '100%',
+    height: 80,
+    backgroundColor: COLORS.primary || '#0073ea',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.4)',
   },
-  actionBtn: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+  actionBtnSquare: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
   },
-  btnIcon: {
-    fontSize: 24,
+  btnDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
-  btnLabel: {
+  btnLabelSquare: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 2,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
