@@ -138,16 +138,33 @@ export default function TimeClockScreen({ route, navigation }) {
       return;
     }
 
-    const payload = {
-      id: tplEditMode === 'edit' && activeTemplateId !== 'default' ? activeTemplateId : null,
-      employee_id: empId,
-      type: actionType,
-      name: tplNameInput.trim(),
-      body: tplBodyInput.trim(),
-    };
-
     try {
       setLoading(true);
+
+      // ★修正: 新規追加時、まだ「テンプレ1」が未保存の初期状態なら、一緒に「テンプレ1」も保存する
+      if (tplEditMode === 'add' && templates.length === 1 && templates[0].id === 'default') {
+        const defaultPayload = {
+          id: null,
+          employee_id: empId,
+          type: actionType,
+          name: templates[0].name,
+          body: templates[0].body,
+        };
+        await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultPayload),
+        });
+      }
+
+      const payload = {
+        id: tplEditMode === 'edit' && activeTemplateId !== 'default' ? activeTemplateId : null,
+        employee_id: empId,
+        type: actionType,
+        name: tplNameInput.trim(),
+        body: tplBodyInput.trim(),
+      };
+
       const res = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
