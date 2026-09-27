@@ -18,6 +18,7 @@ function TimecardStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="EmployeeSelect" component={EmployeeSelectScreen} />
       <Stack.Screen name="TimeClock" component={TimeClockScreen} />
+      <Stack.Screen name="History" component={HistoryScreen} />
     </Stack.Navigator>
   );
 }

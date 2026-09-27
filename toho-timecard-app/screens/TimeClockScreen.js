@@ -317,6 +317,12 @@ export default function TimeClockScreen({ route, navigation }) {
           <Text style={styles.backBtn}>＜ 従業員選択へ</Text>
         </TouchableOpacity>
         <Text style={styles.empTitle}>{empName} 様</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('History', { empId, empName })}
+          style={styles.backBtnBox}
+        >
+          <Text style={styles.backBtn}>履歴 📋</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 中央：リアルタイム時計 */}
