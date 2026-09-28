@@ -214,7 +214,6 @@ async function handleRouting() {
     return;
   }
 
-  // リロード等で従業員データが未読み込みの場合は先に自動取得
   if (currentEmployeeList.length === 0 && (path.includes('employee') || path === 'monthly' || path === 'daily' || path === 'overtime')) {
     await renderEmployees();
   }
@@ -225,14 +224,17 @@ async function handleRouting() {
   const targetElement = document.getElementById('page-' + path);
   if (targetElement) {
     targetElement.classList.remove('hidden');
+    // ★修正: 店舗を切り替えた際に月表示や一覧表示が正しく再描画されるように追加
     if (path === 'dashboard') renderDashboard();
+    if (path === 'monthly') renderMatrixTable();
     if (path === 'daily') renderDailyTable();
+    if (path === 'employees') renderEmployees();
     if (path === 'holiday-setting') renderHolidayCalendar();
     if (path === 'overtime') renderOvertimeTable();
     if (path === 'employee-detail' && currentEmpTargetId) showEmployeeDetail(currentEmpTargetId);
     if (path === 'employee-edit' && currentEmpTargetId) openEditEmployee();
     if (path === 'web-timeclock') initWebTimeclock();
-// ★追加：Web打刻画面初期化
+    if (path === 'shops') renderShops();
   }
 
   const titles = {
@@ -241,6 +243,7 @@ async function handleRouting() {
     'daily': '日表示',
     'overtime': '残業時間集計',
     'employees': '従業員一覧',
+    'shops': '店舗管理',
     'web-timeclock': 'Web打刻アプリ',
     'employee-detail': '従業員管理 (詳細)',
     'employee-edit': '従業員管理 (編集)',
@@ -258,6 +261,7 @@ async function handleRouting() {
     if (path === 'daily' && item.textContent.includes('日表示')) return true;
     if ((path === 'employees' || path.includes('employee-')) && item.textContent.includes('従業員')) return true;
     if (path === 'overtime' && item.textContent.includes('集計')) return true;
+    if (path === 'shops' && item.textContent.includes('店舗管理')) return true;
     return false;
   });
   
