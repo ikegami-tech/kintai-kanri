@@ -29,7 +29,9 @@ function initShopSelects() {
   const newSelect = document.getElementById('new-shop-id');
 
   let optionsHtml = '';
-  Object.keys(SHOP_LIST).forEach(id => {
+  // ★店舗ID（shop_01, shop_02...）の順にソートして順番を固定する
+  const sortedKeys = Object.keys(SHOP_LIST).sort();
+  sortedKeys.forEach(id => {
     optionsHtml += `<option value="${id}">${SHOP_LIST[id]}</option>`;
   });
 
@@ -1322,7 +1324,7 @@ async function renderMatrixTable() {
   theadHtml += `</tr>`;
   document.getElementById('matrix-thead').innerHTML = theadHtml;
 
-  // 2. バックエンドAPIから実際の打刻データを取得 (cache: 'no-store' でキャッシュによる未反映を完全ブロック)
+// 2. バックエンドAPIから実際の打刻データを取得 (選択中の店舗IDを付与)
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
@@ -1527,7 +1529,7 @@ async function renderDailyTable() {
   // 1. 全従業員一覧の取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
 
-  // 2. 指定年月の打刻データをRDSから取得
+// 2. 指定年月の打刻データをRDSから取得 (選択中の店舗IDを付与)
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
@@ -1719,7 +1721,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
   // 1. 全従業員データを取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
   
-  // 2. 指定された年月の打刻データを取得
+// 2. 指定された年月の打刻データを取得 (選択中の店舗IDを付与)
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
