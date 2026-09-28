@@ -1,22 +1,30 @@
 // ==========================================
-// 店舗マスタ定義 (全31店舗) & グローバル状態
+// 店舗マスタ定義 & グローバル状態
 // ==========================================
-const SHOP_LIST = {
-  'shop_01': 'TH国分寺', 'shop_02': 'TH立川', 'shop_03': 'TH品川', 'shop_04': 'TH大田東京',
-  'shop_05': 'TH練馬', 'shop_06': 'TH城東', 'shop_07': 'TH武蔵野', 'shop_08': 'TH町田',
-  'shop_09': 'TH溝の口', 'shop_10': 'TH横浜', 'shop_11': 'TH湘南', 'shop_12': 'TH川口',
-  'shop_13': 'TH浦和', 'shop_14': 'TH新都心', 'shop_15': 'TH船橋', 'shop_16': 'TH新小岩',
-  'shop_17': 'TH杉並', 'shop_18': 'TH世田谷', 'shop_19': 'TH横浜西口', 'shop_20': 'TH松戸',
-  'shop_21': 'TH調布', 'shop_22': 'TH王子', 'shop_23': 'TH横浜戸塚', 'shop_24': 'TH逗子・葉山リゾート',
-  'shop_25': 'TH東京', 'shop_26': 'TH新横浜', 'shop_27': 'TH江坂', 'shop_28': 'TH名古屋城東',
-  'shop_29': 'TH名古屋中央', 'shop_30': 'TH柏', 'shop_31': 'NEXT'
-};
-
+let SHOP_LIST = {}; 
 let currentSelectedShopId = 'shop_01'; // 現在表示中の店舗ID
+
+// データベースから店舗一覧を取得して自動更新する関数
+async function loadShopListFromDB() {
+  try {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops');
+    if (response.ok) {
+      const shops = await response.json();
+      SHOP_LIST = {}; // 一旦リセット
+      shops.forEach(shop => {
+        SHOP_LIST[shop.id] = shop.name;
+      });
+    }
+  } catch (error) {
+    console.error('店舗リストの取得に失敗しました:', error);
+  }
+  initShopSelects(); // 取得完了後にプルダウンを生成
+}
 
 // 全店舗プルダウンの初期化
 function initShopSelects() {
   const globalSelect = document.getElementById('global-shop-select');
+  const sidebarSelect = document.getElementById('sidebar-shop-select');
   const editSelect = document.getElementById('edit-shop-id');
   const newSelect = document.getElementById('new-shop-id');
 
@@ -26,15 +34,29 @@ function initShopSelects() {
   });
 
   if (globalSelect) globalSelect.innerHTML = optionsHtml;
+  if (sidebarSelect) sidebarSelect.innerHTML = optionsHtml;
   if (editSelect) editSelect.innerHTML = optionsHtml;
   if (newSelect) newSelect.innerHTML = optionsHtml;
 }
 
-// 店舗切替イベント（システム管理者専用）
+// 全店舗プルダウン(右・左)の切り替え処理
 async function changeGlobalShop() {
   const select = document.getElementById('global-shop-select');
   if (select) {
     currentSelectedShopId = select.value;
+    const sidebarSelect = document.getElementById('sidebar-shop-select');
+    if (sidebarSelect) sidebarSelect.value = currentSelectedShopId;
+    await renderEmployees();
+    handleRouting();
+  }
+}
+
+async function changeSidebarShop() {
+  const select = document.getElementById('sidebar-shop-select');
+  if (select) {
+    currentSelectedShopId = select.value;
+    const globalSelect = document.getElementById('global-shop-select');
+    if (globalSelect) globalSelect.value = currentSelectedShopId;
     await renderEmployees();
     handleRouting();
   }
@@ -43,14 +65,30 @@ async function changeGlobalShop() {
 // ユーザー権限と店舗表示の初期化制御
 function applyUserPermissions(user) {
   currentSelectedShopId = user.shop_id || 'shop_01';
-  const adminSelector = document.getElementById('admin-shop-selector');
+  
   const globalSelect = document.getElementById('global-shop-select');
+  const sidebarSelect = document.getElementById('sidebar-shop-select');
+  if (globalSelect) globalSelect.value = currentSelectedShopId;
+  if (sidebarSelect) sidebarSelect.value = currentSelectedShopId;
 
+  const adminSelector = document.getElementById('admin-shop-selector'); 
+  const sidebarSelector = document.getElementById('sidebar-shop-selector'); 
+  const shopManageMenu = document.getElementById('nav-shop-manage'); 
+
+  // 勤怠管理者・システム管理者は左メニューから店舗切替可能
+  if (user.role === 'システム管理者' || user.role === '勤怠管理者') {
+    if (sidebarSelector) sidebarSelector.classList.remove('hidden');
+  } else {
+    if (sidebarSelector) sidebarSelector.classList.add('hidden');
+  }
+
+  // 店舗追加・削除機能（店舗管理）はシステム管理者のみ利用可能
   if (user.role === 'システム管理者') {
     if (adminSelector) adminSelector.classList.remove('hidden');
-    if (globalSelect) globalSelect.value = currentSelectedShopId;
+    if (shopManageMenu) shopManageMenu.classList.remove('hidden');
   } else {
     if (adminSelector) adminSelector.classList.add('hidden');
+    if (shopManageMenu) shopManageMenu.classList.add('hidden');
   }
 }
 
@@ -191,7 +229,8 @@ async function handleRouting() {
     if (path === 'overtime') renderOvertimeTable();
     if (path === 'employee-detail' && currentEmpTargetId) showEmployeeDetail(currentEmpTargetId);
     if (path === 'employee-edit' && currentEmpTargetId) openEditEmployee();
-    if (path === 'web-timeclock') initWebTimeclock(); // ★追加：Web打刻画面初期化
+    if (path === 'web-timeclock') initWebTimeclock();
+// ★追加：Web打刻画面初期化
   }
 
   const titles = {
@@ -207,6 +246,7 @@ async function handleRouting() {
     'timeline-detail': '詳細タイムライン',
     'holiday-setting': '休日設定'
   };
+
   document.getElementById('page-title').textContent = titles[path] || '勤怠管理';
 
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -2008,7 +2048,7 @@ async function renderEmployees() {
 // 6. 初期化
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
-  initShopSelects(); // 店舗選択プルダウンの自動生成
+  await loadShopListFromDB(); // ★データベースから店舗情報を取得してプルダウンを生成
 
   // ログイン済みチェックと権限反映
   const loggedInUserStr = localStorage.getItem('loggedInUser');
@@ -2999,6 +3039,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     clock_in: clockIn,
     clock_out: clockOut,
     memo: finalMemoParts.join('\n').trim(),
+    shop_id: currentSelectedShopId, // ★追加：どの店舗での打刻かを記録
     // バックエンドで直接SES送信するためのパラメータ
     mail_to: mailData ? mailData.to : null,
     mail_subject: mailData ? mailData.subject : null,
@@ -3022,5 +3063,86 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   } catch (error) {
     console.error('打刻エラー:', error);
     alert('打刻処理に失敗しました。');
+  }
+}
+// ==========================================
+// 店舗管理機能 (システム管理者専用)
+// ==========================================
+async function renderShops() {
+  const tbody = document.getElementById('shop-list-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">読み込み中...</td></tr>';
+  
+  try {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops');
+    if (!response.ok) throw new Error('店舗データの取得に失敗しました');
+    const shops = await response.json();
+    
+    tbody.innerHTML = shops.map(shop => `
+      <tr>
+        <td>${shop.id}</td>
+        <td style="font-weight: bold;">${shop.name}</td>
+        <td><span class="badge-tag badge-regular">利用中</span></td>
+        <td>
+          <button class="btn-sub" style="font-size: 11px; padding: 4px 8px; color: #e74c3c; border-color: #e74c3c;" onclick="deleteShop('${shop.id}', '${shop.name}')">削除</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error(error);
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">データ取得エラー</td></tr>';
+  }
+}
+
+function openCreateShopModal() {
+  document.getElementById('create-shop-id').value = '';
+  document.getElementById('create-shop-name').value = '';
+  document.getElementById('modal-shop-create').classList.remove('hidden');
+}
+
+function closeCreateShopModal() {
+  document.getElementById('modal-shop-create').classList.add('hidden');
+}
+
+async function submitCreateShop() {
+  const id = document.getElementById('create-shop-id').value.trim();
+  const name = document.getElementById('create-shop-name').value.trim();
+  if (!id || !name) return alert('店舗IDと店舗名を入力してください。');
+  
+  try {
+    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name })
+    });
+    if (!response.ok) throw new Error('店舗の追加に失敗しました');
+    
+    showToast('新しい店舗を追加しました');
+    closeCreateShopModal();
+    SHOP_LIST[id] = name;
+    initShopSelects();
+    renderShops();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteShop(id, name) {
+  if (!confirm(`店舗「${name}」を削除してもよろしいですか？`)) return;
+  
+  try {
+    // APIへ削除リクエストを送信
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops/${id}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('店舗の削除に失敗しました');
+
+    // UI側から店舗の選択肢を消して一覧を更新
+    delete SHOP_LIST[id];
+    initShopSelects();
+    showToast(`店舗「${name}」を削除しました`);
+    renderShops();
+  } catch (error) {
+    alert(error.message);
   }
 }

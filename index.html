@@ -615,6 +615,52 @@
         </div>
 
         <!-- ページ: 従業員一覧 -->
+        <div id="page-shops" class="page-content hidden">
+          <div class="emp-page-header">
+            <h2>店舗管理</h2>
+            <div class="emp-btn-group">
+              <button class="btn-primary" onclick="openCreateShopModal()">＋ 新しい店舗を追加</button>
+            </div>
+          </div>
+          <div class="emp-list-container" style="background: white; border-radius: 8px; border: 1px solid var(--border-color); padding: 20px;">
+            <table class="daily-status-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 150px;">店舗ID</th>
+                  <th>店舗名</th>
+                  <th style="width: 100px;">ステータス</th>
+                  <th style="width: 120px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="shop-list-tbody">
+                </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="modal-shop-create" class="modal-overlay hidden" style="z-index: 9999;">
+          <div class="record-modal-body" style="width: 400px;">
+            <div class="record-modal-header">
+              <h3>新しい店舗を追加</h3>
+              <button class="btn-close-icon" onclick="closeCreateShopModal()">×</button>
+            </div>
+            <div class="record-modal-content">
+              <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-size: 13px; font-weight: bold; margin-bottom: 5px; display: block;">店舗ID <span class="badge-req">必須</span></label>
+                <input type="text" id="create-shop-id" class="form-input" placeholder="例: shop_32">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 13px; font-weight: bold; margin-bottom: 5px; display: block;">店舗名 <span class="badge-req">必須</span></label>
+                <input type="text" id="create-shop-name" class="form-input" placeholder="例: TH八王子">
+              </div>
+            </div>
+            <div class="record-modal-footer">
+              <button class="btn-cancel" onclick="closeCreateShopModal()">キャンセル</button>
+              <button class="btn-primary" onclick="submitCreateShop()">追加する</button>
+            </div>
+          </div>
+        </div>
+
         <div id="page-employees" class="page-content hidden">
           <div class="emp-page-header">
             <h2>従業員一覧</h2>
