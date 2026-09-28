@@ -1325,7 +1325,7 @@ async function renderMatrixTable() {
   // 2. バックエンドAPIから実際の打刻データを取得 (cache: 'no-store' でキャッシュによる未反映を完全ブロック)
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
     if (response.ok) {
       attendancesData = await response.json();
     }
@@ -1530,7 +1530,7 @@ async function renderDailyTable() {
   // 2. 指定年月の打刻データをRDSから取得
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('日表示データ取得エラー:', error);
@@ -1722,7 +1722,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
   // 2. 指定された年月の打刻データを取得
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('残業集計用データ取得エラー:', error);
