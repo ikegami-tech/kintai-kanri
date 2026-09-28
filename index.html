@@ -159,6 +159,12 @@
     <div class="main-wrapper">
       <div class="header">
         <div class="header-title" id="page-title">ダッシュボード</div>
+        
+        <div id="admin-shop-selector" class="hidden" style="margin-left: auto; margin-right: 20px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 13px; font-weight: bold; color: #ffffff;">対象店舗:</span>
+          <select id="global-shop-select" class="form-select" style="width: 200px;" onchange="changeGlobalShop()">
+            </select>
+        </div>
       </div>
 
       <div class="content-area">
@@ -691,6 +697,10 @@
                   <td id="val-department"></td>
                 </tr>
                 <tr>
+                  <th>店舗 <span class="badge-req">必須</span></th>
+                  <td id="val-shop-name"></td>
+                </tr>
+                <tr>
                   <th>権限 <span class="badge-req">必須</span></th>
                   <td id="val-role"></td>
                 </tr>
@@ -764,9 +774,17 @@
                     </td>
                   </tr>
                   <tr>
+                    <th>店舗 <span class="badge-req">必須</span></th>
+                    <td>
+                      <select class="form-select" id="edit-shop-id">
+                        </select>
+                    </td>
+                  </tr>
+                  <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
-                      <label><input type="radio" name="role" value="一般"> 一般</label>
+                      <label><input type="radio" name="role" value="一般"> 一般 (アプリ打刻のみ)</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="role" value="勤怠管理者"> 勤怠管理者</label>
                       <label style="margin-left: 15px;"><input type="radio" name="role" value="システム管理者" checked> システム管理者</label>
                     </td>
                   </tr>
@@ -838,9 +856,17 @@
                     </td>
                   </tr>
                   <tr>
+                    <th>店舗 <span class="badge-req">必須</span></th>
+                    <td>
+                      <select class="form-select" id="new-shop-id" required>
+                        </select>
+                    </td>
+                  </tr>
+                  <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
-                      <label><input type="radio" name="new_role" value="一般" checked> 一般</label>
+                      <label><input type="radio" name="new_role" value="一般" checked> 一般 (アプリ打刻のみ)</label>
+                      <label style="margin-left: 15px;"><input type="radio" name="new_role" value="勤怠管理者"> 勤怠管理者</label>
                       <label style="margin-left: 15px;"><input type="radio" name="new_role" value="システム管理者"> システム管理者</label>
                     </td>
                   </tr>

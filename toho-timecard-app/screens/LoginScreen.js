@@ -40,7 +40,7 @@ export default function LoginScreen({ navigation }) {
   // ログインボタンを押したときの処理
   const handleLogin = async () => {
     if (!loginId.trim() || !password.trim()) {
-      Alert.alert('エラー', 'ログインIDとパスワードを入力してください。');
+      Alert.alert('エラー', 'メールアドレスとパスワードを入力してください。');
       return;
     }
 
@@ -93,11 +93,12 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.formGroup}>
           <TextInput
             style={styles.input}
-            placeholder="ログインID (またはメールアドレス)"
+            placeholder="メールアドレス"
             placeholderTextColor="#94a3b8"
             value={loginId}
             onChangeText={setLoginId}
             autoCapitalize="none"
+            keyboardType="email-address"
           />
         </View>
         <View style={styles.formGroup}>

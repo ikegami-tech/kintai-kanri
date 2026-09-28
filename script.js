@@ -1,5 +1,61 @@
 // ==========================================
-// 1. ログイン・ログアウト処理
+// 店舗マスタ定義 (全31店舗) & グローバル状態
+// ==========================================
+const SHOP_LIST = {
+  'shop_01': 'TH国分寺', 'shop_02': 'TH立川', 'shop_03': 'TH品川', 'shop_04': 'TH大田東京',
+  'shop_05': 'TH練馬', 'shop_06': 'TH城東', 'shop_07': 'TH武蔵野', 'shop_08': 'TH町田',
+  'shop_09': 'TH溝の口', 'shop_10': 'TH横浜', 'shop_11': 'TH湘南', 'shop_12': 'TH川口',
+  'shop_13': 'TH浦和', 'shop_14': 'TH新都心', 'shop_15': 'TH船橋', 'shop_16': 'TH新小岩',
+  'shop_17': 'TH杉並', 'shop_18': 'TH世田谷', 'shop_19': 'TH横浜西口', 'shop_20': 'TH松戸',
+  'shop_21': 'TH調布', 'shop_22': 'TH王子', 'shop_23': 'TH横浜戸塚', 'shop_24': 'TH逗子・葉山リゾート',
+  'shop_25': 'TH東京', 'shop_26': 'TH新横浜', 'shop_27': 'TH江坂', 'shop_28': 'TH名古屋城東',
+  'shop_29': 'TH名古屋中央', 'shop_30': 'TH柏', 'shop_31': 'NEXT'
+};
+
+let currentSelectedShopId = 'shop_01'; // 現在表示中の店舗ID
+
+// 全店舗プルダウンの初期化
+function initShopSelects() {
+  const globalSelect = document.getElementById('global-shop-select');
+  const editSelect = document.getElementById('edit-shop-id');
+  const newSelect = document.getElementById('new-shop-id');
+
+  let optionsHtml = '';
+  Object.keys(SHOP_LIST).forEach(id => {
+    optionsHtml += `<option value="${id}">${SHOP_LIST[id]}</option>`;
+  });
+
+  if (globalSelect) globalSelect.innerHTML = optionsHtml;
+  if (editSelect) editSelect.innerHTML = optionsHtml;
+  if (newSelect) newSelect.innerHTML = optionsHtml;
+}
+
+// 店舗切替イベント（システム管理者専用）
+async function changeGlobalShop() {
+  const select = document.getElementById('global-shop-select');
+  if (select) {
+    currentSelectedShopId = select.value;
+    await renderEmployees();
+    handleRouting();
+  }
+}
+
+// ユーザー権限と店舗表示の初期化制御
+function applyUserPermissions(user) {
+  currentSelectedShopId = user.shop_id || 'shop_01';
+  const adminSelector = document.getElementById('admin-shop-selector');
+  const globalSelect = document.getElementById('global-shop-select');
+
+  if (user.role === 'システム管理者') {
+    if (adminSelector) adminSelector.classList.remove('hidden');
+    if (globalSelect) globalSelect.value = currentSelectedShopId;
+  } else {
+    if (adminSelector) adminSelector.classList.add('hidden');
+  }
+}
+
+// ==========================================
+// 1. ログイン・ログアウト処理 (権限制御対応)
 // ==========================================
 document.getElementById('login-form').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -11,7 +67,6 @@ document.getElementById('login-form').addEventListener('submit', async function(
   const loginPw = document.getElementById('login-pw').value;
   
   try {
-    // 実際のバックエンドAPIへログイン要求
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -22,23 +77,28 @@ document.getElementById('login-form').addEventListener('submit', async function(
       throw new Error('ログイン情報が正しくありません');
     }
 
-    // サーバーから返ってきたユーザー情報を取得
     const responseData = await response.json();
-    
-    // ★追加：ブラウザのlocalStorageにログインしたユーザー情報を保存（再読み込みしても消えないようにする）
-    if (responseData.user) {
-      localStorage.setItem('loggedInUser', JSON.stringify(responseData.user));
+    const user = responseData.user;
+
+    // 一般権限ユーザーのWebログインを制限
+    if (user && user.role === '一般') {
+      alert('一般権限のアカウントはWeb管理画面にログインできません。（打刻アプリをご利用ください）');
+      return;
+    }
+
+    if (user) {
+      localStorage.setItem('loggedInUser', JSON.stringify(user));
+      applyUserPermissions(user);
     }
 
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('app-view').classList.remove('hidden');
 
-    // ログイン時は常にダッシュボードを表示
     location.hash = '#/dashboard';
     handleRouting();
   } catch (error) {
     console.error('ログインエラー:', error);
-    alert('ログインに失敗しました。IDまたはパスワードが間違っています。');
+    alert('ログインに失敗しました。メールアドレスまたはパスワードが間違っています。');
   } finally {
     btn.textContent = 'ログイン';
     btn.disabled = false;
@@ -926,7 +986,6 @@ function showEmployeeDetail(identifier) {
   }
   
   if (!emp) return;
-
   currentEmpTargetId = emp.id;
 
   document.getElementById('detail-emp-name').textContent = emp.name;
@@ -935,11 +994,15 @@ function showEmployeeDetail(identifier) {
   document.getElementById('val-gender').textContent = emp.gender;
   document.getElementById('detail-email').textContent = emp.email || '-';
   document.getElementById('val-department').textContent = emp.office;
+  
+  // ★追加：店舗名を表示する処理
+  const shopNameEl = document.getElementById('val-shop-name');
+  if (shopNameEl) shopNameEl.textContent = SHOP_LIST[emp.shop_id || 'shop_01'] || 'TH国分寺';
+
   document.getElementById('val-role').textContent = emp.role;
   document.getElementById('val-attendance').textContent = emp.show_attendance ? 'あり' : 'なし';
   document.getElementById('val-join-date').textContent = emp.joinDate;
   document.getElementById('val-retire-date').textContent = emp.retireDate;
-
   location.hash = `#/employee-detail?id=${emp.id}`;
 }
 
@@ -1132,10 +1195,10 @@ async function renderDashboard() {
   // 1. 全従業員一覧を取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
 
-  // 2. 本日が含まれる年月の打刻データをRDSから取得
+  // 2. 本日が含まれる年月の打刻データをRDSから取得（選択中の店舗IDを付与）
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('ダッシュボード用データ取得エラー:', error);
@@ -1829,8 +1892,8 @@ function filterByName(nameStr) {
 async function fetchEmployeesAPI(initialFilter, nameFilter) {
   let result = [];
   try {
-    // ① 先ほど立ち上げたローカルサーバー(ポート3000)からデータを取得！
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees');
+    // 選択された店舗IDで従業員データを取得
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`);
     const dbData = await response.json();
 
     // ② RDSの生データを、画面表示用の形式に変換（マッピング）
@@ -1946,6 +2009,16 @@ async function renderEmployees() {
 // 6. 初期化
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+  initShopSelects(); // 店舗選択プルダウンの自動生成
+
+  // ログイン済みチェックと権限反映
+  const loggedInUserStr = localStorage.getItem('loggedInUser');
+  if (loggedInUserStr) {
+    try {
+      const user = JSON.parse(loggedInUserStr);
+      applyUserPermissions(user);
+    } catch (e) {}
+  }
   // 実績登録・編集モーダルの「時」選択肢を生成
   const hourSelectIds = ['create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h'];
   let hoursHtml = '<option value="--">--</option>';
