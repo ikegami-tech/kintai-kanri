@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants/theme';
@@ -27,7 +29,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const savedUser = await AsyncStorage.getItem('@logged_in_user');
       if (savedUser) {
-        // ログイン情報があれば、そのままメイン画面（ドロワー）へ遷移
+        // ログイン情報があれば、入力不要でそのままメイン画面へ遷移
         navigation.replace('Main');
       } else {
         setChecking(false);
@@ -37,7 +39,6 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // ログインボタンを押したときの処理
   const handleLogin = async () => {
     if (!loginId.trim() || !password.trim()) {
       Alert.alert('エラー', 'メールアドレスとパスワードを入力してください。');
@@ -69,7 +70,6 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // 状態チェック中はローディング表示
   if (checking) {
     return (
       <View style={styles.loadingContainer}>
@@ -79,59 +79,58 @@ export default function LoginScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.inner}>
-        {/* ロゴ・タイトルエリア */}
-        <View style={styles.headerBox}>
-          <Text style={styles.title}>勤怠管理</Text>
-          <Text style={styles.badge}>TIME CARD</Text>
-        </View>
+    // ★追加: 画面の余白をタップした時にキーボードを閉じる
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.inner}>
+          <View style={styles.headerBox}>
+            <Text style={styles.title}>勤怠管理</Text>
+            <Text style={styles.badge}>TIME CARD</Text>
+          </View>
 
-        <Text style={styles.subTitle}>ログイン</Text>
+          <Text style={styles.subTitle}>ログイン</Text>
 
-        {/* 入力フォーム */}
-        <View style={styles.formGroup}>
-          <TextInput
-            style={styles.input}
-            placeholder="メールアドレス"
-            placeholderTextColor="#94a3b8"
-            value={loginId}
-            onChangeText={setLoginId}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-        </View>
-        <View style={styles.formGroup}>
-          <TextInput
-            style={styles.input}
-            placeholder="パスワード"
-            placeholderTextColor="#94a3b8"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
+          <View style={styles.formGroup}>
+            <TextInput
+              style={styles.input}
+              placeholder="メールアドレス"
+              placeholderTextColor="#94a3b8"
+              value={loginId}
+              onChangeText={setLoginId}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
+          <View style={styles.formGroup}>
+            <TextInput
+              style={styles.input}
+              placeholder="パスワード"
+              placeholderTextColor="#94a3b8"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </View>
 
-        {/* ログインボタン */}
-        <TouchableOpacity 
-          style={[styles.loginBtn, loading && styles.loginBtnDisabled]} 
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.loginBtnText}>ログイン</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.loginBtn, loading && styles.loginBtnDisabled]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.loginBtnText}>ログイン</Text>
+            )}
+          </TouchableOpacity>
 
-        {/* フッター */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>クラウドサービス 勤怠管理シリーズ</Text>
-          <Text style={styles.footerText}>© TOHO Systems Inc.</Text>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>クラウドサービス 勤怠管理シリーズ</Text>
+            <Text style={styles.footerText}>© TOHO Systems Inc.</Text>
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -160,7 +159,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#002a5c', // TOHOネイビー
+    color: '#002a5c',
   },
   badge: {
     backgroundColor: COLORS.primary || '#0073ea',
