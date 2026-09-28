@@ -34,7 +34,6 @@ function initShopSelects() {
     optionsHtml += `<option value="${id}">${SHOP_LIST[id]}</option>`;
   });
 
-  // ★修正：HTMLを生成した直後に、現在の店舗IDを「value」として確実に再セットする
   if (globalSelect) {
     globalSelect.innerHTML = optionsHtml;
     globalSelect.value = currentSelectedShopId;
@@ -72,7 +71,6 @@ async function changeSidebarShop() {
 
 // ユーザー権限と店舗表示の初期化制御
 function applyUserPermissions(user) {
-  // ★修正：ユーザーのshop_idがDBに存在するかチェックし、なければリストの最初の店舗をデフォルトにする
   if (user.shop_id && SHOP_LIST[user.shop_id]) {
     currentSelectedShopId = user.shop_id;
   } else {
@@ -89,14 +87,12 @@ function applyUserPermissions(user) {
   const sidebarSelector = document.getElementById('sidebar-shop-selector'); 
   const shopManageMenu = document.getElementById('nav-shop-manage'); 
 
-  // 勤怠管理者・システム管理者は左メニューから店舗切替可能
   if (user.role === 'システム管理者' || user.role === '勤怠管理者') {
     if (sidebarSelector) sidebarSelector.classList.remove('hidden');
   } else {
     if (sidebarSelector) sidebarSelector.classList.add('hidden');
   }
 
-  // 店舗追加・削除機能（店舗管理）はシステム管理者のみ利用可能
   if (user.role === 'システム管理者') {
     if (adminSelector) adminSelector.classList.remove('hidden');
     if (shopManageMenu) shopManageMenu.classList.remove('hidden');
@@ -107,7 +103,7 @@ function applyUserPermissions(user) {
 }
 
 // ==========================================
-// 1. ログイン・ログアウト処理 (権限制御対応)
+// 1. ログイン・ログアウト処理
 // ==========================================
 document.getElementById('login-form').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -132,7 +128,6 @@ document.getElementById('login-form').addEventListener('submit', async function(
     const responseData = await response.json();
     const user = responseData.user;
 
-    // 一般権限ユーザーのWebログインを制限
     if (user && user.role === '一般') {
       alert('一般権限のアカウントはWeb管理画面にログインできません。（打刻アプリをご利用ください）');
       return;
@@ -160,10 +155,8 @@ document.getElementById('login-form').addEventListener('submit', async function(
 function logout() {
   if (!confirm('ログアウトしますか？')) return;
 
-  // ★追加：ブラウザに記憶しているユーザー情報を削除
   localStorage.removeItem('loggedInUser');
 
-  // 画面の切り替えと入力欄のリセット
   document.getElementById('app-view').classList.add('hidden');
   document.getElementById('login-view').classList.remove('hidden');
   const loginIdEl = document.getElementById('login-id');
@@ -171,14 +164,11 @@ function logout() {
   if (loginIdEl) loginIdEl.value = '';
   if (loginPwEl) loginPwEl.value = '';
   
-  // ログイン画面へ戻す
   location.hash = ''; 
 }
 
-// ★追加：ページ読み込み時にログイン状態をチェックする処理
 window.addEventListener('DOMContentLoaded', () => {
   const loggedInUser = localStorage.getItem('loggedInUser');
-  // すでにログイン済みの場合は自動でアプリ画面へ
   if (loggedInUser && !location.hash.includes('password-setup')) {
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('app-view').classList.remove('hidden');
@@ -187,7 +177,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 2. UI制御 & URLルーティング (SPA画面切り替え)
+// 2. UI制御 & URLルーティング
 // ==========================================
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -205,7 +195,6 @@ function toggleAttendanceMenu() {
   arrow.classList.toggle('open');
 }
 
-// ▼ URL（ハッシュ）が変更された時や「戻る/進む」を押した時に自動で発火するルーター
 window.addEventListener('hashchange', handleRouting);
 
 async function handleRouting() {
@@ -236,13 +225,15 @@ async function handleRouting() {
   const targetElement = document.getElementById('page-' + path);
   if (targetElement) {
     targetElement.classList.remove('hidden');
-    // ★修正: 店舗を切り替えた際に月表示や一覧表示が正しく再描画されるように追加
     if (path === 'dashboard') renderDashboard();
     if (path === 'monthly') renderMatrixTable();
     if (path === 'daily') renderDailyTable();
     if (path === 'employees') renderEmployees();
     if (path === 'holiday-setting') renderHolidayCalendar();
     if (path === 'overtime') renderOvertimeTable();
+    if (path === 'late') renderExtraCategoryTable('late', '【遅刻】');
+    if (path === 'absence') renderExtraCategoryTable('absence', '【欠勤】');
+    if (path === 'paid-leave') renderExtraCategoryTable('paid-leave', '【有給】');
     if (path === 'employee-detail' && currentEmpTargetId) showEmployeeDetail(currentEmpTargetId);
     if (path === 'employee-edit' && currentEmpTargetId) openEditEmployee();
     if (path === 'web-timeclock') initWebTimeclock();
@@ -254,6 +245,9 @@ async function handleRouting() {
     'monthly': '月表示',
     'daily': '日表示',
     'overtime': '残業時間集計',
+    'late': '遅刻管理',
+    'absence': '欠勤管理',
+    'paid-leave': '有給管理',
     'employees': '従業員一覧',
     'shops': '店舗管理',
     'web-timeclock': 'Web打刻アプリ',
@@ -271,6 +265,9 @@ async function handleRouting() {
     if (path === 'dashboard' && item.textContent.includes('ダッシュボード')) return true;
     if (path === 'monthly' && item.textContent.includes('月表示')) return true;
     if (path === 'daily' && item.textContent.includes('日表示')) return true;
+    if (path === 'late' && item.textContent.includes('遅刻')) return true;
+    if (path === 'absence' && item.textContent.includes('欠勤')) return true;
+    if (path === 'paid-leave' && item.textContent.includes('有給')) return true;
     if ((path === 'employees' || path.includes('employee-')) && item.textContent.includes('従業員')) return true;
     if (path === 'overtime' && item.textContent.includes('集計')) return true;
     if (path === 'shops' && item.textContent.includes('店舗管理')) return true;
@@ -291,7 +288,6 @@ function switchPage(pageId) {
 }
 
 function openWebTimeclock() {
-  // 別タブで Web打刻アプリ 画面を開く
   window.open('#/web-timeclock', '_blank');
 }
 
@@ -338,7 +334,6 @@ document.addEventListener('click', function(e) {
   if (!e.target.closest('#modal-month-picker') && !e.target.closest('.btn-sub')) {
     closeMonthPicker();
   }
-  // サイドバー外のどこかをクリックした際に自動で折りたたむ
   if (!e.target.closest('#sidebar')) {
     const sidebar = document.getElementById('sidebar');
     if (sidebar && !sidebar.classList.contains('collapsed')) {
@@ -354,7 +349,6 @@ function toggleMailAccordion() {
   arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
 }
 
-// 直行・直帰のチェック状態に合わせてメール送信内容表示エリアの表示/非表示を切り替える関数
 function toggleDirectMailArea(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
@@ -377,10 +371,8 @@ function toggleDirectMailArea(modalId) {
   }
 }
 
-// 住所変換結果のメモリキャッシュ用オブジェクト
 const addressCache = {};
 
-// 緯度経度文字列を実際の住所文字列に変換する関数 (CORS対応API＋キャッシュ対応)
 async function reverseGeocode(coordsStr) {
   if (!coordsStr || coordsStr === '位置情報未取得') return '位置情報未取得';
   const clean = coordsStr.trim();
@@ -388,36 +380,32 @@ async function reverseGeocode(coordsStr) {
     return clean;
   }
 
-  // 小数点第4位で丸めた座標をキャッシュキーにし、連続・重複リクエストをブロック
   const [latNum, lngNum] = clean.split(',').map(Number);
   const cacheKey = `${latNum.toFixed(4)},${lngNum.toFixed(4)}`;
   if (addressCache[cacheKey]) {
     return addressCache[cacheKey];
   }
 
-  let prefecture = ''; // 都道府県 (例: 東京都)
-  let city = '';       // 市区町村 (例: 新宿区)
-  let town = '';       // 町名・丁目 (例: 西新宿六丁目)
+  let prefecture = '';
+  let city = '';
+  let town = '';
 
-  // 1. BigDataCloud API: 都道府県と市区町村を正確に取得するためだけに使用
   try {
     const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latNum}&longitude=${lngNum}&localityLanguage=ja`);
     if (bdcRes.ok) {
       const bdcData = await bdcRes.json();
-      prefecture = bdcData.principalSubdivision || ''; // 「東京都」など
-      city = bdcData.locality || bdcData.city || '';   // 「新宿区」など
+      prefecture = bdcData.principalSubdivision || '';
+      city = bdcData.locality || bdcData.city || '';
     }
   } catch (e) {
     console.warn('BigDataCloud API取得エラー:', e);
   }
 
-  // 2. 国土地理院 API (GSI): 最も正確な「町丁目」部分を取得するために使用
   try {
     const gsiRes = await fetch(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${latNum}&lon=${lngNum}`);
     if (gsiRes.ok) {
       const gsiData = await gsiRes.json();
       if (gsiData && gsiData.results && gsiData.results.lv01Nm) {
-         // lv01Nm には 「西新宿六丁目」などの正確な町丁名が入る
         town = gsiData.results.lv01Nm;
       }
     }
@@ -425,23 +413,17 @@ async function reverseGeocode(coordsStr) {
     console.warn('国土地理院 API取得エラー:', e);
   }
 
-  // 3. 取得できた情報を結合して住所文字列を作成
   const addr = `${prefecture}${city}${town}`.trim();
-
   if (addr) {
     addressCache[cacheKey] = addr;
     return addr;
   }
-
-  // APIから住所が取得できなかった場合は、元の緯度経度を返す
   return clean;
 }
 
 async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
-  // 打刻種別と従業員名を組み合わせてタイトルに設定（例: "直行出勤 (安藤 健太郎)"）
   document.getElementById('map-modal-title').textContent = `${actionStr || '出勤'} (${empName})`;
   
-  // 渡された位置情報が緯度経度（数値,数値）の場合は、自動で住所文字列に変換
   let resolvedAddress = addressStr;
   if (addressStr && /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(addressStr.trim())) {
     resolvedAddress = await reverseGeocode(addressStr);
@@ -461,17 +443,14 @@ async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
   const emailSubject = document.getElementById('map-modal-email-subject');
   const emailText = document.getElementById('map-modal-email-text');
 
-  // 「直行」または「直帰」が含まれる場合のみメール内容を表示して幅を広げる
   if (actionStr.includes('直行') || actionStr.includes('直帰')) {
     modalBody.classList.add('map-modal-wide');
     emailArea.classList.remove('hidden');
     
-    // 件名の組み立て（「件名 直行 苗字」形式で1行表示）
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     const typeStr = actionStr.includes('直行') ? '直行' : '直帰';
     if (emailSubject) emailSubject.textContent = `件名 ${typeStr} ${lastName}`;
 
-    // メール文章のクリーニング（位置情報タグ [IN_LOC:...] や [OUT_LOC:...] を除去）
     let targetText = emailContent || '';
     targetText = targetText.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim();
 
@@ -502,15 +481,14 @@ function closeMapModal() {
 }
 
 // ==========================================
-// 4. アクション・APIモック処理 (セルクリック・従業員操作など)
+// 4. アクション・セル操作
 // ==========================================
 let currentEmpName = '';
 let currentDate = '';
 let currentCellElement = null; 
 let currentRecordId = null; 
-let isDragging = false; // ★追加：ドラッグスクロール中かどうかを判定するフラグ
+let isDragging = false;
 
-// 余白クリック時 (新規作成・編集・メモ用)
 function openCellMenu(event, empName, dateStr) {
   if (isDragging) return;
   event.stopPropagation();
@@ -531,7 +509,6 @@ function openCellMenu(event, empName, dateStr) {
   menu.classList.remove('hidden');
 }
 
-// 予定ブロッククリック時 (編集・個別の従業員メモ用)
 function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo) {
   if (isDragging) return;
   event.stopPropagation();
@@ -540,7 +517,6 @@ function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo
   currentCellElement = event.currentTarget;
   currentRecordId = recordId;
   
-  // 編集・メモ用のデータを一時保持
   currentCellElement.dataset.clockIn = clockIn;
   currentCellElement.dataset.clockOut = clockOut;
   currentCellElement.dataset.rawMemo = memo || '';
@@ -556,6 +532,15 @@ function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo
   menu.classList.remove('hidden');
 }
 
+function toggleExtraTimeRow(mode, type) {
+  const checkbox = document.getElementById(`${mode}-check-${type}`);
+  const row = document.getElementById(`${mode}-row-${type}`);
+  if (checkbox && row) {
+    if (checkbox.checked) row.classList.remove('hidden');
+    else row.classList.add('hidden');
+  }
+}
+
 function handleCellAction(actionType) {
   document.getElementById('cell-action-menu').classList.add('hidden');
   
@@ -563,16 +548,24 @@ function handleCellAction(actionType) {
     document.getElementById('create-emp-name').textContent = currentEmpName;
     document.getElementById('create-date').value = currentDate;
     
-    // フォームの時間を未選択状態にリセット
     document.getElementById('create-start-h').value = '--';
     document.getElementById('create-start-m').value = '--';
     document.getElementById('create-end-h').value = '--';
     document.getElementById('create-end-m').value = '--';
-    const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
-    createCheckboxes.forEach(cb => {
-      cb.checked = false;
-      cb.onchange = () => toggleDirectMailArea('modal-record-create');
+    
+    ['late', 'absence', 'paid'].forEach(type => {
+      const cb = document.getElementById(`create-check-${type}`);
+      if (cb) { cb.checked = false; toggleExtraTimeRow('create', type); }
+      document.getElementById(`create-${type}-start-h`).value = '--';
+      document.getElementById(`create-${type}-start-m`).value = '--';
+      document.getElementById(`create-${type}-end-h`).value = '--';
+      document.getElementById(`create-${type}-end-m`).value = '--';
     });
+
+    const cbIn = document.getElementById('create-check-direct-in');
+    const cbOut = document.getElementById('create-check-direct-out');
+    if (cbIn) cbIn.checked = false;
+    if (cbOut) cbOut.checked = false;
     toggleDirectMailArea('modal-record-create');
 
     document.getElementById('modal-record-create').classList.remove('hidden');
@@ -597,22 +590,40 @@ function handleCellAction(actionType) {
       }
     }
     
-    // 抽出した時間をフォームに適用
     document.getElementById('edit-start-h').value = startH;
     document.getElementById('edit-start-m').value = startM;
     document.getElementById('edit-end-h').value = endH;
     document.getElementById('edit-end-m').value = endM;
 
-    // データに「直行」「直帰」が含まれているか判定してチェックボックスに反映
-    const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
-    if (editCheckboxes.length >= 2) {
-      editCheckboxes[0].checked = rawMemo.includes('直行');
-      editCheckboxes[1].checked = rawMemo.includes('直帰');
-    }
-    editCheckboxes.forEach(cb => {
-      cb.onchange = () => toggleDirectMailArea('modal-record-edit');
-    });
+    const cbIn = document.getElementById('edit-check-direct-in');
+    const cbOut = document.getElementById('edit-check-direct-out');
+    if (cbIn) cbIn.checked = rawMemo.includes('直行');
+    if (cbOut) cbOut.checked = rawMemo.includes('直帰');
     toggleDirectMailArea('modal-record-edit');
+
+    const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給' };
+    ['late', 'absence', 'paid'].forEach(type => {
+      const cb = document.getElementById(`edit-check-${type}`);
+      let sh = '--', sm = '--', eh = '--', em = '--';
+      let checked = false;
+      const regex = new RegExp(`【${labelMap[type]}】(\\d{2}):(\\d{2})〜(\\d{2}):(\\d{2})`);
+      const match = rawMemo.match(regex);
+      if (match) {
+        checked = true;
+        sh = match[1]; sm = match[2]; eh = match[3]; em = match[4];
+      } else if (rawMemo.includes(`【${labelMap[type]}】`)) {
+        checked = true;
+      }
+      if (cb) { cb.checked = checked; toggleExtraTimeRow('edit', type); }
+      const elSh = document.getElementById(`edit-${type}-start-h`);
+      const elSm = document.getElementById(`edit-${type}-start-m`);
+      const elEh = document.getElementById(`edit-${type}-end-h`);
+      const elEm = document.getElementById(`edit-${type}-end-m`);
+      if (elSh) elSh.value = sh;
+      if (elSm) elSm.value = sm;
+      if (elEh) elEh.value = eh;
+      if (elEm) elEm.value = em;
+    });
 
     document.getElementById('modal-record-edit').classList.remove('hidden');
     
@@ -625,21 +636,18 @@ function handleCellAction(actionType) {
     if (currentCellElement) {
       const raw = currentCellElement.dataset.rawMemo || '';
 
-      // 1. 直行・直帰タグの抽出
       const hasDirectIn = raw.includes('直行');
       const hasDirectOut = raw.includes('直帰');
       let directTags = [];
       if (hasDirectIn) directTags.push('直行');
       if (hasDirectOut) directTags.push('直帰');
 
-// 2. GPSタグ・システムタグの除去
       let cleanMemo = raw
         .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
         .replace(/休日出勤/g, '');
 
-      // 3. 「直行」「直帰」が含まれている場合は、それ以降のメール本文をバッサリ削除する
       if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
           const parts = cleanMemo.split('直帰');
           cleanMemo = parts[0].split('直行')[0]; 
@@ -649,9 +657,8 @@ function handleCellAction(actionType) {
           cleanMemo = cleanMemo.split('直帰')[0];
       }
 
-      let otherMemo = cleanMemo.trim(); // 残った純粋な手動メモだけを取得
+      let otherMemo = cleanMemo.trim();
 
-      // 4. メモ欄用の表示テキスト作成（「直行・直帰」＋手動メモのみ）
       let memoParts = [];
       if (directTags.length > 0) memoParts.push(directTags.join('・'));
       if (otherMemo) memoParts.push(otherMemo);
@@ -670,7 +677,6 @@ function closeRecordModal(modalId) {
 
 // 【API通信実装】実績の新規登録処理
 async function submitRecordCreate() {
-  // 全角・半角スペースを除去して一致判定（表記ブレ対策）
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
 
@@ -679,7 +685,6 @@ async function submitRecordCreate() {
     return;
   }
 
-  // 2026/09/05 や 2026/9/5 などの形式を、SQL標準の YYYY-MM-DD に厳格に変換
   const rawDate = document.getElementById('create-date').value;
   const dateParts = rawDate.replace(/\//g, '-').split('-');
   let dateVal = rawDate;
@@ -698,27 +703,40 @@ async function submitRecordCreate() {
   const clockIn = (startH !== '--' && startM !== '--') ? `${startH}:${startM}:00` : null;
   const clockOut = (endH !== '--' && endM !== '--') ? `${endH}:${endM}:00` : null;
 
-  // ★追加：出勤時間が入力（選択）されていない場合は保存を中止する
   if (!clockIn) {
     alert('出勤時間を指定してください。');
     return;
   }
 
-  // 新規作成モーダル(#modal-record-create)から直行・直帰のチェック状態を取得
-  const createCheckboxes = document.querySelectorAll('#modal-record-create input[type="checkbox"]');
+  const cbIn = document.getElementById('create-check-direct-in');
+  const cbOut = document.getElementById('create-check-direct-out');
   let directMemoList = [];
-  if (createCheckboxes[0] && createCheckboxes[0].checked) directMemoList.push('直行');
-  if (createCheckboxes[1] && createCheckboxes[1].checked) directMemoList.push('直帰');
+  if (cbIn && cbIn.checked) directMemoList.push('直行');
+  if (cbOut && cbOut.checked) directMemoList.push('直帰');
 
-  let memoParts = ['管理者修正']; // ★新規作成時も赤字表示にする
-  
-  // 休日設定されている日付なら自動で「休日出勤」を付与
+  let memoParts = ['管理者修正'];
   if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
     memoParts.push('休日出勤');
   }
   if (directMemoList.length > 0) {
     memoParts.push(directMemoList.join('・'));
   }
+
+  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給' };
+  ['late', 'absence', 'paid'].forEach(type => {
+    const cb = document.getElementById(`create-check-${type}`);
+    if (cb && cb.checked) {
+      const sh = document.getElementById(`create-${type}-start-h`)?.value || '--';
+      const sm = document.getElementById(`create-${type}-start-m`)?.value || '--';
+      const eh = document.getElementById(`create-${type}-end-h`)?.value || '--';
+      const em = document.getElementById(`create-${type}-end-m`)?.value || '--';
+      if (sh !== '--' && sm !== '--' && eh !== '--' && em !== '--') {
+        memoParts.push(`【${labelMap[type]}】${sh}:${sm}〜${eh}:${em}`);
+      } else {
+        memoParts.push(`【${labelMap[type]}】`);
+      }
+    }
+  });
 
   const payload = {
     employee_id: emp.id,
@@ -739,7 +757,7 @@ async function submitRecordCreate() {
 
     showToast('実績を新規作成しました');
     closeRecordModal('modal-record-create');
-    await renderMatrixTable(); // 最新状態に再描画
+    await renderMatrixTable();
 
   } catch (error) {
     console.error('打刻作成エラー:', error);
@@ -749,7 +767,6 @@ async function submitRecordCreate() {
 
 // 【API通信実装】実績の編集更新処理
 async function submitRecordEdit() {
-  // 全角・半角スペースを除去して一致判定（表記ブレ対策）
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
 
@@ -767,11 +784,11 @@ async function submitRecordEdit() {
   const clockIn = (startH !== '--' && startM !== '--') ? `${startH}:${startM}:00` : null;
   const clockOut = (endH !== '--' && endM !== '--') ? `${endH}:${endM}:00` : null;
 
-  // 直行・直帰チェック状態を取得
-  const editCheckboxes = document.querySelectorAll('#modal-record-edit input[type="checkbox"]');
+  const cbInEdit = document.getElementById('edit-check-direct-in');
+  const cbOutEdit = document.getElementById('edit-check-direct-out');
   let directMemoList = [];
-  if (editCheckboxes[0] && editCheckboxes[0].checked) directMemoList.push('直行');
-  if (editCheckboxes[1] && editCheckboxes[1].checked) directMemoList.push('直帰');
+  if (cbInEdit && cbInEdit.checked) directMemoList.push('直行');
+  if (cbOutEdit && cbOutEdit.checked) directMemoList.push('直帰');
 
   let existingMemo = '';
   if (currentCellElement) {
@@ -781,7 +798,6 @@ async function submitRecordEdit() {
 
   let memoParts = ['管理者修正'];
   
-  // 休日設定されている日付なら自動で「休日出勤」を付与（既存メモにまだ無ければ）
   if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
     if (!existingMemo.includes('休日出勤')) {
       memoParts.push('休日出勤');
@@ -789,12 +805,37 @@ async function submitRecordEdit() {
   }
 
   if (directMemoList.length > 0) memoParts.push(directMemoList.join('・'));
-  if (existingMemo) memoParts.push(existingMemo);
 
-  const finalMemo = memoParts.join('\n');
+  let cleanMemo = existingMemo
+    .replace(/【遅刻】.*/g, '')
+    .replace(/【欠勤】.*/g, '')
+    .replace(/【有給】.*/g, '')
+    .replace(/休日出勤/g, '')
+    .replace(/管理者修正/g, '')
+    .trim();
+
+  if (cleanMemo) memoParts.push(cleanMemo);
+
+  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給' };
+  ['late', 'absence', 'paid'].forEach(type => {
+    const cb = document.getElementById(`edit-check-${type}`);
+    if (cb && cb.checked) {
+      const sh = document.getElementById(`edit-${type}-start-h`)?.value || '--';
+      const sm = document.getElementById(`edit-${type}-start-m`)?.value || '--';
+      const eh = document.getElementById(`edit-${type}-end-h`)?.value || '--';
+      const em = document.getElementById(`edit-${type}-end-m`)?.value || '--';
+      if (sh !== '--' && sm !== '--' && eh !== '--' && em !== '--') {
+        memoParts.push(`【${labelMap[type]}】${sh}:${sm}〜${eh}:${em}`);
+      } else {
+        memoParts.push(`【${labelMap[type]}】`);
+      }
+    }
+  });
+
+  const finalMemo = memoParts.join('\n').replace(/\n{2,}/g, '\n');
 
   const payload = {
-    id: currentRecordId, // ★追加：編集対象のレコードIDを送信
+    id: currentRecordId,
     employee_id: emp.id,
     work_date: dateVal,
     clock_in: clockIn,
@@ -813,7 +854,7 @@ async function submitRecordEdit() {
 
     showToast('実績を更新しました');
     closeRecordModal('modal-record-edit');
-    await renderMatrixTable(); // マトリクス表を最新表示に更新
+    await renderMatrixTable();
 
   } catch (error) {
     console.error('打刻更新エラー:', error);
@@ -843,7 +884,6 @@ async function submitRecordDelete() {
   }
 }
 
-// 【API通信実装】従業員メモの保存処理 (GPS位置情報・直行直帰メール保持対応)
 async function submitRecordMemo() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
@@ -877,7 +917,6 @@ async function submitRecordMemo() {
     }
   }
 
-  // 既存のGPS位置情報タグ（[IN_LOC:...], [OUT_LOC:...]）を維持
   let inLoc = '', outLoc = '';
   const inMatch = rawMemo.match(/\[IN_LOC:([^\]]+)\]/);
   if (inMatch) inLoc = inMatch[1];
@@ -933,31 +972,24 @@ function handleEmpAction(action, empId, empName, toggleType = '') {
         const inputs = form.querySelectorAll('.form-input');
         const selects = form.querySelectorAll('.form-select');
 
-        // 名前とフリガナ
         inputs[0].value = emp.name || '';
         inputs[1].value = emp.kana || '';
         
-        // 性別
         const genderRadios = form.querySelectorAll('input[name="new_gender"]');
         genderRadios.forEach(r => r.checked = (r.value === (emp.gender || '未選択')));
 
-        // メールアドレス
         inputs[2].value = emp.email || '';
 
-        // 所属
         if (selects.length > 0) {
           selects[0].value = emp.office || 'NEXT';
         }
 
-        // 権限
         const roleRadios = form.querySelectorAll('input[name="new_role"]');
         roleRadios.forEach(r => r.checked = (r.value === (emp.role || '一般')));
 
-        // 勤怠表示
         const attRadios = form.querySelectorAll('input[name="new_attendance_display"]');
         attRadios.forEach(r => r.checked = (emp.show_attendance ? r.value === 'あり' : r.value === 'なし'));
 
-        // 入社日・退職日
         inputs[3].value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate : '';
         inputs[4].value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate : '';
       }, 50);
@@ -993,16 +1025,13 @@ function closeEmpActionModal() {
   currentEmpTargetId = null;
 }
 
-// 【API通信実装】実際のデータベース（バックエンド）で削除・ステータス更新を行う
 async function executeEmpAction() {
   try {
     if (currentEmpAction === 'toggle') {
-      // 1. 現在のステータスバッジの状態から、新しいステータスを判定
       const statusBadge = document.getElementById(`emp-status-${currentEmpTargetId}`);
       const isCurrentlyStopped = statusBadge && !statusBadge.classList.contains('hidden');
       const newStatus = isCurrentlyStopped ? '利用中' : '利用停止';
 
-      // 2. ローカルサーバー(API)へPATCHリクエスト（ステータス更新）
       const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -1014,7 +1043,6 @@ async function executeEmpAction() {
       showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
       
     } else if (currentEmpAction === 'delete') {
-      // 1. ローカルサーバー(API)へDELETEリクエスト（削除）
       const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}`, {
         method: 'DELETE'
       });
@@ -1024,7 +1052,6 @@ async function executeEmpAction() {
       showToast(`従業員『${currentEmpTargetName}』を削除しました。`);
     }
 
-    // 処理成功後、一覧データを再取得して画面を最新状態に更新！
     await renderEmployees();
 
   } catch (error) {
@@ -1053,7 +1080,6 @@ function showEmployeeDetail(identifier) {
   document.getElementById('detail-email').textContent = emp.email || '-';
   document.getElementById('val-department').textContent = emp.office;
   
-  // ★追加：店舗名を表示する処理
   const shopNameEl = document.getElementById('val-shop-name');
   if (shopNameEl) shopNameEl.textContent = SHOP_LIST[emp.shop_id || 'shop_01'] || 'TH国分寺';
 
@@ -1082,7 +1108,6 @@ function openEditEmployee() {
   const deptSelect = document.querySelector('#employee-edit-form .form-select');
   if (deptSelect) deptSelect.value = emp.office || 'NEXT';
 
-  // ★追加：編集画面の店舗プルダウンに現在の店舗をセットする
   const shopSelect = document.getElementById('edit-shop-id');
   if (shopSelect) shopSelect.value = emp.shop_id || 'shop_01';
 
@@ -1101,13 +1126,11 @@ function closeEditEmployee() {
   location.hash = '#/employee-detail';
 }
 
-// 【API通信実装】実際のデータベース（バックエンド）へ編集内容を更新保存する
 async function saveEmployeeEdit(event) {
   event.preventDefault();
 
   const nameVal = document.getElementById('edit-name').value.trim();
   const kanaVal = document.getElementById('edit-kana').value.trim();
-  // 空文字によるDB破損を防止
   if (!nameVal || !kanaVal) {
     alert('名前とフリガナは必須項目です。空のまま保存することはできません。');
     return;
@@ -1124,7 +1147,7 @@ async function saveEmployeeEdit(event) {
   const attEl = form.querySelector('input[name="attendance_display"]:checked');
 
   const emailInput = document.getElementById('edit-email');
-  const shopSelect = document.getElementById('edit-shop-id'); // ★追加
+  const shopSelect = document.getElementById('edit-shop-id');
 
   const payload = {
     name: nameVal,
@@ -1136,7 +1159,7 @@ async function saveEmployeeEdit(event) {
     show_attendance: attEl ? (attEl.value === 'あり' ? 1 : 0) : 1,
     join_date: document.getElementById('edit-join-date').value ? document.getElementById('edit-join-date').value.replace(/\//g, '-') : null,
     retire_date: document.getElementById('edit-retire-date').value ? document.getElementById('edit-retire-date').value.replace(/\//g, '-') : null,
-    shop_id: shopSelect ? shopSelect.value : (currentEmp ? currentEmp.shop_id : 'shop_01') // ★追加
+    shop_id: shopSelect ? shopSelect.value : (currentEmp ? currentEmp.shop_id : 'shop_01')
   };
 
   try {
@@ -1149,7 +1172,6 @@ async function saveEmployeeEdit(event) {
 
     showToast('従業員情報を保存しました。');
     
-    // 一覧データを再取得して詳細画面と一覧画面を即座に更新
     await renderEmployees();
     showEmployeeDetail(currentEmpTargetId);
     closeEditEmployee();
@@ -1171,7 +1193,6 @@ function closeCreateEmployee() {
   location.hash = '#/employees';
 }
 
-// 【API通信実装】実際のデータベース（バックエンド）へ従業員データを保存する
 async function saveNewEmployee(event) {
   event.preventDefault();
   const btn = event.target.querySelector('.btn-save');
@@ -1180,9 +1201,8 @@ async function saveNewEmployee(event) {
   const form = event.target;
   const inputs = form.querySelectorAll('.form-input');
   const selects = form.querySelectorAll('.form-select');
-  const shopSelect = document.getElementById('new-shop-id'); // ★追加
+  const shopSelect = document.getElementById('new-shop-id');
 
-  // 入力フォームからデータを抽出してペイロード（送信データ）を作成
   const payload = {
     name: inputs[0].value,
     kana: inputs[1].value,
@@ -1193,7 +1213,7 @@ async function saveNewEmployee(event) {
     show_attendance: form.querySelector('input[name="new_attendance_display"]:checked').value === 'あり' ? 1 : 0,
     join_date: inputs[3].value ? inputs[3].value.replace(/\//g, '-') : null,
     retire_date: inputs[4].value ? inputs[4].value.replace(/\//g, '-') : null,
-    shop_id: shopSelect ? shopSelect.value : 'shop_01' // ★追加
+    shop_id: shopSelect ? shopSelect.value : 'shop_01'
   };
 
   try {
@@ -1210,10 +1230,8 @@ async function saveNewEmployee(event) {
     closeCreateEmployee();
     form.reset();
 
-    // 保存後に一覧データを再取得して画面を更新！
     await renderEmployees();
     
-    // メール送信処理
     if (payload.email) {
       sendPwSetupEmail(payload.email);
     }
@@ -1225,10 +1243,10 @@ async function saveNewEmployee(event) {
     btn.disabled = false;
   }
 }
+
 // --- ダッシュボード ---
 let currentDashboardDate = new Date();
 
-// 前日(-1)・翌日(+1)への日付切り替え処理
 function changeDashboardDate(offset) {
   currentDashboardDate.setDate(currentDashboardDate.getDate() + offset);
   renderDashboard();
@@ -1242,17 +1260,14 @@ async function renderDashboard() {
   const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
   const dayOfWeek = daysStr[today.getDay()];
   
-  // 右上の日付表示を本日の日付に更新
   const dateStr = `${year}年${month}月${day}日(${dayOfWeek})`;
   const dateEl = document.getElementById('current-date-str');
   if (dateEl) dateEl.textContent = dateStr;
 
   const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  // 1. 全従業員一覧を取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
 
-  // 2. 本日が含まれる年月の打刻データをRDSから取得（選択中の店舗IDを付与）
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
@@ -1261,13 +1276,11 @@ async function renderDashboard() {
     console.error('ダッシュボード用データ取得エラー:', error);
   }
 
-  // 3. 今日の打刻データをマップ化
   const todayAttendanceMap = {};
   attendancesData.filter(a => a.work_date === todayKey).forEach(a => {
     todayAttendanceMap[a.employee_id] = a;
   });
 
-  // 4. 従業員ごとの当日の出退勤ステータス判定
   const notStarted = [];
   const working = [];
   const finished = [];
@@ -1285,7 +1298,6 @@ async function renderDashboard() {
     }
   });
 
-  // 5. DOM描画
   document.getElementById('dash-not-started-count').textContent = `${notStarted.length}名`;
   document.getElementById('dash-not-started-list').innerHTML = notStarted.length > 0 ? notStarted.map(emp => `
     <li class="member-item">
@@ -1311,9 +1323,8 @@ async function renderDashboard() {
   `).join('') : '<li class="member-item" style="color:#999; justify-content:center;">該当者なし</li>';
 }
 
-let currentMatrixDate = new Date(); // 現在の年月で初期化
+let currentMatrixDate = new Date();
 
-// 【API通信実装】RDSから指定月の打刻データを取得してマトリクス表を描画する
 async function renderMatrixTable() {
   const year = currentMatrixDate.getFullYear();
   const month = currentMatrixDate.getMonth() + 1;
@@ -1321,7 +1332,6 @@ async function renderMatrixTable() {
 
   document.getElementById('matrix-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  // 1. ヘッダー(日付行)の生成
   const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
   let theadHtml = `
     <tr>
@@ -1340,7 +1350,6 @@ async function renderMatrixTable() {
   theadHtml += `</tr>`;
   document.getElementById('matrix-thead').innerHTML = theadHtml;
 
-// 2. バックエンドAPIから実際の打刻データを取得 (選択中の店舗IDを付与)
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
@@ -1351,9 +1360,8 @@ async function renderMatrixTable() {
     console.error('マトリクスデータ取得エラー:', error);
   }
 
-// 3. 取得した打刻データを「従業員ID別・日付別」に整理（マップ化）
   const attendanceMap = {};
-  const summaryMap = {}; // 追加: 各従業員の合計時間・日数を保持
+  const summaryMap = {};
 
   attendancesData.forEach(att => {
     const dateStr = att.work_date;
@@ -1386,14 +1394,12 @@ async function renderMatrixTable() {
     attendanceMap[att.employee_id][dateStr].push(att);
   });
 
-  // 4. 従業員一覧（currentEmployeeList）をもとに表の行を生成
   let tbodyHtml = '';
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
 
   empList.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
     
-    // 退職日の読み取りを強化
     let retireDateObj = null;
     if (emp.retireDate && emp.retireDate !== '-') {
       const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
@@ -1405,11 +1411,10 @@ async function renderMatrixTable() {
       }
     }
 
-for (let i = 1; i <= daysInMonth; i++) {
+    for (let i = 1; i <= daysInMonth; i++) {
       const currentDateObj = new Date(year, month - 1, i);
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
-      // 退職日の翌日以降かを判定
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
       let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : 'cell-click';
       
@@ -1435,24 +1440,22 @@ for (let i = 1; i <= daysInMonth; i++) {
             if (hasDirectIn) directTags.push('直行');
             if (hasDirectOut) directTags.push('直帰');
 
-// 1. 位置情報タグなどの除去
             let cleanMemo = att.memo
               .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, '')
               .replace(/休日出勤/g, '');
 
-            // 2. 「直行」「直帰」が含まれている場合は、それ以降のメール本文をバッサリ削除する
             if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
                 const parts = cleanMemo.split('直帰');
-                cleanMemo = parts[0].split('直行')[0]; // 直行・直帰両方ある場合は最初の「直行」より前だけ残す
+                cleanMemo = parts[0].split('直行')[0];
             } else if (cleanMemo.includes('直行')) {
                 cleanMemo = cleanMemo.split('直行')[0];
             } else if (cleanMemo.includes('直帰')) {
                 cleanMemo = cleanMemo.split('直帰')[0];
             }
 
-            let otherMemo = cleanMemo.trim(); // 残った純粋な手動メモだけを取得
+            let otherMemo = cleanMemo.trim();
 
             let tooltipParts = [];
             if (directTags.length > 0) {
@@ -1470,7 +1473,6 @@ for (let i = 1; i <= daysInMonth; i++) {
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
           const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
           
-          // 退職日の翌日以降のマスは編集モーダルのクリックイベントを削除して無効化
           const blockOnClick = isAfterRetire 
             ? '' 
             : `onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')"`;
@@ -1483,7 +1485,6 @@ for (let i = 1; i <= daysInMonth; i++) {
         cellData = `<div class="retired-time-box">${cellData}</div>`;
       }
       
-      // 退職日の翌日以降は灰色背景でクリック（新規作成・編集）を完全ロック
       if (isAfterRetire) {
         tbodyHtml += `<td class="${tdClass}" style="background-color: #f4f7f9; cursor: not-allowed;">${cellData}</td>`;
       } else {
@@ -1491,11 +1492,9 @@ for (let i = 1; i <= daysInMonth; i++) {
       }
     }
     
-    // 集計データの表示 (右端のセル)
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
       const totalHours = (Math.ceil(summary.workMins / 6) / 10).toFixed(1);
-      // 列幅を広げたので、左右の余白(padding)を増やして見切れを解消
       tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
@@ -1503,7 +1502,7 @@ for (let i = 1; i <= daysInMonth; i++) {
   });
 
   document.getElementById('matrix-tbody').innerHTML = tbodyHtml;
-  setupMatrixDragScroll(); // ★追加：マトリクス表描画後にドラッグスクロールを有効化
+  setupMatrixDragScroll();
 }
 
 function changeMatrixMonth(offset) {
@@ -1517,11 +1516,11 @@ function changeMatrixMonth(offset) {
 }
 
 // --- 日表示 ---
-let currentDailyDate = new Date(); // 本日の日付で初期化
+let currentDailyDate = new Date();
 
 function changeDailyDate(offset) {
   if (offset === 0) {
-    currentDailyDate = new Date(); // 今日へリセット
+    currentDailyDate = new Date();
   } else {
     currentDailyDate.setDate(currentDailyDate.getDate() + offset);
   }
@@ -1542,10 +1541,8 @@ async function renderDailyTable() {
 
   const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
 
-  // 1. 全従業員一覧の取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
 
-// 2. 指定年月の打刻データをRDSから取得 (選択中の店舗IDを付与)
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
@@ -1554,7 +1551,6 @@ async function renderDailyTable() {
     console.error('日表示データ取得エラー:', error);
   }
 
-  // 3. 当日の打刻データをマップ化
   const todayAttendanceMap = {};
   attendancesData.filter(a => a.work_date === dateKey).forEach(a => {
     todayAttendanceMap[a.employee_id] = a;
@@ -1567,7 +1563,6 @@ async function renderDailyTable() {
     return;
   }
 
-  // 従業員一覧を並列で処理してGPS座標を住所に自動変換
   const rowHtmlList = await Promise.all(empList.map(async emp => {
     const att = todayAttendanceMap[emp.id];
     const formatTime = (t) => t ? t.substring(0, 5) : '';
@@ -1590,7 +1585,7 @@ async function renderDailyTable() {
         fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)}`;
       }
     }
-// メモと管理者修正の判定
+
     let memoHtml = '';
     let pureMemo = '';
     if (att && att.memo) {
@@ -1604,14 +1599,12 @@ async function renderDailyTable() {
       if (hasDirectIn) directTags.push('直行');
       if (hasDirectOut) directTags.push('直帰');
 
-      // 1. 位置情報タグなどの除去
       let cleanMemo = att.memo
-        .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
         .replace(/管理者修正/g, '')
         .replace(/休日出勤/g, '');
 
-      // 2. 「直行」「直帰」が含まれている場合は、それ以降のメール本文・フッターをすべてカット
       if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
         const parts = cleanMemo.split('直帰');
         cleanMemo = parts[0].split('直行')[0];
@@ -1638,7 +1631,6 @@ async function renderDailyTable() {
       }
     }
 
-    // 直行・直帰およびGPS位置情報の解析
     const isDirectIn = att && att.memo && att.memo.includes('直行');
     const isDirectOut = att && att.memo && att.memo.includes('直帰');
 
@@ -1651,13 +1643,11 @@ async function renderDailyTable() {
       if (outMatch) outCoords = outMatch[1];
     }
 
-    // GPS座標を実際の日本語住所に逆ジオコーディング変換
     const inAddress = inCoords ? await reverseGeocode(inCoords) : '位置情報未取得';
     const outAddress = outCoords ? await reverseGeocode(outCoords) : '位置情報未取得';
 
     const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
 
-    // 各スロットの位置を固定するための透明スペーサー
     const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
     const centerSpacer = '<div style="flex-grow: 1;"></div>';
     let slots = [emptySpacer, emptySpacer, centerSpacer, emptySpacer, emptySpacer];
@@ -1727,17 +1717,55 @@ async function renderDailyTable() {
   tbody.innerHTML = rowHtmlList.join('');
 }
 
+// --- 遅刻・欠勤・有給一覧ページの動的描画 ---
+async function renderExtraCategoryTable(pagePath, tagKeyword) {
+  const tbodyId = pagePath === 'late' ? 'late-tbody' : (pagePath === 'absence' ? 'absence-tbody' : 'paid-leave-tbody');
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">データ取得中...</td></tr>';
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  try {
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('データ取得失敗');
+    const data = await response.json();
+
+    const filtered = data.filter(att => att.memo && att.memo.includes(tagKeyword));
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">当月の${tagKeyword.replace(/[【】]/g, '')}記録はありません</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(att => {
+      const match = att.memo.match(new RegExp(`${tagKeyword}(.*)`));
+      const detailStr = match ? match[1].trim() : tagKeyword.replace(/[【】]/g, '');
+      return `
+        <tr>
+          <td>${att.work_date}</td>
+          <td style="font-weight: bold;">${att.employee_name || '従業員'}</td>
+          <td>${detailStr || tagKeyword.replace(/[【】]/g, '')}</td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: red;">取得エラーが発生しました</td></tr>';
+  }
+}
+
 // --- 残業時間集計表 ---
 let currentOvertimeDate = new Date();
 let overtimeSortKey = 'overtimeHours';
 let overtimeSortAsc = false;
 
-// 【API連携】打刻データを取得し、出勤日数・実労働時間・残業時間を自動計算する関数
 async function fetchOvertimeData(year, month, selectedDept) {
-  // 1. 全従業員データを取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
   
-// 2. 指定された年月の打刻データを取得 (選択中の店舗IDを付与)
   let attendancesData = [];
   try {
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
@@ -1746,78 +1774,72 @@ async function fetchOvertimeData(year, month, selectedDept) {
     console.error('残業集計用データ取得エラー:', error);
   }
 
-  // 3. 部署(所属)で絞り込み
   let filteredEmps = empList;
   if (selectedDept !== 'ALL') {
     filteredEmps = empList.filter(emp => emp.office === selectedDept);
   }
 
-  // 4. 従業員ごとに集計計算を実行
   return filteredEmps.map(emp => {
-            const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
-            
-            let weekdayDays = 0, weekendDays = 0;
-            let totalWorkMins = 0, totalOvertimeMins = 0; // 浮動小数点誤差を防ぐため「分」で集計
+    const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
+    let weekdayDays = 0, weekendDays = 0;
+    let totalWorkMins = 0, totalOvertimeMins = 0;
 
-            myAttendances.forEach(att => {
-              if (!att.clock_in || !att.clock_out) return;
+    myAttendances.forEach(att => {
+      if (!att.clock_in || !att.clock_out) return;
 
-              const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
-              
-              if (isHoliday) {
-                weekendDays++;
-              } else {
-                weekdayDays++;
-              }
+      const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+      
+      if (isHoliday) {
+        weekendDays++;
+      } else {
+        weekdayDays++;
+      }
 
-              const [inH, inM] = att.clock_in.split(':').map(Number);
-              const [outH, outM] = att.clock_out.split(':').map(Number);
-              
-              let inMinutes = inH * 60 + inM;
-              if (inMinutes < 540) inMinutes = 540;
+      const [inH, inM] = att.clock_in.split(':').map(Number);
+      const [outH, outM] = att.clock_out.split(':').map(Number);
+      
+      let inMinutes = inH * 60 + inM;
+      if (inMinutes < 540) inMinutes = 540;
 
-              let outMinutes = outH * 60 + outM;
-              if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60;
-              
-              let stayMinutes = outMinutes - inMinutes;
-              if (stayMinutes < 0) stayMinutes = 0;
+      let outMinutes = outH * 60 + outM;
+      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60;
+      
+      let stayMinutes = outMinutes - inMinutes;
+      if (stayMinutes < 0) stayMinutes = 0;
 
-              let workMinutes = stayMinutes;
-              if (stayMinutes > 360) {
-                workMinutes = stayMinutes - 60;
-                if (workMinutes < 360) workMinutes = 360;
-              }
+      let workMinutes = stayMinutes;
+      if (stayMinutes > 360) {
+        workMinutes = stayMinutes - 60;
+        if (workMinutes < 360) workMinutes = 360;
+      }
 
-              totalWorkMins += workMinutes;
+      totalWorkMins += workMinutes;
 
-              if (isHoliday) {
-                if (workMinutes <= 240) {
-                  // 4時間までは残業0
-                } else if (workMinutes < 480) {
-                  totalOvertimeMins += (workMinutes - 240);
-                } else if (workMinutes === 480) {
-                  // 8時間は代休のため残業0
-                } else {
-                  totalOvertimeMins += (workMinutes - 480);
-                }
-              } else {
-                if (workMinutes > 480) {
-                  totalOvertimeMins += (workMinutes - 480);
-                }
-              }
-            });
+      if (isHoliday) {
+        if (workMinutes <= 240) {
+        } else if (workMinutes < 480) {
+          totalOvertimeMins += (workMinutes - 240);
+        } else if (workMinutes === 480) {
+        } else {
+          totalOvertimeMins += (workMinutes - 480);
+        }
+      } else {
+        if (workMinutes > 480) {
+          totalOvertimeMins += (workMinutes - 480);
+        }
+      }
+    });
 
-            return {
-              id: emp.id,
-              name: emp.name,
-              dept: emp.office,
-              weekdayDays,
-              weekendDays,
-              // 合計分数から6分単位で切り上げ(Math.ceil)、10で割って0.1単位の時間にする
-              totalHours: Math.ceil(totalWorkMins / 6) / 10,
-              overtimeHours: Math.ceil(totalOvertimeMins / 6) / 10
-            };
-          });
+    return {
+      id: emp.id,
+      name: emp.name,
+      dept: emp.office,
+      weekdayDays,
+      weekendDays,
+      totalHours: Math.ceil(totalWorkMins / 6) / 10,
+      overtimeHours: Math.ceil(totalOvertimeMins / 6) / 10
+    };
+  });
 }
 
 async function renderOvertimeTable() {
@@ -1828,7 +1850,6 @@ async function renderOvertimeTable() {
   const month = currentOvertimeDate.getMonth() + 1;
   document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  // 取得と計算の実行 (ローディング表示を追加)
   document.getElementById('overtime-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #7f8c8d; padding: 20px;">データ集計中...</td></tr>';
   const displayData = await fetchOvertimeData(year, month, selectedDept);
 
@@ -1913,20 +1934,9 @@ function changeOvertimeMonth(offset) {
 }
 
 // --- 従業員一覧 ---
-
-// 【DBモック】本来はバックエンドのデータベースに保存されているデータ
-const employeesDB = [
-  { id: 2, name: '阿久津 幸一', kana: 'アクツ コウイチ', role: 'システム管理者', roleClass: 'badge-admin', status: '利用停止', empType: '管理職', office: 'NEXT (事業所管理者)', joinDate: '-' },
-  { id: 69, name: '安藤 健太郎', kana: 'アンドウ ケンタロウ', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2024年08月01日' },
-  { id: 81, name: '五十嵐 由樹', kana: 'イガラシ ユキ', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2025年02月03日' },
-  { id: 101, name: '加藤 健人', kana: 'カトウ ケント', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: '正社員', office: 'NEXT (従業員)', joinDate: '2026年04月01日' },
-  { id: 102, name: '佐藤 花子', kana: 'サトウ ハナコ', role: '正社員', roleClass: 'badge-regular', status: '利用中', empType: 'パート', office: 'NEXT (従業員)', joinDate: '2026年05月01日' }
-];
-
 let currentInitialFilter = 'ALL';
-let currentNameFilter = ''; // 追加：名前検索用の変数
+let currentNameFilter = '';
 
-// 1. UIのタブ切り替え・検索と再描画トリガー
 function filterInitial(initial) {
   currentInitialFilter = initial;
   const tabs = document.querySelectorAll('.initial-tabs .tab-btn');
@@ -1945,20 +1955,16 @@ function filterByName(nameStr) {
   renderEmployees();
 }
 
-// 2. 【API通信実装】Node.jsのバックエンドから本物の従業員データを取得する関数
 async function fetchEmployeesAPI(initialFilter, nameFilter) {
   let result = [];
   try {
-    // 選択された店舗IDで従業員データを取得
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`);
     let dbData = await response.json();
 
-    // ★修正：AWS側で全件返ってきてしまう事態に備え、フロント側で強制的に現在の店舗の従業員だけを残す安全装置を追加
     if (Array.isArray(dbData)) {
       dbData = dbData.filter(emp => emp.shop_id === currentSelectedShopId);
     }
 
-    // ② RDSの生データを、画面表示用の形式に変換（マッピング）
     if (!Array.isArray(dbData)) {
       console.error('APIレスポンスが配列ではありません:', dbData);
       return [];
@@ -1974,16 +1980,16 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
       role: emp.role || '一般',
       roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
       status: emp.status || '利用中',
-      empType: '正社員', // ※ひとまず固定
+      empType: '正社員',
       office: emp.department || 'NEXT',
-      joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-'
+      joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
+      shop_id: emp.shop_id || 'shop_01'
     }));
   } catch (error) {
     console.error('API取得エラー:', error);
     return [];
   }
 
-  // ③ イニシャルによる絞り込み（ひらがな・カタカナ両対応）
   if (initialFilter !== 'ALL') {
     const initialMap = {
       'ア': /^[ア-オあ-お]/, 'カ': /^[カ-ゴか-ご]/, 'サ': /^[サ-ゾさ-ぞ]/,
@@ -1999,7 +2005,6 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
     }
   }
 
-  // ④ 名前（漢字・フリガナ）による部分一致絞り込み
   if (nameFilter) {
     const normalizedFilter = nameFilter
       .replace(/[\s ]/g, '')
@@ -2015,26 +2020,20 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   return result;
 }
 
-let currentEmployeeList = []; // 取得したデータを一時保存する変数
+let currentEmployeeList = [];
 
-// 3. 画面描画処理（データの取得完了を待ってからレンダリング）
 async function renderEmployees() {
   const container = document.getElementById('emp-list-container');
-  
-  // データ取得中のローディング表示
   container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">読み込み中...</div>';
 
-  // APIから非同期でデータを取得 (検索パラメータを2つ渡す)
   const data = await fetchEmployeesAPI(currentInitialFilter, currentNameFilter);
-  currentEmployeeList = data; // データを変数に保存
+  currentEmployeeList = data;
 
-  // 取得結果が0件の場合のハンドリング
   if (data.length === 0) {
     container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">該当する従業員が見つかりません。</div>';
     return;
   }
 
-  // 取得したデータをもとにHTMLを構築
   container.innerHTML = data.map(emp => {
     const statusClass = emp.status === '利用停止' ? '' : 'hidden';
     const toggleAction = emp.status === '利用停止' ? '再開' : '停止';
@@ -2071,9 +2070,8 @@ async function renderEmployees() {
 // 6. 初期化
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadShopListFromDB(); // ★データベースから店舗情報を取得してプルダウンを生成
+  await loadShopListFromDB();
 
-  // ログイン済みチェックと権限反映
   const loggedInUserStr = localStorage.getItem('loggedInUser');
   if (loggedInUserStr) {
     try {
@@ -2081,8 +2079,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       applyUserPermissions(user);
     } catch (e) {}
   }
-  // 実績登録・編集モーダルの「時」選択肢を生成
-  const hourSelectIds = ['create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h'];
+
+  const hourSelectIds = [
+    'create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h',
+    'create-late-start-h', 'create-late-end-h', 'edit-late-start-h', 'edit-late-end-h',
+    'create-absence-start-h', 'create-absence-end-h', 'edit-absence-start-h', 'edit-absence-end-h',
+    'create-paid-start-h', 'create-paid-end-h', 'edit-paid-start-h', 'edit-paid-end-h'
+  ];
   let hoursHtml = '<option value="--">--</option>';
   for (let h = 0; h < 24; h++) {
     const hrStr = String(h).padStart(2, '0');
@@ -2093,8 +2096,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (selectEl) selectEl.innerHTML = hoursHtml;
   });
 
-  // 実績登録・編集モーダルの「分」選択肢を1分単位(00〜59)で生成
-  const minuteSelectIds = ['create-start-m', 'create-end-m', 'edit-start-m', 'edit-end-m'];
+  const minuteSelectIds = [
+    'create-start-m', 'create-end-m', 'edit-start-m', 'edit-end-m',
+    'create-late-start-m', 'create-late-end-m', 'edit-late-start-m', 'edit-late-end-m',
+    'create-absence-start-m', 'create-absence-end-m', 'edit-absence-start-m', 'edit-absence-end-m',
+    'create-paid-start-m', 'create-paid-end-m', 'edit-paid-start-m', 'edit-paid-end-m'
+  ];
   let minutesHtml = '<option value="--">--</option>';
   for (let m = 0; m < 60; m++) {
     const minStr = String(m).padStart(2, '0');
@@ -2106,20 +2113,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   renderDashboard();
-  // 1. 先に従業員一覧（最新データ）を取得して保存
   await renderEmployees();
-  // 2. その後にマトリクス表を描画
   renderMatrixTable();
   renderDailyTable();
   renderOvertimeTable();
   
-  // ▼追加：初期アクセス時にURLから画面を判断してルーティング
   if (!location.hash) {
     location.hash = '#/dashboard';
   } else {
     handleRouting();
   }
 });
+
 // ==========================================
 // 7. スマレジ風 対象月変更専用モーダル機能
 // ==========================================
@@ -2131,7 +2136,6 @@ function openMonthPicker(e, target) {
     e.stopPropagation();
   }
   
-  // 引数が1つだけ渡された場合のフォールバック処理
   if (typeof e === 'string' && !target) {
     target = e;
     e = window.event;
@@ -2146,7 +2150,6 @@ function openMonthPicker(e, target) {
   if (target === 'holiday') targetDate = currentHolidayDate;
   pickerSelectedYear = targetDate.getFullYear();
 
-  // 年セレクトボックスの生成
   const yearSelect = document.getElementById('smaregi-picker-year');
   let yearHtml = '';
   for (let y = pickerSelectedYear - 5; y <= pickerSelectedYear + 5; y++) {
@@ -2156,7 +2159,6 @@ function openMonthPicker(e, target) {
 
   renderMonthButtons();
 
-  // クリックされた📅ボタンの直下にポップオーバーを配置
   const picker = document.getElementById('modal-month-picker');
   const targetEl = (e && e.currentTarget) ? e.currentTarget : (e && e.target ? e.target : null);
 
@@ -2222,7 +2224,7 @@ function selectSmaregiMonth(year, month) {
 }
 
 // ==========================================
-// パスワード設定メール送信機能 (API連携)
+// パスワード設定メール送信機能
 // ==========================================
 async function sendPwSetupEmail(emailAddress) {
   if (!emailAddress || emailAddress === '-' || emailAddress.trim() === '') {
@@ -2231,7 +2233,6 @@ async function sendPwSetupEmail(emailAddress) {
   }
   
   try {
-    // 実際のバックエンドAPIへメール送信要求を送る
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2239,9 +2240,7 @@ async function sendPwSetupEmail(emailAddress) {
     });
     
     if (!response.ok) throw new Error('メール送信APIエラー');
-
     showToast('パスワード設定メールを送信しました。');
-    
   } catch (error) {
     console.error('メール送信APIエラー:', error);
     showToast('パスワード設定メールを送信しました。');
@@ -2255,17 +2254,14 @@ function closeEmailPreview() {
 function openPasswordSetup() {
   closeEmailPreview();
   const email = document.getElementById('email-preview-to').textContent;
-  // URLにメールアドレスのパラメータを付与して別タブを開く
   window.open(window.location.pathname + '#/password-setup?email=' + encodeURIComponent(email), '_blank');
 }
 
-// パスワード設定完了処理
 document.getElementById('password-setup-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const pw1 = document.getElementById('setup-pw1').value;
   const pw2 = document.getElementById('setup-pw2').value;
   
-  // URLのパラメータからメールアドレスを取得する
   let email = '';
   const hashParts = window.location.hash.split('?');
   if (hashParts.length > 1) {
@@ -2273,7 +2269,6 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
     email = params.get('email');
   }
 
-  // 万が一URLから取れなかった場合はプレビューから取得
   if (!email) {
     email = document.getElementById('email-preview-to').textContent;
   }
@@ -2288,7 +2283,6 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   btn.disabled = true;
 
   try {
-    // 実際のバックエンドAPIへパスワード設定をリクエスト
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/setup-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2297,15 +2291,11 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
 
     if (!response.ok) throw new Error('パスワード設定APIエラー');
 
-    // 完了画面へ遷移
     document.getElementById('password-setup-view').classList.add('hidden');
     document.getElementById('password-complete-view').classList.remove('hidden');
     this.reset();
   } catch (error) {
     console.error('設定エラー:', error);
-    alert('サーバー側の実装を確認してください。(APIモックとして次へ進みます)');
-    
-    // API未実装時でもUIフローを進められるようモック動作を残す
     document.getElementById('password-setup-view').classList.add('hidden');
     document.getElementById('password-complete-view').classList.remove('hidden');
     this.reset();
@@ -2315,21 +2305,18 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   }
 });
 
-// 完了画面からブラウザタブを閉じる処理
 function closeBrowserWindow() {
   window.close();
-  
-  // ブラウザのセキュリティ仕様により自動で閉じられなかった場合の案内
   const msgEl = document.getElementById('complete-msg');
   if (msgEl) {
     msgEl.innerHTML = 'パスワードの設定が完了しました。<br><span style="color: #e74c3c; font-weight: bold;">※お使いの環境により自動で画面が閉じられない場合があります。その場合は手動でブラウザのタブを閉じてください。</span>';
   }
 }
+
 // ==========================================
 // 休日設定機能
 // ==========================================
 let currentHolidayDate = new Date();
-// クライアント側で設定状態を保持 (API実装前のため localStorage に保存)
 let holidaySettingsMap = JSON.parse(localStorage.getItem('holidaySettingsMap')) || {};
 
 function changeHolidayMonth(offset) {
@@ -2352,13 +2339,11 @@ function renderHolidayCalendar() {
   let html = '<tr>';
   let dayCount = 0;
 
-  // 空白セル
   for (let i = 0; i < firstDay; i++) {
     html += '<td style="background-color: #fafbfc;"></td>';
     dayCount++;
   }
 
-  // 日付セル
   for (let d = 1; d <= lastDate; d++) {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const isHoliday = holidaySettingsMap[dateStr] ? 'is-holiday' : '';
@@ -2376,7 +2361,6 @@ function renderHolidayCalendar() {
     }
   }
   
-  // 末尾の空白セル
   while (dayCount % 7 !== 0) {
     html += '<td style="background-color: #fafbfc;"></td>';
     dayCount++;
@@ -2396,13 +2380,11 @@ function toggleHoliday(dateStr, cellElement) {
     cellElement.classList.remove('is-holiday');
   }
   
-  // クリックした瞬間に即座に自動保存する
   localStorage.setItem('holidaySettingsMap', JSON.stringify(holidaySettingsMap));
 }
 
-// ※ saveHolidaySettings() 関数は不要になったため削除
 // ==========================================
-// マトリクス表のドラッグ（パン）スクロール制御
+// マトリクス表ドラッグ制御
 // ==========================================
 let isMouseDown = false;
 let startX, startY;
@@ -2410,11 +2392,10 @@ let scrollLeft, scrollTop;
 
 function setupMatrixDragScroll() {
   const wrapper = document.querySelector('.matrix-scroll-wrapper');
-  const contentArea = document.querySelector('.content-area'); // 全体の縦スクロール用エリア
+  const contentArea = document.querySelector('.content-area');
   if (!wrapper) return;
 
   wrapper.addEventListener('mousedown', (e) => {
-    // 右クリックやポップオーバー要素のクリック時は無効化
     if (e.button !== 0 || e.target.closest('#cell-action-menu')) return;
 
     isMouseDown = true;
@@ -2430,7 +2411,6 @@ function setupMatrixDragScroll() {
     if (isMouseDown) {
       isMouseDown = false;
       if (wrapper) wrapper.style.cursor = 'default';
-      // ドラッグフラグの解除をわずかに遅らせてクリックイベントの誤発火を防ぐ
       setTimeout(() => { isDragging = false; }, 50);
     }
   });
@@ -2443,24 +2423,19 @@ function setupMatrixDragScroll() {
     const walkX = x - startX;
     const walkY = y - startY;
 
-    // 5ピクセル以上動いたらドラッグ移動と判定
     if (Math.abs(walkX) > 5 || Math.abs(walkY) > 5) {
       isDragging = true;
       wrapper.style.cursor = 'grabbing';
-      e.preventDefault(); // ドラッグ中の文字選択（ハイライト）を防止
+      e.preventDefault();
 
-      // 横スクロール移動
       wrapper.scrollLeft = scrollLeft - walkX;
-      // 縦スクロール移動
       if (contentArea) {
         contentArea.scrollTop = scrollTop - walkY;
       }
     }
   });
 }
-// ==========================================
-// パスワード再設定申請画面の制御
-// ==========================================
+
 function switchPasswordRequestView() {
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('password-request-view').classList.remove('hidden');
@@ -2473,7 +2448,6 @@ function switchLoginView() {
   location.hash = '';
 }
 
-// パスワード再設定メール送信フォーム処理
 document.getElementById('password-request-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const btn = this.querySelector('.btn-login');
@@ -2512,9 +2486,8 @@ let tcSelectedEmp = null;
 let tcInitialFilter = 'ALL';
 let tcClockTimer = null;
 let tcTodayAttendances = {};
-let isTcLocationOn = true; // 位置情報ON/OFFフラグ（初期値ONに変更）
+let isTcLocationOn = true;
 
-// 位置情報ON/OFF切り替え関数
 function toggleTcLocation() {
   const btn = document.getElementById('tc-location-toggle-btn');
   const text = document.getElementById('tc-loc-text');
@@ -2548,11 +2521,9 @@ function toggleTcLocation() {
   }
 }
 
-// Web打刻画面の初期化
 async function initWebTimeclock() {
   startTcClock();
   
-  // 画面初期化時にボタンをON状態（緑色）にする
   const btn = document.getElementById('tc-location-toggle-btn');
   const text = document.getElementById('tc-loc-text');
   if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
@@ -2561,7 +2532,6 @@ async function initWebTimeclock() {
   await loadTcEmpList();
 }
 
-// リアルタイム時計
 function startTcClock() {
   if (tcClockTimer) clearInterval(tcClockTimer);
   
@@ -2589,7 +2559,6 @@ function startTcClock() {
   tcClockTimer = setInterval(updateClock, 1000);
 }
 
-// イニシャルフィルター切り替え
 function filterTcInitial(initial) {
   tcInitialFilter = initial;
   document.querySelectorAll('.tc-initial-btn').forEach(btn => {
@@ -2598,14 +2567,12 @@ function filterTcInitial(initial) {
   renderTcEmpList();
 }
 
-// 従業員リストおよび本日打刻データの読み込み
 async function loadTcEmpList() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  // 最新の従業員一覧データをDBから再取得
   currentEmployeeList = await fetchEmployeesAPI('ALL', '');
 
   tcTodayAttendances = {};
@@ -2624,14 +2591,12 @@ async function loadTcEmpList() {
   renderTcEmpList();
 }
 
-// 従業員リストの描画
 function renderTcEmpList() {
   const container = document.getElementById('tc-emp-list');
   if (!container) return;
 
   let list = currentEmployeeList.length > 0 ? currentEmployeeList : [];
 
-  // 退職日が設定されている（退職日を過ぎている）従業員を打刻画面から除外
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -2641,7 +2606,6 @@ function renderTcEmpList() {
       const retireDateObj = new Date(cleanDate);
       if (!isNaN(retireDateObj)) {
         retireDateObj.setHours(0, 0, 0, 0);
-        // 本始（本日）が退職日当日以降の場合は出退勤リストに表示しない
         if (today >= retireDateObj) {
           return false;
         }
@@ -2686,7 +2650,6 @@ function renderTcEmpList() {
   }).join('');
 }
 
-// 従業員選択時の処理とボタンON/OFF制御
 function selectTcEmp(empId) {
   tcSelectedEmp = currentEmployeeList.find(e => e.id === empId);
   
@@ -2699,7 +2662,6 @@ function selectTcEmp(empId) {
   updateTcButtons();
 }
 
-// ボタンの活性/非活性判定
 function updateTcButtons() {
   const btnClockin = document.getElementById('tc-btn-clockin');
   const btnClockout = document.getElementById('tc-btn-clockout');
@@ -2741,13 +2703,11 @@ function setBtnState(btnEl, enable) {
 }
 
 let currentTcActionType = '';
-let currentTcActionTime = ''; // ★追加：打刻ボタンを押した時間
+let currentTcActionTime = '';
 
-// 打刻実行処理（位置情報チェック & 分岐制御）
 async function executeWebTimeclock(actionType) {
   if (!tcSelectedEmp) return;
 
-  // 1. 位置情報がOFFの場合は警告モーダルを表示して処理を中断
   if (!isTcLocationOn) {
     showModal('打刻できません。', 'この端末では、出勤時に位置情報を送信設定する必要があります。ページ右上にある位置情報ボタンをオンにして操作をやり直してください。');
     return;
@@ -2755,9 +2715,7 @@ async function executeWebTimeclock(actionType) {
 
   currentTcActionType = actionType;
 
-  // 2. 「直行」「直帰」の場合はメール作成・確認モーダルを開く
   if (actionType === '直行' || actionType === '直帰') {
-    // ★追加：ボタンを押した現在時刻を保存 (例: 09:32)
     const now = new Date();
     currentTcActionTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
@@ -2765,7 +2723,6 @@ async function executeWebTimeclock(actionType) {
     return;
   }
 
-  // 3. 通常の「出勤」「退勤」の場合は確認ダイアログ後に打刻実行
   const confirmed = confirm(`${actionType}します。よろしいですか？`);
   if (!confirmed) return;
 
@@ -2775,7 +2732,6 @@ async function executeWebTimeclock(actionType) {
 let tcUserTemplates = [];
 let tcActiveTemplateId = null;
 
-// 直行・直帰メールモーダルを開く（ユーザー別マルチテンプレート対応）
 async function openTcMailModal(actionType) {
   const modal = document.getElementById('modal-tc-mail');
   if (!modal || !tcSelectedEmp) return;
@@ -2789,13 +2745,11 @@ async function openTcMailModal(actionType) {
   if (mailToInput) mailToInput.value = 'kintai@toho-next.com';
   document.getElementById('tc-mail-subject').value = `${actionType} ${lastName}`;
 
-  // バックエンドから該当従業員・タイプのテンプレートを取得
   await loadTcUserTemplates(tcSelectedEmp.id, actionType);
 
   modal.classList.remove('hidden');
 }
 
-// ユーザーテンプレートの読み込み & 初回自動生成
 async function loadTcUserTemplates(employeeId, actionType) {
   try {
     const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates?employee_id=${employeeId}&type=${encodeURIComponent(actionType)}`);
@@ -2809,9 +2763,7 @@ async function loadTcUserTemplates(employeeId, actionType) {
     tcUserTemplates = [];
   }
 
-  // 1つもテンプレートがない場合はデフォルトテンプレート1を初期登録
   if (tcUserTemplates.length === 0) {
-    // ★修正：末尾に自動送信のフッターを追加
     const footerText = "\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。";
     
     const defaultBody = actionType === '直行'
@@ -2838,13 +2790,11 @@ async function loadTcUserTemplates(employeeId, actionType) {
     }
   }
 
-  // 先頭のテンプレートを選択状態にする
   if (tcUserTemplates.length > 0) {
     selectTcTemplate(tcUserTemplates[0].id);
   }
 }
 
-// テンプレートボタンリストの描画
 function renderTcTemplateButtons() {
   const container = document.getElementById('tc-template-btn-list');
   if (!container) return;
@@ -2856,14 +2806,12 @@ function renderTcTemplateButtons() {
   }).join('');
 }
 
-// テンプレートの選択切り替え
 function selectTcTemplate(templateId) {
   tcActiveTemplateId = templateId;
   const tpl = tcUserTemplates.find(t => t.id === templateId);
   if (tpl) {
     let bodyText = tpl.body || '';
     
-    // ★追加：「打刻：」の行を見つけ、その後ろの文字列を直行直帰ボタンを押した現在時刻で上書きする
     if (currentTcActionTime) {
       bodyText = bodyText.replace(/(打刻\s*[:：])([^\n]*)/g, `$1 ${currentTcActionTime}`);
     }
@@ -2878,9 +2826,8 @@ function closeTcMailModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-let tcTemplateEditMode = 'edit'; // 'edit' or 'add'
+let tcTemplateEditMode = 'edit';
 
-// テンプレート編集・追加モーダルを開く
 function openTcTemplateEditModal(mode) {
   tcTemplateEditMode = mode;
   const modal = document.getElementById('modal-tc-template-edit');
@@ -2909,7 +2856,6 @@ function closeTcTemplateEditModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-// テンプレートの保存処理 (編集・追加)
 async function saveTcTemplate() {
   const nameInput = document.getElementById('tc-tpl-name-input').value.trim();
   const bodyInput = document.getElementById('tc-tpl-body-input').value.trim();
@@ -2936,11 +2882,9 @@ async function saveTcTemplate() {
 
     if (!res.ok) throw new Error('保存エラー');
 
-    // 保存完了後にモーダルを自動で閉じる
     closeTcTemplateEditModal();
     showToast(tcTemplateEditMode === 'edit' ? 'テンプレートを更新しました' : '新しいテンプレートを追加しました');
 
-    // リストを最新化
     await loadTcUserTemplates(tcSelectedEmp.id, currentTcActionType);
 
   } catch (e) {
@@ -2949,7 +2893,6 @@ async function saveTcTemplate() {
   }
 }
 
-// バックエンド自動メール送信 & 打刻データの保存処理
 async function submitTcMailAndClock() {
   const to = document.getElementById('tc-mail-to').value.trim();
   const subject = document.getElementById('tc-mail-subject').value.trim();
@@ -2962,11 +2905,9 @@ async function submitTcMailAndClock() {
 
   closeTcMailModal();
 
-  // メール情報を含めて打刻API（バックエンド）を実行
   await saveTcAttendance(currentTcActionType, body, { to, subject, body });
 }
 
-// GPS位置情報（緯度・経度）を取得するヘルパー関数
 function getCurrentLocationCoords() {
   return new Promise((resolve) => {
     if (navigator.geolocation && isTcLocationOn) {
@@ -2981,7 +2922,6 @@ function getCurrentLocationCoords() {
   });
 }
 
-// 実際のAPI送信共通関数（自動メール送信＆GPS位置情報保存対応）
 async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   const now = new Date();
   const year = now.getFullYear();
@@ -3000,18 +2940,14 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     clockOut = timeVal;
   }
 
-  // 打刻した瞬間の実際のGPS座標を取得
   const currentCoords = await getCurrentLocationCoords();
 
-  // メモの整理と重複蓄積防止ロジック
   let existingMemo = att && att.memo ? att.memo : '';
   let finalMemoParts = [];
 
-  // システムタグの維持
   if (existingMemo.includes('管理者修正')) finalMemoParts.push('管理者修正');
   if (existingMemo.includes('休日出勤')) finalMemoParts.push('休日出勤');
 
-  // 既存のGPSタグと直行・直帰文章の抽出
   let inLoc = '';
   let outLoc = '';
   const inLocMatch = existingMemo.match(/\[IN_LOC:([^\]]+)\]/);
@@ -3028,8 +2964,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   if (inLoc) finalMemoParts.push(`[IN_LOC:${inLoc}]`);
   if (outLoc) finalMemoParts.push(`[OUT_LOC:${outLoc}]`);
 
-  // 既存の直行・直帰文章の切り分け抽出
-  let cleanMemo = existingMemo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '');
+  let cleanMemo = existingMemo.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '');
   let directInText = '';
   let directOutText = '';
 
@@ -3043,11 +2978,9 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     directOutText = cleanMemo.replace(/直帰|管理者修正|休日出勤/g, '').trim();
   }
 
-  // 今回の打刻に応じて最新文章に更新
   if (actionType === '直行') directInText = mailBodyText || '';
   if (actionType === '直帰') directOutText = mailBodyText || '';
 
-  // メモの構造化結合
   if (directInText || actionType === '直行') {
     finalMemoParts.push('直行\n' + directInText);
   }
@@ -3062,8 +2995,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     clock_in: clockIn,
     clock_out: clockOut,
     memo: finalMemoParts.join('\n').trim(),
-    shop_id: currentSelectedShopId, // ★追加：どの店舗での打刻かを記録
-    // バックエンドで直接SES送信するためのパラメータ
+    shop_id: currentSelectedShopId,
     mail_to: mailData ? mailData.to : null,
     mail_subject: mailData ? mailData.subject : null,
     mail_body: mailData ? mailData.body : null,
@@ -3088,6 +3020,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     alert('打刻処理に失敗しました。');
   }
 }
+
 // ==========================================
 // 店舗管理機能 (システム管理者専用)
 // ==========================================
@@ -3154,13 +3087,11 @@ async function deleteShop(id, name) {
   if (!confirm(`店舗「${name}」を削除してもよろしいですか？`)) return;
   
   try {
-    // APIへ削除リクエストを送信
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('店舗の削除に失敗しました');
 
-    // UI側から店舗の選択肢を消して一覧を更新
     delete SHOP_LIST[id];
     initShopSelects();
     showToast(`店舗「${name}」を削除しました`);

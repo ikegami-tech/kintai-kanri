@@ -61,7 +61,7 @@
     </div>
   </div>
 
-  <!-- 新規追加：パスワード設定画面 (メールのURLから飛んできた想定) -->
+  <!-- パスワード設定画面 -->
   <div id="password-setup-view" class="hidden">
     <div class="login-container">
       <div class="login-logo-title">
@@ -83,7 +83,7 @@
     </div>
   </div>
 
-  <!-- 新規追加：パスワード設定完了画面 -->
+  <!-- パスワード設定完了画面 -->
   <div id="password-complete-view" class="hidden">
     <div class="login-container">
       <div class="login-logo-title">
@@ -102,7 +102,7 @@
 
   <!-- 2. メインアプリ（ログイン後） -->
   <div id="app-view" class="hidden">
-    <!-- サイドバー（デフォルト縮小） -->
+    <!-- サイドバー -->
     <div class="sidebar collapsed" id="sidebar">
       <div class="sidebar-user">
         <div class="user-icon">👤</div>
@@ -131,6 +131,20 @@
           <div class="nav-item" onclick="switchPage('holiday-setting', this)">休日設定</div>
         </div>
 
+        <!-- 遅刻、欠勤、有給 -->
+        <div class="nav-item" onclick="switchPage('late', this)">
+          <span class="nav-icon" style="font-size: 16px;">🏃</span>
+          <span class="nav-text">遅刻</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('absence', this)">
+          <span class="nav-icon" style="font-size: 16px;">🛌</span>
+          <span class="nav-text">欠勤</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('paid-leave', this)">
+          <span class="nav-icon" style="font-size: 16px;">🌴</span>
+          <span class="nav-text">有給</span>
+        </div>
+
         <!-- 従業員管理 -->
         <div class="nav-item" onclick="switchPage('employees', this)">
           <span class="nav-icon">👥</span>
@@ -143,16 +157,25 @@
           <span class="nav-text">集計</span>
         </div>
 
-        
+        <!-- 店舗管理 (システム管理者専用) -->
+        <div class="nav-item hidden" id="nav-shop-manage" onclick="switchPage('shops', this)">
+          <span class="nav-icon">🏢</span>
+          <span class="nav-text">店舗管理</span>
+        </div>
+
+        <!-- 左メニューの店舗切替 -->
+        <div class="nav-item hidden" id="sidebar-shop-selector" style="flex-direction: column; align-items: flex-start; padding: 12px 15px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);">
+          <span style="font-size: 11px; color: #aaa; margin-bottom: 6px;">対象店舗を切替</span>
+          <select id="sidebar-shop-select" class="form-select" style="width: 100%; font-size: 13px;" onchange="changeSidebarShop()">
+          </select>
+        </div>
 
         <!-- ログアウト -->
-        <div class="nav-item" onclick="logout()">
+        <div class="nav-item" onclick="logout()" style="border-top: 1px solid rgba(255,255,255,0.1);">
           <span class="nav-icon">🚪</span>
           <span class="nav-text">ログアウト</span>
         </div>
       </div>
-
-      
     </div>
 
     <!-- メイン領域 -->
@@ -163,7 +186,7 @@
         <div id="admin-shop-selector" class="hidden" style="margin-left: auto; margin-right: 20px; display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 13px; font-weight: bold; color: #ffffff;">対象店舗:</span>
           <select id="global-shop-select" class="form-select" style="width: 200px;" onchange="changeGlobalShop()">
-            </select>
+          </select>
         </div>
       </div>
 
@@ -175,55 +198,41 @@
               <div class="card-header-title">出退勤状況</div>
               <div style="display: flex; align-items: center; gap: 12px;">
                 <span class="date-display" id="current-date-str" style="font-weight: bold; font-size: 15px;">2026年09月18日(金)</span>
-                
-                <!-- 日付変更コントローラー -->
                 <div style="display: flex; align-items: center; gap: 3px;">
                   <button class="btn-sub" onclick="changeDashboardDate(-1)" style="padding: 4px 8px;">&lt;</button>
                   <button class="btn-sub" onclick="openMonthPicker(event, 'dashboard')" style="padding: 4px 8px;">📅</button>
                   <button class="btn-sub" onclick="changeDashboardDate(1)" style="padding: 4px 8px;">&gt;</button>
                 </div>
-
-                <!-- 更新ボタン -->
                 <button class="btn-sub" onclick="renderDashboard()" style="padding: 4px 10px; display: flex; align-items: center; gap: 4px;">
                   <span style="display:inline-block; transform:scaleX(-1);">↻</span> 更新
                 </button>
-
                 <button class="btn-primary" style="background-color: var(--toho-blue); font-size: 13px; padding: 8px 16px;" onclick="openWebTimeclock()">NEXT出退勤画面 ＞</button>
               </div>
             </div>
 
             <div class="status-grid">
-              <!-- 未出勤 (新規追加) -->
               <div class="status-column">
                 <div class="status-column-header" style="background-color: #fff4e5; color: #d35400;">
                   <span>未出勤</span>
                   <span class="badge-count" id="dash-not-started-count">0名</span>
                 </div>
-                <ul class="member-list" id="dash-not-started-list">
-                  <!-- JSで動的に生成 -->
-                </ul>
+                <ul class="member-list" id="dash-not-started-list"></ul>
               </div>
 
-              <!-- 出勤中 -->
               <div class="status-column">
                 <div class="status-column-header header-working">
                   <span>出勤中</span>
                   <span class="badge-count" id="dash-working-count">0名</span>
                 </div>
-                <ul class="member-list" id="dash-working-list">
-                  <!-- JSで動的に生成 -->
-                </ul>
+                <ul class="member-list" id="dash-working-list"></ul>
               </div>
 
-              <!-- 退勤済 -->
               <div class="status-column">
                 <div class="status-column-header header-finished">
                   <span>退勤済</span>
                   <span class="badge-count" id="dash-finished-count">0名</span>
                 </div>
-                <ul class="member-list" id="dash-finished-list">
-                  <!-- JSで動的に生成 -->
-                </ul>
+                <ul class="member-list" id="dash-finished-list"></ul>
               </div>
             </div>
           </div>
@@ -232,12 +241,8 @@
         <!-- ページ: 月表示 (マトリクス表) -->
         <div id="page-monthly" class="page-content hidden">
           <div class="monthly-container">
-            <!-- 画面上部 操作パネル -->
             <div class="monthly-header-bar">
-              <div class="monthly-actions-left">
-                <!-- 左側の空きスペース確保用 -->
-              </div>
-
+              <div class="monthly-actions-left"></div>
               <div class="month-selector">
                 <span class="current-month-title" id="matrix-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
@@ -247,21 +252,15 @@
                   <button class="btn-sub" onclick="changeMatrixMonth(1)">＞</button>
                 </div>
               </div>
-
               <div class="monthly-actions">
                 <button class="btn-print" onclick="window.print()">📄 印刷 (実績ダウンロード)</button>
               </div>
             </div>
 
-            <!-- カレンダーマトリクス表 -->
             <div class="matrix-scroll-wrapper">
-            <table class="monthly-matrix-table">
-                <thead id="matrix-thead">
-                  <!-- JSで動的にヘッダー(日付)を生成 -->
-                </thead>
-                <tbody id="matrix-tbody">
-                  <!-- JSで動的に従業員データとセルを生成 -->
-                </tbody>
+              <table class="monthly-matrix-table">
+                <thead id="matrix-thead"></thead>
+                <tbody id="matrix-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -279,17 +278,11 @@
         <!-- ページ: 日表示 -->
         <div id="page-daily" class="page-content hidden">
           <div class="daily-container">
-            <!-- 画面上部 タイトル -->
             <div class="daily-title-row">
               <h2 class="daily-main-title">日表示</h2>
             </div>
-
-            <!-- コントロールバー (日付ナビ) -->
             <div class="daily-control-bar">
-              <div class="control-left">
-                <!-- 空要素で中央寄せのバランスを維持 -->
-              </div>
-
+              <div class="control-left"></div>
               <div class="control-center">
                 <span class="daily-date-text" id="daily-date-title">2026年09月11日(金)</span>
                 <div class="month-btn-group">
@@ -299,13 +292,8 @@
                   <button class="btn-sub" onclick="changeDailyDate(1)">＞</button>
                 </div>
               </div>
-
-              <div class="control-right">
-                <!-- 空要素で中央寄せのバランスを維持 -->
-              </div>
+              <div class="control-right"></div>
             </div>
-
-            <!-- テーブル (スマレジ完全再現: 写真・位置バッジ配置) -->
             <div class="daily-table-wrapper">
               <table class="daily-status-table">
                 <thead>
@@ -315,9 +303,7 @@
                     <th>写真 / 位置情報</th>
                   </tr>
                 </thead>
-                <tbody id="daily-tbody">
-                  <!-- JSで動的に従業員実績データを生成 -->
-                </tbody>
+                <tbody id="daily-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -327,9 +313,7 @@
         <div id="page-holiday-setting" class="page-content hidden">
           <div class="monthly-container">
             <div class="monthly-header-bar">
-              <div class="monthly-actions-left">
-                <!-- 空要素 -->
-              </div>
+              <div class="monthly-actions-left"></div>
               <div class="month-selector">
                 <span class="current-month-title" id="holiday-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
@@ -339,9 +323,7 @@
                   <button class="btn-sub" onclick="changeHolidayMonth(1)">＞</button>
                 </div>
               </div>
-              <div class="monthly-actions">
-                <!-- 保存ボタンは自動保存化のため削除 -->
-              </div>
+              <div class="monthly-actions"></div>
             </div>
 
             <div style="margin-bottom: 15px; color: var(--text-sub); font-size: 13px;">
@@ -354,14 +336,69 @@
                   <th class="sun">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat">土</th>
                 </tr>
               </thead>
-              <tbody id="holiday-tbody">
-                <!-- JSで動的にカレンダーを生成 -->
-              </tbody>
+              <tbody id="holiday-tbody"></tbody>
             </table>
           </div>
         </div>
 
-<!-- 位置情報確認モーダル（スマレジ完全再現） -->
+        <!-- ページ: 遅刻一覧 -->
+        <div id="page-late" class="page-content hidden">
+          <div class="monthly-container">
+            <div class="daily-title-row"><h2 class="daily-main-title">遅刻一覧</h2></div>
+            <div class="daily-table-wrapper" style="margin-top: 20px;">
+              <table class="daily-status-table" style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th style="width: 150px;">日付</th>
+                    <th style="width: 200px;">従業員名</th>
+                    <th>遅刻時間・詳細</th>
+                  </tr>
+                </thead>
+                <tbody id="late-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ページ: 欠勤一覧 -->
+        <div id="page-absence" class="page-content hidden">
+          <div class="monthly-container">
+            <div class="daily-title-row"><h2 class="daily-main-title">欠勤一覧</h2></div>
+            <div class="daily-table-wrapper" style="margin-top: 20px;">
+              <table class="daily-status-table" style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th style="width: 150px;">日付</th>
+                    <th style="width: 200px;">従業員名</th>
+                    <th>欠勤時間・詳細</th>
+                  </tr>
+                </thead>
+                <tbody id="absence-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ページ: 有給一覧 -->
+        <div id="page-paid-leave" class="page-content hidden">
+          <div class="monthly-container">
+            <div class="daily-title-row"><h2 class="daily-main-title">有給一覧</h2></div>
+            <div class="daily-table-wrapper" style="margin-top: 20px;">
+              <table class="daily-status-table" style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th style="width: 150px;">日付</th>
+                    <th style="width: 200px;">従業員名</th>
+                    <th>有給時間・詳細</th>
+                  </tr>
+                </thead>
+                <tbody id="paid-leave-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 位置情報確認モーダル -->
         <div id="map-modal" class="modal-overlay hidden" onclick="closeMapModal()">
           <div class="modal-body map-modal-body" id="map-modal-body" onclick="event.stopPropagation()">
             <div class="map-modal-header">
@@ -369,13 +406,10 @@
               <button class="btn-close-icon" onclick="closeMapModal()">×</button>
             </div>
             <div class="map-modal-content">
-              <!-- 追加：メール内容エリア (直行直帰用) -->
               <div id="map-modal-email-area" class="hidden" style="width: 260px; flex-shrink: 0; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 4px; padding: 15px; overflow-y: auto;">
                 <div id="map-modal-email-subject" style="font-size: 14px; font-weight: bold; margin-bottom: 12px; color: var(--sidebar-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"></div>
                 <div id="map-modal-email-text" style="font-size: 13px; line-height: 1.6; color: var(--text-main); white-space: pre-wrap;"></div>
               </div>
-              
-              <!-- 地図表示エリア -->
               <div style="flex: 1; display: flex; flex-direction: column;">
                 <div class="map-preview">
                   <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
@@ -386,15 +420,11 @@
           </div>
         </div>
 
-        <!-- ページ: 残業時間集計表 (仕様書要件) -->
+        <!-- ページ: 残業時間集計表 -->
         <div id="page-overtime" class="page-content hidden">
           <div class="monthly-container">
-            <!-- 画面上部 操作パネル -->
             <div class="monthly-header-bar">
-              <div class="monthly-actions-left">
-                <!-- 左側の空きスペース確保用 -->
-              </div>
-
+              <div class="monthly-actions-left"></div>
               <div class="month-selector">
                 <span class="current-month-title" id="overtime-month-title">2026年 09月度</span>
                 <div class="month-btn-group">
@@ -404,7 +434,6 @@
                   <button class="btn-sub" onclick="changeOvertimeMonth(1)">＞</button>
                 </div>
               </div>
-
               <div class="monthly-actions">
                 <button class="btn-print" onclick="window.print()">📄 印刷 (実績ダウンロード)</button>
               </div>
@@ -414,7 +443,6 @@
               <h2 class="daily-main-title">残業時間集計表</h2>
             </div>
 
-            <!-- タイトル下線と表の間に配置 -->
             <div style="margin-top: 15px; margin-bottom: 15px;">
               <select id="overtime-dept-filter" class="form-select" style="width: 150px; padding: 6px 10px; font-size: 13px;" onchange="renderOvertimeTable()">
                 <option value="ALL">全ての部署</option>
@@ -426,7 +454,6 @@
               </select>
             </div>
 
-            <!-- 集計テーブル -->
             <div class="matrix-scroll-wrapper">
               <table class="overtime-table">
                 <thead>
@@ -438,21 +465,13 @@
                     <th onclick="sortOvertime('overtimeHours')">総残業時間 <span class="sort-icon" id="sort-overtimeHours"></span></th>
                   </tr>
                 </thead>
-                <tbody id="overtime-tbody">
-                  <!-- JSで動的に生成 -->
-                </tbody>
-                <tfoot id="overtime-tfoot">
-                  <!-- JSで動的に生成 -->
-                </tfoot>
+                <tbody id="overtime-tbody"></tbody>
+                <tfoot id="overtime-tfoot"></tfoot>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- ==============================================
-             月表示セルクリックモーダル (仕様書要件)
-             ============================================== -->
-        
         <!-- 実績 新規登録モーダル -->
         <div id="modal-record-create" class="modal-overlay hidden">
           <div class="record-modal-body">
@@ -477,26 +496,44 @@
                 <tr>
                   <th>勤務 <span class="badge-req">必須</span></th>
                   <td class="time-select-group">
-                    <select class="form-select-sm" id="create-start-h">
-                      <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
-                    </select> :
-                    <select class="form-select-sm" id="create-start-m">
-                      <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
-                    </select>
+                    <select class="form-select-sm" id="create-start-h"></select> :
+                    <select class="form-select-sm" id="create-start-m"></select>
                     <span>〜</span>
-                    <select class="form-select-sm" id="create-end-h">
-                      <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18" selected>18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
-                    </select> :
-                    <select class="form-select-sm" id="create-end-m">
-                      <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
-                    </select>
+                    <select class="form-select-sm" id="create-end-h"></select> :
+                    <select class="form-select-sm" id="create-end-m"></select>
                   </td>
                 </tr>
                 <tr>
                   <th>直行直帰</th>
                   <td>
-                    <label><input type="checkbox"> 直行</label>
-                    <label style="margin-left:10px;"><input type="checkbox"> 直帰</label>
+                    <label><input type="checkbox" id="create-check-direct-in"> 直行</label>
+                    <label style="margin-left:10px;"><input type="checkbox" id="create-check-direct-out"> 直帰</label>
+                  </td>
+                </tr>
+                <tr>
+                  <th>その他</th>
+                  <td>
+                    <label><input type="checkbox" id="create-check-late" onchange="toggleExtraTimeRow('create', 'late')"> 遅刻</label>
+                    <label style="margin-left:10px;"><input type="checkbox" id="create-check-absence" onchange="toggleExtraTimeRow('create', 'absence')"> 欠勤</label>
+                    <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid" onchange="toggleExtraTimeRow('create', 'paid')"> 有給</label>
+                  </td>
+                </tr>
+                <tr id="create-row-late" class="hidden">
+                  <th>遅刻 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-late-start-h"></select> : <select class="form-select-sm" id="create-late-start-m"></select> 〜 <select class="form-select-sm" id="create-late-end-h"></select> : <select class="form-select-sm" id="create-late-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-absence" class="hidden">
+                  <th>欠勤 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-absence-start-h"></select> : <select class="form-select-sm" id="create-absence-start-m"></select> 〜 <select class="form-select-sm" id="create-absence-end-h"></select> : <select class="form-select-sm" id="create-absence-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-paid" class="hidden">
+                  <th>有給 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-paid-start-h"></select> : <select class="form-select-sm" id="create-paid-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-end-h"></select> : <select class="form-select-sm" id="create-paid-end-m"></select>
                   </td>
                 </tr>
               </table>
@@ -532,31 +569,48 @@
                 <tr>
                   <th>勤務 <span class="badge-req">必須</span></th>
                   <td class="time-select-group">
-                    <select class="form-select-sm" id="edit-start-h">
-                      <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08" selected>08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
-                    </select> :
-                    <select class="form-select-sm" id="edit-start-m">
-                      <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="48" selected>48</option><option value="50">50</option><option value="55">55</option>
-                    </select>
+                    <select class="form-select-sm" id="edit-start-h"></select> :
+                    <select class="form-select-sm" id="edit-start-m"></select>
                     <span>〜</span>
-                    <select class="form-select-sm" id="edit-end-h">
-                      <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20" selected>20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
-                    </select> :
-                    <select class="form-select-sm" id="edit-end-m">
-                      <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="23" selected>23</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
-                    </select>
+                    <select class="form-select-sm" id="edit-end-h"></select> :
+                    <select class="form-select-sm" id="edit-end-m"></select>
                   </td>
                 </tr>
                 <tr>
                   <th>直行直帰</th>
                   <td>
-                    <label><input type="checkbox"> 直行</label>
-                    <label style="margin-left:10px;"><input type="checkbox"> 直帰</label>
+                    <label><input type="checkbox" id="edit-check-direct-in"> 直行</label>
+                    <label style="margin-left:10px;"><input type="checkbox" id="edit-check-direct-out"> 直帰</label>
+                  </td>
+                </tr>
+                <tr>
+                  <th>その他</th>
+                  <td>
+                    <label><input type="checkbox" id="edit-check-late" onchange="toggleExtraTimeRow('edit', 'late')"> 遅刻</label>
+                    <label style="margin-left:10px;"><input type="checkbox" id="edit-check-absence" onchange="toggleExtraTimeRow('edit', 'absence')"> 欠勤</label>
+                    <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid" onchange="toggleExtraTimeRow('edit', 'paid')"> 有給</label>
+                  </td>
+                </tr>
+                <tr id="edit-row-late" class="hidden">
+                  <th>遅刻 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-late-start-h"></select> : <select class="form-select-sm" id="edit-late-start-m"></select> 〜 <select class="form-select-sm" id="edit-late-end-h"></select> : <select class="form-select-sm" id="edit-late-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-absence" class="hidden">
+                  <th>欠勤 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-absence-start-h"></select> : <select class="form-select-sm" id="edit-absence-start-m"></select> 〜 <select class="form-select-sm" id="edit-absence-end-h"></select> : <select class="form-select-sm" id="edit-absence-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-paid" class="hidden">
+                  <th>有給 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-paid-start-h"></select> : <select class="form-select-sm" id="edit-paid-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-end-h"></select> : <select class="form-select-sm" id="edit-paid-end-m"></select>
                   </td>
                 </tr>
               </table>
 
-              <!-- アコーディオン式 送信メール内容 -->
               <div class="accordion-mail-box">
                 <div class="accordion-mail-header" onclick="toggleMailAccordion()">
                   送信メール内容を表示 <span id="mail-arrow">▼</span>
@@ -614,7 +668,7 @@
           </div>
         </div>
 
-        <!-- ページ: 従業員一覧 -->
+        <!-- ページ: 店舗管理 -->
         <div id="page-shops" class="page-content hidden">
           <div class="emp-page-header">
             <h2>店舗管理</h2>
@@ -632,8 +686,7 @@
                   <th style="width: 120px;">操作</th>
                 </tr>
               </thead>
-              <tbody id="shop-list-tbody">
-                </tbody>
+              <tbody id="shop-list-tbody"></tbody>
             </table>
           </div>
         </div>
@@ -661,6 +714,7 @@
           </div>
         </div>
 
+        <!-- ページ: 従業員一覧 -->
         <div id="page-employees" class="page-content hidden">
           <div class="emp-page-header">
             <h2>従業員一覧</h2>
@@ -670,7 +724,6 @@
           </div>
 
           <div class="emp-filter-card">
-            <!-- 追加：名前検索枠 -->
             <div class="filter-row" style="margin-bottom: 15px;">
               <span class="filter-label">名前検索</span>
               <input type="text" id="emp-search-name" class="form-input" style="width: 300px;" placeholder="従業員名・フリガナで検索" oninput="filterByName(this.value)">
@@ -695,12 +748,10 @@
             </div>
           </div>
 
-          <div class="emp-list-container" id="emp-list-container">
-            <!-- JSで動的に従業員カードを生成 -->
-          </div>
+          <div class="emp-list-container" id="emp-list-container"></div>
         </div>
 
-<!-- ページ: 従業員詳細 (スマレジ風) -->
+        <!-- ページ: 従業員詳細 -->
         <div id="page-employee-detail" class="page-content hidden" style="background: white;">
           <div class="detail-header-row">
             <button class="btn-back" onclick="switchPage('employees')">＜ 一覧へ戻る</button>
@@ -719,18 +770,9 @@
 
             <table class="detail-info-table">
               <tbody>
-                <tr>
-                  <th>名前 <span class="badge-req">必須</span></th>
-                  <td id="val-name"></td>
-                </tr>
-                <tr>
-                  <th>フリガナ <span class="badge-req">必須</span></th>
-                  <td id="val-kana"></td>
-                </tr>
-                <tr>
-                  <th>性別 <span class="badge-req">必須</span></th>
-                  <td id="val-gender"></td>
-                </tr>
+                <tr><th>名前 <span class="badge-req">必須</span></th><td id="val-name"></td></tr>
+                <tr><th>フリガナ <span class="badge-req">必須</span></th><td id="val-kana"></td></tr>
+                <tr><th>性別 <span class="badge-req">必須</span></th><td id="val-gender"></td></tr>
                 <tr>
                   <th>メールアドレス</th>
                   <td>
@@ -738,62 +780,34 @@
                     <button type="button" class="btn-sub" style="margin-left: 15px; font-size: 11px; padding: 4px 10px; background: #ffffff;" onclick="sendPwSetupEmail(document.getElementById('detail-email').textContent)">PW再送メール</button>
                   </td>
                 </tr>
-                <tr>
-                  <th>所属 <span class="badge-req">必須</span></th>
-                  <td id="val-department"></td>
-                </tr>
-                <tr>
-                  <th>店舗 <span class="badge-req">必須</span></th>
-                  <td id="val-shop-name"></td>
-                </tr>
-                <tr>
-                  <th>権限 <span class="badge-req">必須</span></th>
-                  <td id="val-role"></td>
-                </tr>
-                <tr>
-                  <th>勤怠表示 <span class="badge-req">必須</span></th>
-                  <td id="val-attendance"></td>
-                </tr>
-                <tr>
-                  <th>入社日</th>
-                  <td id="val-join-date"></td>
-                </tr>
-                <tr>
-                  <th>退職日</th>
-                  <td id="val-retire-date"></td>
-                </tr>
+                <tr><th>所属 <span class="badge-req">必須</span></th><td id="val-department"></td></tr>
+                <tr><th>店舗 <span class="badge-req">必須</span></th><td id="val-shop-name"></td></tr>
+                <tr><th>権限 <span class="badge-req">必須</span></th><td id="val-role"></td></tr>
+                <tr><th>勤怠表示 <span class="badge-req">必須</span></th><td id="val-attendance"></td></tr>
+                <tr><th>入社日</th><td id="val-join-date"></td></tr>
+                <tr><th>退職日</th><td id="val-retire-date"></td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-<!-- ページ: 従業員編集 -->
+        <!-- ページ: 従業員編集 -->
         <div id="page-employee-edit" class="page-content hidden" style="background: white;">
           <div class="detail-header-row">
             <button class="btn-back" onclick="closeEditEmployee()">＜ 一覧へ戻る</button>
             <h2 id="edit-emp-name" class="detail-title">従業員名</h2>
           </div>
 
-          <div class="detail-tabs">
-            <div class="detail-tab active">基本情報</div>
-          </div>
+          <div class="detail-tabs"><div class="detail-tab active">基本情報</div></div>
 
           <div class="detail-content-area">
-            <div class="detail-section-header">
-              <h3>基本情報</h3>
-            </div>
+            <div class="detail-section-header"><h3>基本情報</h3></div>
 
             <form id="employee-edit-form" onsubmit="saveEmployeeEdit(event, currentEmpTargetId)" autocomplete="off">
               <table class="edit-form-table">
                 <tbody>
-                  <tr>
-                    <th>名前 <span class="badge-req">必須</span></th>
-                    <td><input type="text" class="form-input" id="edit-name" value="" placeholder="例）東宝太郎" required></td>
-                  </tr>
-                  <tr>
-                    <th>フリガナ <span class="badge-req">必須</span></th>
-                    <td><input type="text" class="form-input" id="edit-kana" value="" placeholder="例）トウホウタロウ" required></td>
-                  </tr>
+                  <tr><th>名前 <span class="badge-req">必須</span></th><td><input type="text" class="form-input" id="edit-name" placeholder="例）東宝太郎" required></td></tr>
+                  <tr><th>フリガナ <span class="badge-req">必須</span></th><td><input type="text" class="form-input" id="edit-kana" placeholder="例）トウホウタロウ" required></td></tr>
                   <tr>
                     <th>性別 <span class="badge-req">必須</span></th>
                     <td>
@@ -802,10 +816,7 @@
                       <label style="margin-left: 15px;"><input type="radio" name="gender" value="女性"> 女性</label>
                     </td>
                   </tr>
-                  <tr>
-                    <th>メールアドレス</th>
-                    <td><input type="email" class="form-input" id="edit-email" placeholder="例) xxxx@example.jp" autocomplete="off"></td>
-                  </tr>
+                  <tr><th>メールアドレス</th><td><input type="email" class="form-input" id="edit-email" placeholder="例) xxxx@example.jp" autocomplete="off"></td></tr>
                   <tr>
                     <th>所属 <span class="badge-req">必須</span></th>
                     <td>
@@ -819,13 +830,7 @@
                       </select>
                     </td>
                   </tr>
-                  <tr>
-                    <th>店舗 <span class="badge-req">必須</span></th>
-                    <td>
-                      <select class="form-select" id="edit-shop-id">
-                        </select>
-                    </td>
-                  </tr>
+                  <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="edit-shop-id"></select></td></tr>
                   <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
@@ -841,14 +846,8 @@
                       <label style="margin-left: 15px;"><input type="radio" name="attendance_display" value="なし"> なし</label>
                     </td>
                   </tr>
-                  <tr>
-                    <th>入社日</th>
-                    <td><input type="text" class="form-input" id="edit-join-date" style="width: 150px;" placeholder="例) 2026/09/11"></td>
-                  </tr>
-                  <tr>
-                    <th>退職日</th>
-                    <td><input type="text" class="form-input" id="edit-retire-date" style="width: 150px;" placeholder="例) 2026/09/11"></td>
-                  </tr>
+                  <tr><th>入社日</th><td><input type="text" class="form-input" id="edit-join-date" style="width: 150px;" placeholder="例) 2026/09/11"></td></tr>
+                  <tr><th>退職日</th><td><input type="text" class="form-input" id="edit-retire-date" style="width: 150px;" placeholder="例) 2026/09/11"></td></tr>
                 </tbody>
               </table>
 
@@ -859,7 +858,7 @@
           </div>
         </div>
 
-<!-- ページ: 新規従業員作成 -->
+        <!-- ページ: 新規従業員作成 -->
         <div id="page-employee-create" class="page-content hidden" style="background: white;">
           <div class="detail-content-area" style="max-width: 900px; margin: 0 auto; padding: 30px;">
             <div class="create-page-title">新しい従業員を作成</div>
@@ -868,14 +867,8 @@
             <form id="employee-create-form" onsubmit="saveNewEmployee(event)">
               <table class="edit-form-table">
                 <tbody>
-                  <tr>
-                    <th>名前 <span class="badge-req">必須</span></th>
-                    <td><input type="text" class="form-input" placeholder="例）東宝太郎" required></td>
-                  </tr>
-                  <tr>
-                    <th>フリガナ <span class="badge-req">必須</span></th>
-                    <td><input type="text" class="form-input" placeholder="例）トウホウタロウ" required></td>
-                  </tr>
+                  <tr><th>名前 <span class="badge-req">必須</span></th><td><input type="text" class="form-input" placeholder="例）東宝太郎" required></td></tr>
+                  <tr><th>フリガナ <span class="badge-req">必須</span></th><td><input type="text" class="form-input" placeholder="例）トウホウタロウ" required></td></tr>
                   <tr>
                     <th>性別 <span class="badge-req">必須</span></th>
                     <td>
@@ -884,10 +877,7 @@
                       <label style="margin-left: 15px;"><input type="radio" name="new_gender" value="女性"> 女性</label>
                     </td>
                   </tr>
-                  <tr>
-                    <th>メールアドレス</th>
-                    <td><input type="email" class="form-input" id="new-email" placeholder="例) xxxx@example.jp"></td>
-                  </tr>
+                  <tr><th>メールアドレス</th><td><input type="email" class="form-input" id="new-email" placeholder="例) xxxx@example.jp"></td></tr>
                   <tr>
                     <th>所属 <span class="badge-req">必須</span></th>
                     <td>
@@ -901,13 +891,7 @@
                       </select>
                     </td>
                   </tr>
-                  <tr>
-                    <th>店舗 <span class="badge-req">必須</span></th>
-                    <td>
-                      <select class="form-select" id="new-shop-id" required>
-                        </select>
-                    </td>
-                  </tr>
+                  <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="new-shop-id" required></select></td></tr>
                   <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
@@ -923,14 +907,8 @@
                       <label style="margin-left: 15px;"><input type="radio" name="new_attendance_display" value="なし"> なし</label>
                     </td>
                   </tr>
-                  <tr>
-                    <th>入社日</th>
-                    <td><input type="text" class="form-input" id="edit-join-date" style="width: 150px;" placeholder="例) 2026/09/11"></td>
-                  </tr>
-                  <tr>
-                    <th>退職日</th>
-                    <td><input type="text" class="form-input" id="edit-retire-date" style="width: 150px;" placeholder="例) 2026/09/11"></td>
-                  </tr>
+                  <tr><th>入社日</th><td><input type="text" class="form-input" style="width: 150px;" placeholder="例) 2026/09/11"></td></tr>
+                  <tr><th>退職日</th><td><input type="text" class="form-input" style="width: 150px;" placeholder="例) 2026/09/11"></td></tr>
                 </tbody>
               </table>
 
@@ -942,64 +920,41 @@
           </div>
         </div>
 
-        <!-- ページ: Web打刻アプリ（NEXT出退勤画面） -->
+        <!-- ページ: Web打刻アプリ -->
         <div id="page-web-timeclock" class="page-content hidden">
           <div class="timeclock-container">
-            
-            <!-- 左側：時計 & 打刻操作エリア (TOHOブルー背景) -->
             <div class="timeclock-left-panel">
               <div class="timeclock-header-title">東宝ハウス NEXT事業部</div>
-              
-              <!-- リアルタイム時計 -->
               <div class="clock-display-box">
                 <div class="clock-date" id="tc-clock-date">2026年09月23日(水)</div>
                 <div class="clock-time" id="tc-clock-time">12:30:16</div>
               </div>
-
-              <!-- 選択中の従業員表示 -->
-              <div class="selected-user-display" id="tc-selected-user-name">
-                従業員を選択してください
-              </div>
-
-              <!-- 打刻アクションボタン（出勤 / 退勤 / 直行 / 直帰） -->
+              <div class="selected-user-display" id="tc-selected-user-name">従業員を選択してください</div>
               <div class="timeclock-action-grid">
                 <button class="tc-action-btn disabled" id="tc-btn-clockin" onclick="executeWebTimeclock('出勤')" disabled>
-                  <div class="tc-btn-icon">☀️</div>
-                  <div class="tc-btn-label">出勤</div>
+                  <div class="tc-btn-icon">☀️</div><div class="tc-btn-label">出勤</div>
                 </button>
                 <button class="tc-action-btn disabled" id="tc-btn-clockout" onclick="executeWebTimeclock('退勤')" disabled>
-                  <div class="tc-btn-icon">🌙</div>
-                  <div class="tc-btn-label">退勤</div>
+                  <div class="tc-btn-icon">🌙</div><div class="tc-btn-label">退勤</div>
                 </button>
                 <button class="tc-action-btn disabled" id="tc-btn-directin" onclick="executeWebTimeclock('直行')" disabled>
-                  <div class="tc-btn-icon">🚶‍♂️</div>
-                  <div class="tc-btn-label">直行</div>
+                  <div class="tc-btn-icon">🚶‍♂️</div><div class="tc-btn-label">直行</div>
                 </button>
                 <button class="tc-action-btn disabled" id="tc-btn-directout" onclick="executeWebTimeclock('直帰')" disabled>
-                  <div class="tc-btn-icon">🏠</div>
-                  <div class="tc-btn-label">直帰</div>
+                  <div class="tc-btn-icon">🏠</div><div class="tc-btn-label">直帰</div>
                 </button>
               </div>
             </div>
 
-            <!-- 右側：従業員一覧 & イニシャル絞り込みパネル -->
             <div class="timeclock-right-panel">
               <div class="tc-right-header" style="justify-content: space-between;">
                 <div class="tc-tab-title">👥 従業員一覧</div>
-                  <!-- 位置情報ON/OFF切り替えボタン -->
-                  <button type="button" id="tc-location-toggle-btn" class="tc-loc-btn on" onclick="toggleTcLocation()">
-                    <span class="tc-loc-icon">📍</span>
-                    <span id="tc-loc-text">ON</span>
-                  </button>
+                <button type="button" id="tc-location-toggle-btn" class="tc-loc-btn on" onclick="toggleTcLocation()">
+                  <span class="tc-loc-icon">📍</span><span id="tc-loc-text">ON</span>
+                </button>
               </div>
-
               <div class="tc-panel-body">
-                <!-- 従業員リスト -->
-                <div class="tc-emp-list-wrapper" id="tc-emp-list">
-                  <!-- JSで動的生成 -->
-                </div>
-
-                <!-- 右端 イニシャルインデックス -->
+                <div class="tc-emp-list-wrapper" id="tc-emp-list"></div>
                 <div class="tc-initial-sidebar">
                   <button class="tc-initial-btn active" onclick="filterTcInitial('ALL')">All</button>
                   <button class="tc-initial-btn" onclick="filterTcInitial('ア')">ア</button>
@@ -1016,34 +971,25 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
-      
-      </div> <!-- /.content-area -->
-    </div> <!-- /.main-wrapper -->
-  </div> <!-- /#app-view -->
 
-  <!-- トースト通知 (保存完了メッセージ) -->
+      </div>
+    </div>
+  </div>
+
   <div id="toast-message" class="toast hidden">従業員を保存しました。</div>
 
   <!-- スマレジ風 年月選択ポップオーバー -->
   <div id="modal-month-picker" class="smaregi-picker-card hidden" onclick="event.stopPropagation()">
-    <!-- 年選択ヘッダー -->
     <div class="smaregi-picker-header">
       <button class="smaregi-arrow-btn" onclick="changePickerYear(-1)">◀</button>
       <div class="smaregi-year-select-wrapper">
-        <select id="smaregi-picker-year" onchange="renderMonthButtons()">
-          <!-- JSで動的に年要素を生成 -->
-        </select>
-        <span>年</span>
+        <select id="smaregi-picker-year" onchange="renderMonthButtons()"></select><span>年</span>
       </div>
       <button class="smaregi-arrow-btn" onclick="changePickerYear(1)">▶</button>
     </div>
-    <!-- 1月〜12月ボタン（4列×3行） -->
-    <div class="smaregi-month-grid" id="smaregi-month-grid">
-      <!-- JSで動的に1月〜12月ボタンを生成 -->
-    </div>
+    <div class="smaregi-month-grid" id="smaregi-month-grid"></div>
   </div>
 
   <!-- 汎用モーダル -->
@@ -1055,7 +1001,6 @@
     </div>
   </div>
 
-  <!-- 従業員操作専用モーダル (仕様書要件) -->
   <div id="modal-emp-action" class="modal-overlay hidden">
     <div class="modal-body" style="padding: 40px 30px;">
       <p id="emp-action-msg" style="font-size: 16px; font-weight: bold; margin-bottom: 30px;"></p>
@@ -1087,13 +1032,9 @@
             <th style="vertical-align: top; padding-top: 15px;">メール本文</th>
             <td>
               <textarea id="tc-mail-body" class="form-input" rows="6" style="resize: vertical; font-size: 13px; line-height: 1.5;"></textarea>
-              
-              <!-- テンプレートボタンエリア -->
               <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
                 <div style="font-size: 12px; font-weight: bold; color: var(--text-sub); margin-bottom: 6px;">テンプレート切り替え:</div>
-                <div id="tc-template-btn-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                  <!-- JSで動的にボタン生成 -->
-                </div>
+                <div id="tc-template-btn-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
                 <div style="display: flex; gap: 8px;">
                   <button type="button" class="btn-sub" style="font-size: 11px; padding: 4px 10px;" onclick="openTcTemplateEditModal('edit')">✏️ 編集</button>
                   <button type="button" class="btn-sub" style="font-size: 11px; padding: 4px 10px;" onclick="openTcTemplateEditModal('add')">＋ テンプレ追加</button>
@@ -1110,7 +1051,6 @@
     </div>
   </div>
 
-  <!-- テンプレート名・本文編集用モーダル -->
   <div id="modal-tc-template-edit" class="modal-overlay hidden" style="z-index: 10001 !important;">
     <div class="record-modal-body" style="width: 460px;">
       <div class="record-modal-header">
@@ -1125,9 +1065,7 @@
           </tr>
           <tr>
             <th style="vertical-align: top; padding-top: 12px;">本文内容</th>
-            <td>
-              <textarea id="tc-tpl-body-input" class="form-input" rows="6" style="resize: vertical; font-size: 12px;"></textarea>
-            </td>
+            <td><textarea id="tc-tpl-body-input" class="form-input" rows="6" style="resize: vertical; font-size: 12px;"></textarea></td>
           </tr>
         </table>
       </div>
@@ -1138,7 +1076,6 @@
     </div>
   </div>
 
-  <!-- 新規追加：デモ用 メール送信シミュレーションモーダル -->
   <div id="modal-email-preview" class="modal-overlay hidden">
     <div class="modal-body" style="width: 500px; text-align: left;">
       <h3 style="margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">[バックエンド連携用モック] 送信メール</h3>
