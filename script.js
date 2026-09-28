@@ -1009,7 +1009,6 @@ function showEmployeeDetail(identifier) {
 function openEditEmployee() {
   const emp = currentEmployeeList.find(e => Number(e.id) === Number(currentEmpTargetId));
   if (!emp) return;
-
   document.getElementById('edit-emp-name').textContent = emp.name;
   document.getElementById('edit-name').value = emp.name || '';
   document.getElementById('edit-kana').value = emp.kana || '';
@@ -1025,12 +1024,15 @@ function openEditEmployee() {
   const deptSelect = document.querySelector('#employee-edit-form .form-select');
   if (deptSelect) deptSelect.value = emp.office || 'NEXT';
 
+  // ★追加：編集画面の店舗プルダウンに現在の店舗をセットする
+  const shopSelect = document.getElementById('edit-shop-id');
+  if (shopSelect) shopSelect.value = emp.shop_id || 'shop_01';
+
   const roleRadios = document.querySelectorAll('input[name="role"]');
   roleRadios.forEach(r => r.checked = (r.value === (emp.role || '一般')));
 
   const attRadios = document.querySelectorAll('input[name="attendance_display"]');
   attRadios.forEach(r => r.checked = (emp.show_attendance ? r.value === 'あり' : r.value === 'なし'));
-
   document.getElementById('edit-join-date').value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate.replace(/\//g, '-') : '';
   document.getElementById('edit-retire-date').value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate.replace(/\//g, '-') : '';
 
@@ -1047,7 +1049,6 @@ async function saveEmployeeEdit(event) {
 
   const nameVal = document.getElementById('edit-name').value.trim();
   const kanaVal = document.getElementById('edit-kana').value.trim();
-
   // 空文字によるDB破損を防止
   if (!nameVal || !kanaVal) {
     alert('名前とフリガナは必須項目です。空のまま保存することはできません。');
@@ -1059,13 +1060,13 @@ async function saveEmployeeEdit(event) {
   const btn = event.target.querySelector('.btn-save');
   btn.textContent = '保存中...';
   btn.disabled = true;
-
   const form = event.target;
   const genderEl = form.querySelector('input[name="gender"]:checked');
   const roleEl = form.querySelector('input[name="role"]:checked');
   const attEl = form.querySelector('input[name="attendance_display"]:checked');
 
   const emailInput = document.getElementById('edit-email');
+  const shopSelect = document.getElementById('edit-shop-id'); // ★追加
 
   const payload = {
     name: nameVal,
@@ -1076,7 +1077,8 @@ async function saveEmployeeEdit(event) {
     role: roleEl ? roleEl.value : (currentEmp ? currentEmp.role : '一般'),
     show_attendance: attEl ? (attEl.value === 'あり' ? 1 : 0) : 1,
     join_date: document.getElementById('edit-join-date').value ? document.getElementById('edit-join-date').value.replace(/\//g, '-') : null,
-    retire_date: document.getElementById('edit-retire-date').value ? document.getElementById('edit-retire-date').value.replace(/\//g, '-') : null
+    retire_date: document.getElementById('edit-retire-date').value ? document.getElementById('edit-retire-date').value.replace(/\//g, '-') : null,
+    shop_id: shopSelect ? shopSelect.value : (currentEmp ? currentEmp.shop_id : 'shop_01') // ★追加
   };
 
   try {
@@ -1085,7 +1087,6 @@ async function saveEmployeeEdit(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-
     if (!response.ok) throw new Error('更新に失敗しました');
 
     showToast('従業員情報を保存しました。');
@@ -1094,7 +1095,6 @@ async function saveEmployeeEdit(event) {
     await renderEmployees();
     showEmployeeDetail(currentEmpTargetId);
     closeEditEmployee();
-
   } catch (error) {
     console.error('更新エラー:', error);
     alert('保存に失敗しました。サーバーが起動しているか確認してください。');
@@ -1119,10 +1119,10 @@ async function saveNewEmployee(event) {
   const btn = event.target.querySelector('.btn-save');
   btn.textContent = '保存中...';
   btn.disabled = true;
-
   const form = event.target;
   const inputs = form.querySelectorAll('.form-input');
   const selects = form.querySelectorAll('.form-select');
+  const shopSelect = document.getElementById('new-shop-id'); // ★追加
 
   // 入力フォームからデータを抽出してペイロード（送信データ）を作成
   const payload = {
@@ -1133,30 +1133,29 @@ async function saveNewEmployee(event) {
     department: selects[0].value,
     role: form.querySelector('input[name="new_role"]:checked').value,
     show_attendance: form.querySelector('input[name="new_attendance_display"]:checked').value === 'あり' ? 1 : 0,
-    join_date: inputs[3].value ? inputs[3].value.replace(/\//g, '-') : null, // 2026/09/11 を 2026-09-11 に変換
-    retire_date: inputs[4].value ? inputs[4].value.replace(/\//g, '-') : null
+    join_date: inputs[3].value ? inputs[3].value.replace(/\//g, '-') : null,
+    retire_date: inputs[4].value ? inputs[4].value.replace(/\//g, '-') : null,
+    shop_id: shopSelect ? shopSelect.value : 'shop_01' // ★追加
   };
 
   try {
-    // 立ち上げているローカルサーバー(API)へPOSTリクエスト
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-
     if (!response.ok) {
       throw new Error('サーバーエラーが発生しました');
     }
 
     showToast('新しい従業員を作成しました。');
     closeCreateEmployee();
-    form.reset(); // フォームを空に戻す
+    form.reset();
 
     // 保存後に一覧データを再取得して画面を更新！
     await renderEmployees();
-
-    // メール送信処理（今回はモックのまま）
+    
+    // メール送信処理
     if (payload.email) {
       sendPwSetupEmail(payload.email);
     }
