@@ -29,14 +29,20 @@ function initShopSelects() {
   const newSelect = document.getElementById('new-shop-id');
 
   let optionsHtml = '';
-  // ★店舗ID（shop_01, shop_02...）の順にソートして順番を固定する
   const sortedKeys = Object.keys(SHOP_LIST).sort();
   sortedKeys.forEach(id => {
     optionsHtml += `<option value="${id}">${SHOP_LIST[id]}</option>`;
   });
 
-  if (globalSelect) globalSelect.innerHTML = optionsHtml;
-  if (sidebarSelect) sidebarSelect.innerHTML = optionsHtml;
+  // ★修正：HTMLを生成した直後に、現在の店舗IDを「value」として確実に再セットする
+  if (globalSelect) {
+    globalSelect.innerHTML = optionsHtml;
+    globalSelect.value = currentSelectedShopId;
+  }
+  if (sidebarSelect) {
+    sidebarSelect.innerHTML = optionsHtml;
+    sidebarSelect.value = currentSelectedShopId;
+  }
   if (editSelect) editSelect.innerHTML = optionsHtml;
   if (newSelect) newSelect.innerHTML = optionsHtml;
 }
@@ -66,7 +72,13 @@ async function changeSidebarShop() {
 
 // ユーザー権限と店舗表示の初期化制御
 function applyUserPermissions(user) {
-  currentSelectedShopId = user.shop_id || 'shop_01';
+  // ★修正：ユーザーのshop_idがDBに存在するかチェックし、なければリストの最初の店舗をデフォルトにする
+  if (user.shop_id && SHOP_LIST[user.shop_id]) {
+    currentSelectedShopId = user.shop_id;
+  } else {
+    const sortedShops = Object.keys(SHOP_LIST).sort();
+    currentSelectedShopId = sortedShops.length > 0 ? sortedShops[0] : 'shop_01';
+  }
   
   const globalSelect = document.getElementById('global-shop-select');
   const sidebarSelect = document.getElementById('sidebar-shop-select');
@@ -1939,7 +1951,12 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   try {
     // 選択された店舗IDで従業員データを取得
     const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`);
-    const dbData = await response.json();
+    let dbData = await response.json();
+
+    // ★修正：AWS側で全件返ってきてしまう事態に備え、フロント側で強制的に現在の店舗の従業員だけを残す安全装置を追加
+    if (Array.isArray(dbData)) {
+      dbData = dbData.filter(emp => emp.shop_id === currentSelectedShopId);
+    }
 
     // ② RDSの生データを、画面表示用の形式に変換（マッピング）
     if (!Array.isArray(dbData)) {
