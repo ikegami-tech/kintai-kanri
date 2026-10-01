@@ -99,11 +99,14 @@ async function changeSidebarShopDiv(shopId) {
   // 左メニューのタイトルを選択した店舗名に更新
   const currentShopNameSpan = document.getElementById('sidebar-shop-current-name');
   if (currentShopNameSpan) {
-    currentShopNameSpan.textContent = SHOP_LIST[shopId] || '対象店舗';
+    currentShopNameSpan.textContent = SHOP_LIST[shopId] || '店舗選択';
   }
   
-  // 選択したらメニューを閉じる(任意)
-  // toggleShopMenu(); 
+  // 選択したらメニューを確実に閉じる
+  const submenu = document.getElementById('shop-sub');
+  const arrow = document.getElementById('shop-arrow');
+  if (submenu) submenu.classList.remove('open');
+  if (arrow) arrow.classList.remove('open');
   
   await renderEmployees();
   handleRouting();
