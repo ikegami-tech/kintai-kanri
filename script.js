@@ -1508,12 +1508,18 @@ async function renderMatrixTable() {
           if (inText || outText) {
              timeText = `${inText}<br>${outText}`;
           } else {
-             timeText = `<span style="color:#aaa;">-</span>`; // 時刻がない場合は「-」を表示
+             // clock_inがない場合でも、メモから遅刻・欠勤・有給の時間を抽出して表示する
+             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
+             if (extMatch) {
+                 timeText = `${extMatch[1]}<br>${extMatch[2]}`;
+             } else {
+                 timeText = `<span style="color:#aaa;">-</span>`; // 時刻がない場合は「-」を表示
+             }
           }
 
           let memoHtml = '';
           if (att.memo) {
-            if (att.memo.includes('管理者修正') && (inText || outText)) {
+            if (att.memo.includes('管理者修正') && timeText !== '<span style="color:#aaa;">-</span>') {
                timeText = `<span class="time-edited">${timeText}</span>`;
             }
 
@@ -1667,6 +1673,15 @@ async function renderDailyTable() {
         actionStr = '出勤';
         fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)}`;
       }
+    } else if (att && att.memo) {
+      // clock_inがない場合でも、メモから遅刻・欠勤・有給の時間を抽出して表示する
+      let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+      if (extMatch) {
+         timeStr = `${extMatch[1]} ～ ${extMatch[2]}`;
+         statusDotClass = 'dot-finished';
+         actionStr = '退勤';
+         fullTimeStr = `${month}/${date} ${extMatch[1]} - ${extMatch[2]}`;
+      }
     }
 
     let memoHtml = '';
@@ -1674,20 +1689,6 @@ async function renderDailyTable() {
     if (att && att.memo) {
       if (att.memo.includes('管理者修正') && timeStr !== '-') {
         timeStr = `<span class="time-edited">${timeStr}</span>`;
-      }
-
-      // 遅刻・欠勤・有給のバッジを日表示にも追加
-      let statusBadges = [];
-      if (att.memo.includes('【遅刻】')) statusBadges.push(`<span style="color:#e67e22; font-weight:bold; background:#fdf2e9; padding:2px 6px; border-radius:4px; margin-right:8px; font-size:11px;">遅刻</span>`);
-      if (att.memo.includes('【欠勤】')) statusBadges.push(`<span style="color:#e74c3c; font-weight:bold; background:#fdedec; padding:2px 6px; border-radius:4px; margin-right:8px; font-size:11px;">欠勤</span>`);
-      if (att.memo.includes('【有給】')) statusBadges.push(`<span style="color:#27ae60; font-weight:bold; background:#e9f7ef; padding:2px 6px; border-radius:4px; margin-right:8px; font-size:11px;">有給</span>`);
-      
-      if (statusBadges.length > 0) {
-          if (timeStr === '-') {
-              timeStr = statusBadges.join('');
-          } else {
-              timeStr = statusBadges.join('') + timeStr;
-          }
       }
 
       const hasDirectIn = att.memo.includes('直行');
