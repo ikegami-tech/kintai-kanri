@@ -752,8 +752,13 @@ async function submitRecordCreate() {
   const clockIn = (startH !== '--' && startM !== '--') ? `${startH}:${startM}:00` : null;
   const clockOut = (endH !== '--' && endM !== '--') ? `${endH}:${endM}:00` : null;
 
-  if (!clockIn) {
-    alert('出勤時間を指定してください。');
+  const cbLate = document.getElementById('create-check-late');
+  const cbAbsence = document.getElementById('create-check-absence');
+  const cbPaid = document.getElementById('create-check-paid');
+
+  // 出勤時間が未入力でも、遅刻・欠勤・有給のいずれかにチェックが入っていれば保存を許可する
+  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbPaid && cbPaid.checked)) {
+    alert('出勤時間を指定するか、遅刻・欠勤・有給のいずれかを選択してください。');
     return;
   }
 
