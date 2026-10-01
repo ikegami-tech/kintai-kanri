@@ -2126,8 +2126,9 @@ td:hover .memo-icon::before {
 }
 
 /* ホバー時の吹き出し位置調整 */
-.memo-icon[data-tooltip]:hover::after {
-  transform: translate(20%, -100%) !important;
+.memo-icon[data-tooltip]:hover::after,
+.monthly-matrix-table div:hover > .memo-icon::after {
+  transform: translateX(-50%) !important;
 }
 
 /* ==========================================
