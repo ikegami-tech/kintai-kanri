@@ -1985,7 +1985,7 @@ async function renderOvertimeTable() {
   const month = currentOvertimeDate.getMonth() + 1;
   document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  const colCount = tableType === 'overtime' ? 5 : 7;
+  const colCount = tableType === 'overtime' ? 5 : 8;
   document.getElementById('overtime-tbody').innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: #7f8c8d; padding: 20px;">データ集計中...</td></tr>`;
   
   const displayData = await fetchOvertimeData(year, month, selectedDept);
@@ -2017,11 +2017,12 @@ async function renderOvertimeTable() {
       <th onclick="sortOvertime('paidDays')">総有給日数 <span class="sort-icon" id="sort-paidDays"></span></th>
       <th onclick="sortOvertime('absenceMins')">総欠勤時間 <span class="sort-icon" id="sort-absenceMins"></span></th>
       <th onclick="sortOvertime('lateMins')">総遅刻時間 <span class="sort-icon" id="sort-lateMins"></span></th>
+      <th onclick="sortOvertime('earlyMins')">総早退時間 <span class="sort-icon" id="sort-earlyMins"></span></th>
     </tr>
   `;
   document.getElementById('overtime-thead').innerHTML = theadHtml;
 
-  const sortKeys = ['name', 'weekdayDays', 'weekendDays', 'totalHours', 'overtimeHours', 'paidDays', 'absenceMins', 'lateMins'];
+  const sortKeys = ['name', 'weekdayDays', 'weekendDays', 'totalHours', 'overtimeHours', 'paidDays', 'absenceMins', 'lateMins', 'earlyMins'];
   sortKeys.forEach(k => {
     const el = document.getElementById(`sort-${k}`);
     if (el) {
@@ -2060,6 +2061,7 @@ async function renderOvertimeTable() {
           <td>${emp.paidDays.toFixed(1)}日</td>
           <td>${emp.absenceMins}分</td>
           <td>${emp.lateMins}分</td>
+          <td>${emp.earlyMins}分</td>
         </tr>
       `;
     }
@@ -2073,6 +2075,7 @@ async function renderOvertimeTable() {
   const sumPaid = sortedData.reduce((sum, emp) => sum + emp.paidDays, 0);
   const sumAbsence = sortedData.reduce((sum, emp) => sum + emp.absenceMins, 0);
   const sumLate = sortedData.reduce((sum, emp) => sum + emp.lateMins, 0);
+  const sumEarly = sortedData.reduce((sum, emp) => sum + emp.earlyMins, 0);
 
   if (tableType === 'overtime') {
     document.getElementById('overtime-tfoot').innerHTML = `
@@ -2101,6 +2104,7 @@ async function renderOvertimeTable() {
         <td>${sumPaid.toFixed(1)}日</td>
         <td>${sumAbsence}分</td>
         <td>${sumLate}分</td>
+        <td>${sumEarly}分</td>
       </tr>
       <tr class="summary-row">
         <td style="text-align:left;">全体平均 (1人あたり)</td>
@@ -2110,6 +2114,7 @@ async function renderOvertimeTable() {
         <td>${count > 0 ? (sumPaid / count).toFixed(1) : 0}日</td>
         <td>${count > 0 ? Math.round(sumAbsence / count) : 0}分</td>
         <td>${count > 0 ? Math.round(sumLate / count) : 0}分</td>
+        <td>${count > 0 ? Math.round(sumEarly / count) : 0}分</td>
       </tr>
     `;
   }
