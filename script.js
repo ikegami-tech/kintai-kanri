@@ -614,7 +614,7 @@ function handleCellAction(actionType) {
     document.getElementById('create-end-h').value = '--';
     document.getElementById('create-end-m').value = '--';
     
-    ['late', 'absence', 'paid'].forEach(type => {
+    ['late', 'absence', 'paid', 'early'].forEach(type => {
       const cb = document.getElementById(`create-check-${type}`);
       if (cb) { cb.checked = false; toggleExtraTimeRow('create', type); }
       document.getElementById(`create-${type}-start-h`).value = '--';
@@ -662,8 +662,8 @@ function handleCellAction(actionType) {
     if (cbOut) cbOut.checked = rawMemo.includes('直帰');
     toggleDirectMailArea('modal-record-edit');
 
-    const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給' };
-    ['late', 'absence', 'paid'].forEach(type => {
+    const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給', early: '早退' };
+    ['late', 'absence', 'paid', 'early'].forEach(type => {
       const cb = document.getElementById(`edit-check-${type}`);
       let sh = '--', sm = '--', eh = '--', em = '--';
       let checked = false;
@@ -767,10 +767,11 @@ async function submitRecordCreate() {
   const cbLate = document.getElementById('create-check-late');
   const cbAbsence = document.getElementById('create-check-absence');
   const cbPaid = document.getElementById('create-check-paid');
+  const cbEarly = document.getElementById('create-check-early');
 
-  // 出勤時間が未入力でも、遅刻・欠勤・有給のいずれかにチェックが入っていれば保存を許可する
-  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbPaid && cbPaid.checked)) {
-    alert('出勤時間を指定するか、遅刻・欠勤・有給のいずれかを選択してください。');
+  // 出勤時間が未入力でも、遅刻・欠勤・有給・早退のいずれかにチェックが入っていれば保存を許可する
+  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbPaid && cbPaid.checked) && !(cbEarly && cbEarly.checked)) {
+    alert('出勤時間を指定するか、遅刻・欠勤・有給・早退のいずれかを選択してください。');
     return;
   }
 
@@ -788,8 +789,8 @@ async function submitRecordCreate() {
     memoParts.push(directMemoList.join('・'));
   }
 
-  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給' };
-  ['late', 'absence', 'paid'].forEach(type => {
+  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給', early: '早退' };
+  ['late', 'absence', 'paid', 'early'].forEach(type => {
     const cb = document.getElementById(`create-check-${type}`);
     if (cb && cb.checked) {
       const sh = document.getElementById(`create-${type}-start-h`)?.value || '--';
@@ -877,14 +878,15 @@ async function submitRecordEdit() {
     .replace(/【遅刻】.*/g, '')
     .replace(/【欠勤】.*/g, '')
     .replace(/【有給】.*/g, '')
+    .replace(/【早退】.*/g, '')
     .replace(/休日出勤/g, '')
     .replace(/管理者修正/g, '')
     .trim();
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
-  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給' };
-  ['late', 'absence', 'paid'].forEach(type => {
+  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給', early: '早退' };
+  ['late', 'absence', 'paid', 'early'].forEach(type => {
     const cb = document.getElementById(`edit-check-${type}`);
     if (cb && cb.checked) {
       const sh = document.getElementById(`edit-${type}-start-h`)?.value || '--';
@@ -1509,7 +1511,7 @@ async function renderMatrixTable() {
              timeText = `${inText}<br>${outText}`;
           } else {
              // clock_inがない場合でも、メモから遅刻・欠勤・有給の時間を抽出して表示する
-             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
+             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
              } else {
@@ -1674,8 +1676,8 @@ async function renderDailyTable() {
         fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)}`;
       }
     } else if (att && att.memo) {
-      // clock_inがない場合でも、メモから遅刻・欠勤・有給の時間を抽出して表示する
-      let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+      // clock_inがない場合でも、メモから遅刻・欠勤・有給・早退の時間を抽出して表示する
+      let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
       if (extMatch) {
          timeStr = `${extMatch[1]} ～ ${extMatch[2]}`;
          statusDotClass = 'dot-finished';
