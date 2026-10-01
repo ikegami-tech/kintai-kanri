@@ -797,7 +797,8 @@ async function submitRecordCreate() {
     work_date: dateVal,
     clock_in: clockIn,
     clock_out: clockOut,
-    memo: memoParts.join('\n')
+    memo: memoParts.join('\n'),
+    shop_id: currentSelectedShopId // ここを追加
   };
 
   try {
@@ -894,7 +895,8 @@ async function submitRecordEdit() {
     work_date: dateVal,
     clock_in: clockIn,
     clock_out: clockOut,
-    memo: finalMemo
+    memo: finalMemo,
+    shop_id: currentSelectedShopId // ここを追加
   };
 
   try {
