@@ -21,52 +21,89 @@ async function loadShopListFromDB() {
   initShopSelects(); // 取得完了後にプルダウンを生成
 }
 
-// 全店舗プルダウンの初期化
+// 全店舗プルダウン＆左メニューアコーディオンの初期化
 function initShopSelects() {
   const globalSelect = document.getElementById('global-shop-select');
-  const sidebarSelect = document.getElementById('sidebar-shop-select');
+  const shopSubMenu = document.getElementById('shop-sub');
+  const currentShopNameSpan = document.getElementById('sidebar-shop-current-name');
   const editSelect = document.getElementById('edit-shop-id');
   const newSelect = document.getElementById('new-shop-id');
 
   let optionsHtml = '';
+  let subMenuHtml = '';
   const sortedKeys = Object.keys(SHOP_LIST).sort();
+  
   sortedKeys.forEach(id => {
     optionsHtml += `<option value="${id}">${SHOP_LIST[id]}</option>`;
+    // 左メニュー用のdivを生成
+    subMenuHtml += `<div class="nav-item" style="padding-left: 54px; font-size: 13px;" onclick="changeSidebarShopDiv('${id}')">${SHOP_LIST[id]}</div>`;
   });
 
   if (globalSelect) {
     globalSelect.innerHTML = optionsHtml;
     globalSelect.value = currentSelectedShopId;
   }
-  if (sidebarSelect) {
-    sidebarSelect.innerHTML = optionsHtml;
-    sidebarSelect.value = currentSelectedShopId;
+  if (shopSubMenu) {
+    shopSubMenu.innerHTML = subMenuHtml;
+  }
+  if (currentShopNameSpan) {
+    // 現在選択中の店舗名を表示
+    currentShopNameSpan.textContent = SHOP_LIST[currentSelectedShopId] || '対象店舗';
   }
   if (editSelect) editSelect.innerHTML = optionsHtml;
   if (newSelect) newSelect.innerHTML = optionsHtml;
 }
 
-// 全店舗プルダウン(右・左)の切り替え処理
+// 店舗メニューアコーディオンの開閉処理を追加
+function toggleShopMenu() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+  }
+  const submenu = document.getElementById('shop-sub');
+  const arrow = document.getElementById('shop-arrow');
+  if (submenu) submenu.classList.toggle('open');
+  if (arrow) arrow.classList.toggle('open');
+}
+
+// 全店舗(右上のプルダウン)からの切り替え処理
 async function changeGlobalShop() {
   const select = document.getElementById('global-shop-select');
   if (select) {
     currentSelectedShopId = select.value;
-    const sidebarSelect = document.getElementById('sidebar-shop-select');
-    if (sidebarSelect) sidebarSelect.value = currentSelectedShopId;
+    
+    // 左メニュー側の表示も更新
+    const currentShopNameSpan = document.getElementById('sidebar-shop-current-name');
+    if (currentShopNameSpan) {
+      currentShopNameSpan.textContent = SHOP_LIST[currentSelectedShopId] || '対象店舗';
+    }
+    
     await renderEmployees();
     handleRouting();
   }
 }
 
-async function changeSidebarShop() {
-  const select = document.getElementById('sidebar-shop-select');
-  if (select) {
-    currentSelectedShopId = select.value;
-    const globalSelect = document.getElementById('global-shop-select');
-    if (globalSelect) globalSelect.value = currentSelectedShopId;
-    await renderEmployees();
-    handleRouting();
+// 左メニュー(アコーディオン内のdiv)からの切り替え処理
+async function changeSidebarShopDiv(shopId) {
+  currentSelectedShopId = shopId;
+  
+  // 右上プルダウンの値を連動させる
+  const globalSelect = document.getElementById('global-shop-select');
+  if (globalSelect) {
+    globalSelect.value = shopId;
   }
+  
+  // 左メニューのタイトルを選択した店舗名に更新
+  const currentShopNameSpan = document.getElementById('sidebar-shop-current-name');
+  if (currentShopNameSpan) {
+    currentShopNameSpan.textContent = SHOP_LIST[shopId] || '対象店舗';
+  }
+  
+  // 選択したらメニューを閉じる(任意)
+  // toggleShopMenu(); 
+  
+  await renderEmployees();
+  handleRouting();
 }
 
 // ユーザー権限と店舗表示の初期化制御
@@ -284,12 +321,22 @@ async function handleRouting() {
 }
 
 function switchPage(pageId, element = null) {
-  // サイドバーが折りたたまれている（閉じている）場合は展開する
   const sidebar = document.getElementById('sidebar');
-  if (sidebar && sidebar.classList.contains('collapsed')) {
-    sidebar.classList.remove('collapsed');
+  if (sidebar) {
+    if (sidebar.classList.contains('collapsed')) {
+      // 閉じている場合は展開
+      sidebar.classList.remove('collapsed');
+    } else {
+      // 展開されている状態でクリックされた場合は閉じる
+      sidebar.classList.add('collapsed');
+    }
   }
   
+  // サブメニュー（月表示、日表示など）をクリックした場合は閉じない例外処理が必要な場合はここに追加
+  if (element && element.closest('#attendance-sub')) {
+     sidebar.classList.remove('collapsed');
+  }
+
   location.hash = '#/' + pageId;
 }
 
@@ -3033,7 +3080,8 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
 async function renderShops() {
   const tbody = document.getElementById('shop-list-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">読み込み中...</td></tr>';
+  // colspanを4から3に変更
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">読み込み中...</td></tr>';
   
   try {
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops');
@@ -3042,7 +3090,7 @@ async function renderShops() {
     
     tbody.innerHTML = shops.map(shop => `
       <tr>
-        <td>${shop.id}</td>
+        <!-- 店舗ID(shop.id)のセルを削除 -->
         <td style="font-weight: bold;">${shop.name}</td>
         <td><span class="badge-tag badge-regular">利用中</span></td>
         <td>
@@ -3052,7 +3100,8 @@ async function renderShops() {
     `).join('');
   } catch (error) {
     console.error(error);
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">データ取得エラー</td></tr>';
+    // colspanを4から3に変更
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: red;">データ取得エラー</td></tr>';
   }
 }
 
