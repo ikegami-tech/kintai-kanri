@@ -283,7 +283,13 @@ async function handleRouting() {
   }
 }
 
-function switchPage(pageId) {
+function switchPage(pageId, element = null) {
+  // サイドバーが折りたたまれている（閉じている）場合は展開する
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+  }
+  
   location.hash = '#/' + pageId;
 }
 
