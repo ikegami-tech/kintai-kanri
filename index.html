@@ -131,19 +131,7 @@
           <div class="nav-item" onclick="switchPage('holiday-setting', this)">休日設定</div>
         </div>
 
-        <!-- 遅刻、欠勤、有給 -->
-        <div class="nav-item" onclick="switchPage('late', this)">
-          <span class="nav-icon" style="font-size: 16px;">🏃</span>
-          <span class="nav-text">遅刻</span>
-        </div>
-        <div class="nav-item" onclick="switchPage('absence', this)">
-          <span class="nav-icon" style="font-size: 16px;">🛌</span>
-          <span class="nav-text">欠勤</span>
-        </div>
-        <div class="nav-item" onclick="switchPage('paid-leave', this)">
-          <span class="nav-icon" style="font-size: 16px;">🌴</span>
-          <span class="nav-text">有給</span>
-        </div>
+        
 
         <!-- 従業員管理 -->
         <div class="nav-item" onclick="switchPage('employees', this)">
@@ -344,62 +332,7 @@
           </div>
         </div>
 
-        <!-- ページ: 遅刻一覧 -->
-        <div id="page-late" class="page-content hidden">
-          <div class="monthly-container">
-            <div class="daily-title-row"><h2 class="daily-main-title">遅刻一覧</h2></div>
-            <div class="daily-table-wrapper" style="margin-top: 20px;">
-              <table class="daily-status-table" style="width: 100%;">
-                <thead>
-                  <tr>
-                    <th style="width: 150px;">日付</th>
-                    <th style="width: 200px;">従業員名</th>
-                    <th>遅刻時間・詳細</th>
-                  </tr>
-                </thead>
-                <tbody id="late-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ページ: 欠勤一覧 -->
-        <div id="page-absence" class="page-content hidden">
-          <div class="monthly-container">
-            <div class="daily-title-row"><h2 class="daily-main-title">欠勤一覧</h2></div>
-            <div class="daily-table-wrapper" style="margin-top: 20px;">
-              <table class="daily-status-table" style="width: 100%;">
-                <thead>
-                  <tr>
-                    <th style="width: 150px;">日付</th>
-                    <th style="width: 200px;">従業員名</th>
-                    <th>欠勤時間・詳細</th>
-                  </tr>
-                </thead>
-                <tbody id="absence-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ページ: 有給一覧 -->
-        <div id="page-paid-leave" class="page-content hidden">
-          <div class="monthly-container">
-            <div class="daily-title-row"><h2 class="daily-main-title">有給一覧</h2></div>
-            <div class="daily-table-wrapper" style="margin-top: 20px;">
-              <table class="daily-status-table" style="width: 100%;">
-                <thead>
-                  <tr>
-                    <th style="width: 150px;">日付</th>
-                    <th style="width: 200px;">従業員名</th>
-                    <th>有給時間・詳細</th>
-                  </tr>
-                </thead>
-                <tbody id="paid-leave-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        
 
         <!-- 位置情報確認モーダル -->
         <div id="map-modal" class="modal-overlay hidden" onclick="closeMapModal()">
