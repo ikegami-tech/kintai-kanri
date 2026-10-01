@@ -1494,12 +1494,30 @@ async function renderMatrixTable() {
           if (inText || outText) {
              timeText = `${inText}<br>${outText}`;
           } else {
-             timeText = `<span style="color:#aaa;">-</span>`; // 時刻がない場合は「-」を表示
+             // 時刻がない場合は空文字にしておく
+             timeText = ``; 
           }
           let memoHtml = '';
           if (att.memo) {
-            if (att.memo.includes('管理者修正')) timeText = `<span class="time-edited">${timeText}</span>`;
+            if (att.memo.includes('管理者修正') && timeText !== '') timeText = `<span class="time-edited">${timeText}</span>`;
             
+            // 遅刻・欠勤・有給のバッジを時刻の代わりに、または時刻と併記して表示する
+            let statusBadges = [];
+            if (att.memo.includes('【遅刻】')) statusBadges.push(`<span style="color:#e67e22; font-weight:bold;">遅刻</span>`);
+            if (att.memo.includes('【欠勤】')) statusBadges.push(`<span style="color:#e74c3c; font-weight:bold;">欠勤</span>`);
+            if (att.memo.includes('【有給】')) statusBadges.push(`<span style="color:#27ae60; font-weight:bold;">有給</span>`);
+            
+            if (statusBadges.length > 0) {
+                if (timeText === '') {
+                    timeText = statusBadges.join('<br>');
+                } else {
+                    timeText = statusBadges.join('<br>') + '<br>' + timeText;
+                }
+            } else if (timeText === '') {
+                // バッジもなく時刻もない場合は「-」を表示
+                timeText = `<span style="color:#aaa;">-</span>`;
+            }
+
             const hasDirectIn = att.memo.includes('直行');
             const hasDirectOut = att.memo.includes('直帰');
             let directTags = [];
@@ -1507,7 +1525,7 @@ async function renderMatrixTable() {
             if (hasDirectOut) directTags.push('直帰');
 
             let cleanMemo = att.memo
-              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, '')
               .replace(/休日出勤/g, '');
@@ -1655,8 +1673,22 @@ async function renderDailyTable() {
     let memoHtml = '';
     let pureMemo = '';
     if (att && att.memo) {
-      if (att.memo.includes('管理者修正')) {
+      if (att.memo.includes('管理者修正') && timeStr !== '-') {
         timeStr = `<span class="time-edited">${timeStr}</span>`;
+      }
+
+      // 遅刻・欠勤・有給のバッジを日表示にも追加
+      let statusBadges = [];
+      if (att.memo.includes('【遅刻】')) statusBadges.push(`<span style="color:#e67e22; font-weight:bold; background:#fdf2e9; padding:2px 6px; border-radius:4px; margin-right:8px; font-size:11px;">遅刻</span>`);
+      if (att.memo.includes('【欠勤】')) statusBadges.push(`<span style="color:#e74c3c; font-weight:bold; background:#fdedec; padding:2px 6px; border-radius:4px; margin-right:8px; font-size:11px;">欠勤</span>`);
+      if (att.memo.includes('【有給】')) statusBadges.push(`<span style="color:#27ae60; font-weight:bold; background:#e9f7ef; padding:2px 6px; border-radius:4px; margin-right:8px; font-size:11px;">有給</span>`);
+      
+      if (statusBadges.length > 0) {
+          if (timeStr === '-') {
+              timeStr = statusBadges.join('');
+          } else {
+              timeStr = statusBadges.join('') + timeStr;
+          }
       }
 
       const hasDirectIn = att.memo.includes('直行');
