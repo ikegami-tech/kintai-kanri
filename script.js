@@ -47,8 +47,11 @@ function initShopSelects() {
     shopSubMenu.innerHTML = subMenuHtml;
   }
   if (currentShopNameSpan) {
-    // 現在選択中の店舗名を表示
-    currentShopNameSpan.textContent = SHOP_LIST[currentSelectedShopId] || '対象店舗';
+    // 初期状態では「店舗選択」のままにするため、ここでの上書き処理を削除または条件付きにします
+    // 何も選択されていない初期状態を想定し、初期化時は書き換えないようにします。
+    if (currentShopNameSpan.textContent !== '店舗選択') {
+         currentShopNameSpan.textContent = SHOP_LIST[currentSelectedShopId] || '店舗選択';
+    }
   }
   if (editSelect) editSelect.innerHTML = optionsHtml;
   if (newSelect) newSelect.innerHTML = optionsHtml;
