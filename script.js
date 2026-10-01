@@ -322,19 +322,9 @@ async function handleRouting() {
 
 function switchPage(pageId, element = null) {
   const sidebar = document.getElementById('sidebar');
-  if (sidebar) {
-    if (sidebar.classList.contains('collapsed')) {
-      // 閉じている場合は展開
-      sidebar.classList.remove('collapsed');
-    } else {
-      // 展開されている状態でクリックされた場合は閉じる
-      sidebar.classList.add('collapsed');
-    }
-  }
-  
-  // サブメニュー（月表示、日表示など）をクリックした場合は閉じない例外処理が必要な場合はここに追加
-  if (element && element.closest('#attendance-sub')) {
-     sidebar.classList.remove('collapsed');
+  // サイドバーが折りたたまれている（閉じている）場合のみ展開する
+  if (sidebar && sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
   }
 
   location.hash = '#/' + pageId;
