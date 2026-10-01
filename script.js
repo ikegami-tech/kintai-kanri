@@ -2284,7 +2284,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h',
     'create-late-start-h', 'create-late-end-h', 'edit-late-start-h', 'edit-late-end-h',
     'create-absence-start-h', 'create-absence-end-h', 'edit-absence-start-h', 'edit-absence-end-h',
-    'create-paid-start-h', 'create-paid-end-h', 'edit-paid-start-h', 'edit-paid-end-h'
+    'create-paid-start-h', 'create-paid-end-h', 'edit-paid-start-h', 'edit-paid-end-h',
+    'create-early-start-h', 'create-early-end-h', 'edit-early-start-h', 'edit-early-end-h'
   ];
   let hoursHtml = '<option value="--">--</option>';
   for (let h = 0; h < 24; h++) {
@@ -2300,7 +2301,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-start-m', 'create-end-m', 'edit-start-m', 'edit-end-m',
     'create-late-start-m', 'create-late-end-m', 'edit-late-start-m', 'edit-late-end-m',
     'create-absence-start-m', 'create-absence-end-m', 'edit-absence-start-m', 'edit-absence-end-m',
-    'create-paid-start-m', 'create-paid-end-m', 'edit-paid-start-m', 'edit-paid-end-m'
+    'create-paid-start-m', 'create-paid-end-m', 'edit-paid-start-m', 'edit-paid-end-m',
+    'create-early-start-m', 'create-early-end-m', 'edit-early-start-m', 'edit-early-end-m'
   ];
   let minutesHtml = '<option value="--">--</option>';
   for (let m = 0; m < 60; m++) {
