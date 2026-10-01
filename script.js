@@ -1518,15 +1518,9 @@ async function renderMatrixTable() {
           }
 
           let memoHtml = '';
-          let specialMarkHtml = ''; // 追加：左上の黄色い丸印用
           if (att.memo) {
             if (att.memo.includes('管理者修正') && timeText !== '<span style="color:#aaa;">-</span>') {
                timeText = `<span class="time-edited">${timeText}</span>`;
-            }
-
-            // 遅刻・欠勤・有給が含まれる場合、セルの左上に黄色い丸印を表示
-            if (att.memo.includes('【遅刻】') || att.memo.includes('【欠勤】') || att.memo.includes('【有給】')) {
-               specialMarkHtml = `<span style="position: absolute; top: 2px; left: 2px; width: 6px; height: 6px; background-color: #f39c12; border-radius: 50%;"></span>`;
             }
 
             const hasDirectIn = att.memo.includes('直行');
@@ -1572,8 +1566,7 @@ async function renderMatrixTable() {
             ? '' 
             : `onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')"`;
 
-          // timeTextの前にspecialMarkHtml（黄色い丸）を追加して出力
-          return `<div style="padding:4px 0; position:relative; ${borderStyle}" ${blockOnClick}>${specialMarkHtml}${timeText}${memoHtml}</div>`;
+          return `<div style="padding:4px 0; position:relative; ${borderStyle}" ${blockOnClick}>${timeText}${memoHtml}</div>`;
         }).join('');
       }
 
