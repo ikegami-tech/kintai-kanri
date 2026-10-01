@@ -1881,8 +1881,35 @@ async function fetchOvertimeData(year, month, selectedDept) {
     const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
     let weekdayDays = 0, weekendDays = 0;
     let totalWorkMins = 0, totalOvertimeMins = 0;
+    let paidDays = 0, absenceMins = 0, lateMins = 0;
 
     myAttendances.forEach(att => {
+      // 有給・欠勤・遅刻の集計 (メモから抽出)
+      if (att.memo) {
+        if (att.memo.includes('【有給】')) paidDays += 1.0;
+
+        const lateMatch = att.memo.match(/【遅刻】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+        if (lateMatch) {
+          const sh = parseInt(lateMatch[1], 10), sm = parseInt(lateMatch[2], 10);
+          const eh = parseInt(lateMatch[3], 10), em = parseInt(lateMatch[4], 10);
+          let startMins = sh * 60 + sm;
+          let endMins = eh * 60 + em;
+          if (endMins < startMins) endMins += 24 * 60;
+          lateMins += (endMins - startMins);
+        }
+
+        const absenceMatch = att.memo.match(/【欠勤】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+        if (absenceMatch) {
+          const sh = parseInt(absenceMatch[1], 10), sm = parseInt(absenceMatch[2], 10);
+          const eh = parseInt(absenceMatch[3], 10), em = parseInt(absenceMatch[4], 10);
+          let startMins = sh * 60 + sm;
+          let endMins = eh * 60 + em;
+          if (endMins < startMins) endMins += 24 * 60;
+          absenceMins += (endMins - startMins);
+        }
+      }
+
+      // 以下は既存の実労働時間・残業時間の集計
       if (!att.clock_in || !att.clock_out) return;
 
       const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
@@ -1935,20 +1962,30 @@ async function fetchOvertimeData(year, month, selectedDept) {
       weekdayDays,
       weekendDays,
       totalHours: Math.ceil(totalWorkMins / 6) / 10,
-      overtimeHours: Math.ceil(totalOvertimeMins / 6) / 10
+      overtimeHours: Math.ceil(totalOvertimeMins / 6) / 10,
+      paidDays,
+      absenceMins,
+      lateMins
     };
   });
 }
 
 async function renderOvertimeTable() {
+  const typeEl = document.getElementById('overtime-table-type');
+  const tableType = typeEl ? typeEl.value : 'overtime';
   const filterEl = document.getElementById('overtime-dept-filter');
   const selectedDept = filterEl ? filterEl.value : 'ALL';
+  
+  const titleEl = document.getElementById('overtime-page-title');
+  if (titleEl) titleEl.textContent = tableType === 'overtime' ? '残業時間集計表' : '勤務時間集計表';
   
   const year = currentOvertimeDate.getFullYear();
   const month = currentOvertimeDate.getMonth() + 1;
   document.getElementById('overtime-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
 
-  document.getElementById('overtime-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #7f8c8d; padding: 20px;">データ集計中...</td></tr>';
+  const colCount = tableType === 'overtime' ? 5 : 7;
+  document.getElementById('overtime-tbody').innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: #7f8c8d; padding: 20px;">データ集計中...</td></tr>`;
+  
   const displayData = await fetchOvertimeData(year, month, selectedDept);
 
   const sortedData = [...displayData].sort((a, b) => {
@@ -1961,7 +1998,28 @@ async function renderOvertimeTable() {
     }
   });
 
-  const sortKeys = ['name', 'weekdayDays', 'weekendDays', 'totalHours', 'overtimeHours'];
+  const theadHtml = tableType === 'overtime' ? `
+    <tr>
+      <th onclick="sortOvertime('name')">スタッフ名 <span class="sort-icon" id="sort-name"></span></th>
+      <th onclick="sortOvertime('weekdayDays')">平日出勤日数 <span class="sort-icon" id="sort-weekdayDays"></span></th>
+      <th onclick="sortOvertime('weekendDays')">休日出勤日数 <span class="sort-icon" id="sort-weekendDays"></span></th>
+      <th onclick="sortOvertime('totalHours')">総実労働時間 <span class="sort-icon" id="sort-totalHours"></span></th>
+      <th onclick="sortOvertime('overtimeHours')">総残業時間 <span class="sort-icon" id="sort-overtimeHours"></span></th>
+    </tr>
+  ` : `
+    <tr>
+      <th onclick="sortOvertime('name')">スタッフ名 <span class="sort-icon" id="sort-name"></span></th>
+      <th onclick="sortOvertime('weekdayDays')">平日出勤日数 <span class="sort-icon" id="sort-weekdayDays"></span></th>
+      <th onclick="sortOvertime('weekendDays')">休日出勤日数 <span class="sort-icon" id="sort-weekendDays"></span></th>
+      <th onclick="sortOvertime('totalHours')">総実労働時間 <span class="sort-icon" id="sort-totalHours"></span></th>
+      <th onclick="sortOvertime('paidDays')">総有給日数 <span class="sort-icon" id="sort-paidDays"></span></th>
+      <th onclick="sortOvertime('absenceMins')">総欠勤時間 <span class="sort-icon" id="sort-absenceMins"></span></th>
+      <th onclick="sortOvertime('lateMins')">総遅刻時間 <span class="sort-icon" id="sort-lateMins"></span></th>
+    </tr>
+  `;
+  document.getElementById('overtime-thead').innerHTML = theadHtml;
+
+  const sortKeys = ['name', 'weekdayDays', 'weekendDays', 'totalHours', 'overtimeHours', 'paidDays', 'absenceMins', 'lateMins'];
   sortKeys.forEach(k => {
     const el = document.getElementById(`sort-${k}`);
     if (el) {
@@ -1975,40 +2033,84 @@ async function renderOvertimeTable() {
     }
   });
 
-  document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => `
-    <tr>
-      <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
-        <a href="javascript:void(0)" onclick="showEmployeeDetail('${emp.name}')" style="color:inherit; text-decoration:none;">${emp.name}</a>
-      </td>
-      <td>${emp.weekdayDays}日</td>
-      <td>${emp.weekendDays}日</td>
-      <td>${emp.totalHours.toFixed(1)}時間</td>
-      <td>${emp.overtimeHours.toFixed(1)}時間</td>
-    </tr>
-  `).join('');
+  document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => {
+    if (tableType === 'overtime') {
+      return `
+        <tr>
+          <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
+            <a href="javascript:void(0)" onclick="showEmployeeDetail('${emp.name}')" style="color:inherit; text-decoration:none;">${emp.name}</a>
+          </td>
+          <td>${emp.weekdayDays}日</td>
+          <td>${emp.weekendDays}日</td>
+          <td>${emp.totalHours.toFixed(1)}時間</td>
+          <td>${emp.overtimeHours.toFixed(1)}時間</td>
+        </tr>
+      `;
+    } else {
+      return `
+        <tr>
+          <td style="text-align:left; font-weight:bold; color:var(--toho-blue);">
+            <a href="javascript:void(0)" onclick="showEmployeeDetail('${emp.name}')" style="color:inherit; text-decoration:none;">${emp.name}</a>
+          </td>
+          <td>${emp.weekdayDays}日</td>
+          <td>${emp.weekendDays}日</td>
+          <td>${emp.totalHours.toFixed(1)}時間</td>
+          <td>${emp.paidDays.toFixed(1)}日</td>
+          <td>${emp.absenceMins}分</td>
+          <td>${emp.lateMins}分</td>
+        </tr>
+      `;
+    }
+  }).join('');
 
   const count = sortedData.length;
   const sumWeekday = sortedData.reduce((sum, emp) => sum + emp.weekdayDays, 0);
   const sumWeekend = sortedData.reduce((sum, emp) => sum + emp.weekendDays, 0);
   const sumTotal = sortedData.reduce((sum, emp) => sum + emp.totalHours, 0);
   const sumOvertime = sortedData.reduce((sum, emp) => sum + emp.overtimeHours, 0);
+  const sumPaid = sortedData.reduce((sum, emp) => sum + emp.paidDays, 0);
+  const sumAbsence = sortedData.reduce((sum, emp) => sum + emp.absenceMins, 0);
+  const sumLate = sortedData.reduce((sum, emp) => sum + emp.lateMins, 0);
 
-  document.getElementById('overtime-tfoot').innerHTML = `
-    <tr class="summary-row">
-      <td style="text-align:left;">合計 (${count}名)</td>
-      <td>${sumWeekday}日</td>
-      <td>${sumWeekend}日</td>
-      <td>${sumTotal.toFixed(1)}時間</td>
-      <td>${sumOvertime.toFixed(1)}時間</td>
-    </tr>
-    <tr class="summary-row">
-      <td style="text-align:left;">全体平均 (1人あたり)</td>
-      <td>${(sumWeekday / count).toFixed(1)}日</td>
-      <td>${(sumWeekend / count).toFixed(1)}日</td>
-      <td>${(sumTotal / count).toFixed(1)}時間</td>
-      <td>${(sumOvertime / count).toFixed(1)}時間</td>
-    </tr>
-  `;
+  if (tableType === 'overtime') {
+    document.getElementById('overtime-tfoot').innerHTML = `
+      <tr class="summary-row">
+        <td style="text-align:left;">合計 (${count}名)</td>
+        <td>${sumWeekday}日</td>
+        <td>${sumWeekend}日</td>
+        <td>${sumTotal.toFixed(1)}時間</td>
+        <td>${sumOvertime.toFixed(1)}時間</td>
+      </tr>
+      <tr class="summary-row">
+        <td style="text-align:left;">全体平均 (1人あたり)</td>
+        <td>${count > 0 ? (sumWeekday / count).toFixed(1) : 0}日</td>
+        <td>${count > 0 ? (sumWeekend / count).toFixed(1) : 0}日</td>
+        <td>${count > 0 ? (sumTotal / count).toFixed(1) : 0}時間</td>
+        <td>${count > 0 ? (sumOvertime / count).toFixed(1) : 0}時間</td>
+      </tr>
+    `;
+  } else {
+    document.getElementById('overtime-tfoot').innerHTML = `
+      <tr class="summary-row">
+        <td style="text-align:left;">合計 (${count}名)</td>
+        <td>${sumWeekday}日</td>
+        <td>${sumWeekend}日</td>
+        <td>${sumTotal.toFixed(1)}時間</td>
+        <td>${sumPaid.toFixed(1)}日</td>
+        <td>${sumAbsence}分</td>
+        <td>${sumLate}分</td>
+      </tr>
+      <tr class="summary-row">
+        <td style="text-align:left;">全体平均 (1人あたり)</td>
+        <td>${count > 0 ? (sumWeekday / count).toFixed(1) : 0}日</td>
+        <td>${count > 0 ? (sumWeekend / count).toFixed(1) : 0}日</td>
+        <td>${count > 0 ? (sumTotal / count).toFixed(1) : 0}時間</td>
+        <td>${count > 0 ? (sumPaid / count).toFixed(1) : 0}日</td>
+        <td>${count > 0 ? Math.round(sumAbsence / count) : 0}分</td>
+        <td>${count > 0 ? Math.round(sumLate / count) : 0}分</td>
+      </tr>
+    `;
+  }
 }
 
 function sortOvertime(key) {

@@ -376,10 +376,14 @@
             </div>
 
             <div class="daily-title-row">
-              <h2 class="daily-main-title">残業時間集計表</h2>
+              <h2 class="daily-main-title" id="overtime-page-title">残業時間集計表</h2>
             </div>
 
-            <div style="margin-top: 15px; margin-bottom: 15px;">
+            <div style="margin-top: 15px; margin-bottom: 15px; display: flex; gap: 10px;">
+              <select id="overtime-table-type" class="form-select" style="width: 180px; padding: 6px 10px; font-size: 13px;" onchange="renderOvertimeTable()">
+                <option value="overtime">残業時間集計表</option>
+                <option value="worktime">勤務時間集計表</option>
+              </select>
               <select id="overtime-dept-filter" class="form-select" style="width: 150px; padding: 6px 10px; font-size: 13px;" onchange="renderOvertimeTable()">
                 <option value="ALL">全ての部署</option>
                 <option value="ホーム課">ホーム課</option>
@@ -392,14 +396,7 @@
 
             <div class="matrix-scroll-wrapper">
               <table class="overtime-table">
-                <thead>
-                  <tr>
-                    <th onclick="sortOvertime('name')">スタッフ名 <span class="sort-icon" id="sort-name"></span></th>
-                    <th onclick="sortOvertime('weekdayDays')">平日出勤日数 <span class="sort-icon" id="sort-weekdayDays"></span></th>
-                    <th onclick="sortOvertime('weekendDays')">休日出勤日数 <span class="sort-icon" id="sort-weekendDays"></span></th>
-                    <th onclick="sortOvertime('totalHours')">総実労働時間 <span class="sort-icon" id="sort-totalHours"></span></th>
-                    <th onclick="sortOvertime('overtimeHours')">総残業時間 <span class="sort-icon" id="sort-overtimeHours"></span></th>
-                  </tr>
+                <thead id="overtime-thead">
                 </thead>
                 <tbody id="overtime-tbody"></tbody>
                 <tfoot id="overtime-tfoot"></tfoot>
