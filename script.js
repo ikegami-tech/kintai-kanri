@@ -542,7 +542,13 @@ function openCellMenu(event, empName, dateStr) {
   if (isDragging) return;
   event.stopPropagation();
   currentEmpName = empName;
-  currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
+  
+  // マトリクス表の現在の年を取得し、渡された月/日から日付文字列を生成する
+  const year = currentMatrixDate.getFullYear();
+  const month = dateStr.split('/')[0].padStart(2, '0');
+  const day = dateStr.split('/')[1].padStart(2, '0');
+  currentDate = `${year}/${month}/${day}`;
+  
   currentCellElement = event.currentTarget;
   currentRecordId = null; 
   
@@ -562,7 +568,13 @@ function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo
   if (isDragging) return;
   event.stopPropagation();
   currentEmpName = empName;
-  currentDate = `2026/09/${dateStr.split('/')[1].padStart(2, '0')}`;
+  
+  // マトリクス表の現在の年を取得し、渡された月/日から日付文字列を生成する
+  const year = currentMatrixDate.getFullYear();
+  const month = dateStr.split('/')[0].padStart(2, '0');
+  const day = dateStr.split('/')[1].padStart(2, '0');
+  currentDate = `${year}/${month}/${day}`;
+  
   currentCellElement = event.currentTarget;
   currentRecordId = recordId;
   
