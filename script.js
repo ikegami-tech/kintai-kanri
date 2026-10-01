@@ -1474,16 +1474,28 @@ async function renderMatrixTable() {
       
       let cellData = '';
       if (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) {
+        // メモだけ（出退勤時刻なし）のデータも表示対象に含める
         const validRecords = attendanceMap[emp.id][dateKey].filter(att => att.clock_in || att.clock_out || att.memo);
 
         validRecords.sort((a, b) => {
+          if (!a.clock_in && !b.clock_in) return 0;
           if (!a.clock_in) return 1;
           if (!b.clock_in) return -1;
           return a.clock_in.localeCompare(b.clock_in);
         });
 
         cellData = validRecords.map((att, idx) => {
-          let timeText = `${att.clock_in || ''}<br>${att.clock_out || ''}`;
+          // clock_inもclock_outもない（全休など）場合は、空のままにするか「--:--」を入れるか
+          // ここでは時刻がない場合は空文字にし、メモアイコンだけが表示されるようにします
+          let inText = att.clock_in ? att.clock_in.substring(0, 5) : '';
+          let outText = att.clock_out ? att.clock_out.substring(0, 5) : '';
+          
+          let timeText = '';
+          if (inText || outText) {
+             timeText = `${inText}<br>${outText}`;
+          } else {
+             timeText = `<span style="color:#aaa;">-</span>`; // 時刻がない場合は「-」を表示
+          }
           let memoHtml = '';
           if (att.memo) {
             if (att.memo.includes('管理者修正')) timeText = `<span class="time-edited">${timeText}</span>`;
