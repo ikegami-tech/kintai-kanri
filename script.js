@@ -398,28 +398,6 @@ function toggleMailAccordion() {
   arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
 }
 
-function toggleDirectMailArea(modalId) {
-  const modal = document.getElementById(modalId);
-  if (!modal) return;
-  
-  const checkboxes = modal.querySelectorAll('input[type="checkbox"]');
-  let isChecked = false;
-  checkboxes.forEach(cb => {
-    if (cb.checked) isChecked = true;
-  });
-
-  const mailContent = modal.querySelector('#mail-content');
-  const mailArea = mailContent ? (mailContent.closest('.form-group') || mailContent.parentElement) : modal.querySelector('.mail-accordion-area');
-  
-  if (mailArea) {
-    if (isChecked) {
-      mailArea.classList.remove('hidden');
-    } else {
-      mailArea.classList.add('hidden');
-    }
-  }
-}
-
 const addressCache = {};
 
 async function reverseGeocode(coordsStr) {
@@ -633,7 +611,6 @@ function handleCellAction(actionType) {
     const cbOut = document.getElementById('create-check-direct-out');
     if (cbIn) cbIn.checked = false;
     if (cbOut) cbOut.checked = false;
-    toggleDirectMailArea('modal-record-create');
 
     document.getElementById('modal-record-create').classList.remove('hidden');
     
@@ -666,7 +643,30 @@ function handleCellAction(actionType) {
     const cbOut = document.getElementById('edit-check-direct-out');
     if (cbIn) cbIn.checked = rawMemo.includes('直行');
     if (cbOut) cbOut.checked = rawMemo.includes('直帰');
-    toggleDirectMailArea('modal-record-edit');
+    
+    // 直行直帰のメール内容を抽出してセットする
+    const mailBox = document.getElementById('edit-mail-box');
+    const mailContent = document.getElementById('mail-content');
+    if (mailBox && mailContent) {
+      // 位置情報タグや管理者修正タグ、各時間タグを除外して本文のみを抽出
+      let tempMemo = rawMemo
+        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/管理者修正/g, '')
+        .replace(/休日出勤/g, '')
+        .replace(/【.*?】(\d{2}:\d{2}〜\d{2}:\d{2})?/g, '')
+        .replace(/【.*?】/g, '')
+        .trim();
+        
+      if (tempMemo && (rawMemo.includes('直行') || rawMemo.includes('直帰'))) {
+         mailContent.innerHTML = tempMemo.replace(/\n/g, '<br>');
+         mailBox.classList.remove('hidden');
+         mailContent.classList.add('hidden'); // 初期状態は閉じておく
+         const arrow = document.getElementById('mail-arrow');
+         if (arrow) arrow.textContent = '▼';
+      } else {
+         mailBox.classList.add('hidden');
+      }
+    }
 
     const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
     ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
