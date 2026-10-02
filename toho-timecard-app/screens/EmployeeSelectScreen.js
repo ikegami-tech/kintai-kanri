@@ -112,6 +112,20 @@ export default function EmployeeSelectScreen({ navigation }) {
 
       const initData = async () => {
         setLoading(true);
+        
+        // ▼位置情報がOFFになっていないかチェック▼
+        try {
+          const locEnabled = await Location.hasServicesEnabledAsync();
+          if (!locEnabled) {
+            Alert.alert(
+              '位置情報がオフになっています',
+              '出退勤の打刻を行うには、端末の位置情報サービスをオンにしてから操作してください。'
+            );
+          }
+        } catch (e) {
+          console.warn('位置情報チェックエラー', e);
+        }
+
         try {
           const userStr = await AsyncStorage.getItem('@logged_in_user');
           if (userStr) {

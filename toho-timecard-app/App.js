@@ -112,11 +112,6 @@ function MainDrawer() {
         options={{ title: '🕒 タイムカード' }}
       />
       <Drawer.Screen 
-        name="History" 
-        component={HistoryScreen} 
-        options={{ title: '📋 出勤履歴' }}
-      />
-      <Drawer.Screen 
         name="Settings" 
         component={SettingsScreen} 
         options={{ title: '⚙️ 設定' }}
