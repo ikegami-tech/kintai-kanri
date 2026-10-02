@@ -1883,7 +1883,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
     const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
     let weekdayDays = 0, weekendDays = 0;
     let totalWorkMins = 0, totalOvertimeMins = 0;
-    let paidDays = 0, absenceMins = 0, lateMins = 0;
+    let paidDays = 0, absenceMins = 0, lateMins = 0, earlyMins = 0; // earlyMins を追加
 
     myAttendances.forEach(att => {
       // 有給・欠勤・遅刻の集計 (メモから抽出)
@@ -1909,6 +1909,18 @@ async function fetchOvertimeData(year, month, selectedDept) {
           if (endMins < startMins) endMins += 24 * 60;
           absenceMins += (endMins - startMins);
         }
+
+        // ▼ 早退の計算を追加 ▼
+        const earlyMatch = att.memo.match(/【早退】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+        if (earlyMatch) {
+          const sh = parseInt(earlyMatch[1], 10), sm = parseInt(earlyMatch[2], 10);
+          const eh = parseInt(earlyMatch[3], 10), em = parseInt(earlyMatch[4], 10);
+          let startMins = sh * 60 + sm;
+          let endMins = eh * 60 + em;
+          if (endMins < startMins) endMins += 24 * 60;
+          earlyMins += (endMins - startMins);
+        }
+        // ▲ ここまで ▲
       }
 
       // 以下は既存の実労働時間・残業時間の集計
@@ -1967,7 +1979,8 @@ async function fetchOvertimeData(year, month, selectedDept) {
       overtimeHours: Math.ceil(totalOvertimeMins / 6) / 10,
       paidDays,
       absenceMins,
-      lateMins
+      lateMins,
+      earlyMins // ここを追加
     };
   });
 }
