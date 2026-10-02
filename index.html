@@ -436,6 +436,21 @@
                     <select class="form-select-sm" id="create-end-m"></select>
                   </td>
                 </tr>
+                <tr>
+                  <th>遅刻/欠勤/早退<br>有給</th>
+                  <td>
+                    <div style="margin-bottom: 8px;">
+                      <label><input type="checkbox" id="create-check-late" onchange="toggleExtraTimeRow('create', 'late')"> 遅刻</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-absence" onchange="toggleExtraTimeRow('create', 'absence')"> 欠勤</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-early" onchange="toggleExtraTimeRow('create', 'early')"> 早退</label>
+                    </div>
+                    <div>
+                      <label><input type="checkbox" id="create-check-paid-am" onchange="toggleExtraTimeRow('create', 'paid-am')"> 午前休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-pm" onchange="toggleExtraTimeRow('create', 'paid-pm')"> 午後休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-full" onchange="toggleExtraTimeRow('create', 'paid-full')"> 有給</label>
+                    </div>
+                  </td>
+                </tr>
                 <tr id="create-row-late" class="hidden">
                   <th>遅刻 <span style="color: #64748b; font-size: 10px;">時間</span></th>
                   <td class="time-select-group">
@@ -448,16 +463,28 @@
                     <select class="form-select-sm" id="create-absence-start-h"></select> : <select class="form-select-sm" id="create-absence-start-m"></select> 〜 <select class="form-select-sm" id="create-absence-end-h"></select> : <select class="form-select-sm" id="create-absence-end-m"></select>
                   </td>
                 </tr>
-                <tr id="create-row-paid" class="hidden">
-                  <th>有給 <span style="color: #64748b; font-size: 10px;">時間</span></th>
-                  <td class="time-select-group">
-                    <select class="form-select-sm" id="create-paid-start-h"></select> : <select class="form-select-sm" id="create-paid-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-end-h"></select> : <select class="form-select-sm" id="create-paid-end-m"></select>
-                  </td>
-                </tr>
                 <tr id="create-row-early" class="hidden">
                   <th>早退 <span style="color: #64748b; font-size: 10px;">時間</span></th>
                   <td class="time-select-group">
                     <select class="form-select-sm" id="create-early-start-h"></select> : <select class="form-select-sm" id="create-early-start-m"></select> 〜 <select class="form-select-sm" id="create-early-end-h"></select> : <select class="form-select-sm" id="create-early-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-paid-am" class="hidden">
+                  <th>午前休 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-paid-am-start-h"></select> : <select class="form-select-sm" id="create-paid-am-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-am-end-h"></select> : <select class="form-select-sm" id="create-paid-am-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-paid-pm" class="hidden">
+                  <th>午後休 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-paid-pm-start-h"></select> : <select class="form-select-sm" id="create-paid-pm-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-pm-end-h"></select> : <select class="form-select-sm" id="create-paid-pm-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-paid-full" class="hidden">
+                  <th>有給 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-paid-full-start-h"></select> : <select class="form-select-sm" id="create-paid-full-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-full-end-h"></select> : <select class="form-select-sm" id="create-paid-full-end-m"></select>
                   </td>
                 </tr>
                 <tr>
@@ -465,15 +492,6 @@
                   <td>
                     <label><input type="checkbox" id="create-check-direct-in"> 直行</label>
                     <label style="margin-left:10px;"><input type="checkbox" id="create-check-direct-out"> 直帰</label>
-                  </td>
-                </tr>
-                <tr>
-                  <th>その他</th>
-                  <td>
-                    <label><input type="checkbox" id="create-check-late" onchange="toggleExtraTimeRow('create', 'late')"> 遅刻</label>
-                    <label style="margin-left:10px;"><input type="checkbox" id="create-check-absence" onchange="toggleExtraTimeRow('create', 'absence')"> 欠勤</label>
-                    <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid" onchange="toggleExtraTimeRow('create', 'paid')"> 有給</label>
-                    <label style="margin-left:10px;"><input type="checkbox" id="create-check-early" onchange="toggleExtraTimeRow('create', 'early')"> 早退</label>
                   </td>
                 </tr>
               </table>
@@ -516,6 +534,21 @@
                     <select class="form-select-sm" id="edit-end-m"></select>
                   </td>
                 </tr>
+                <tr>
+                  <th>遅刻/欠勤/早退<br>有給</th>
+                  <td>
+                    <div style="margin-bottom: 8px;">
+                      <label><input type="checkbox" id="edit-check-late" onchange="toggleExtraTimeRow('edit', 'late')"> 遅刻</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-absence" onchange="toggleExtraTimeRow('edit', 'absence')"> 欠勤</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-early" onchange="toggleExtraTimeRow('edit', 'early')"> 早退</label>
+                    </div>
+                    <div>
+                      <label><input type="checkbox" id="edit-check-paid-am" onchange="toggleExtraTimeRow('edit', 'paid-am')"> 午前休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-pm" onchange="toggleExtraTimeRow('edit', 'paid-pm')"> 午後休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-full" onchange="toggleExtraTimeRow('edit', 'paid-full')"> 有給</label>
+                    </div>
+                  </td>
+                </tr>
                 <tr id="edit-row-late" class="hidden">
                   <th>遅刻 <span style="color: #64748b; font-size: 10px;">時間</span></th>
                   <td class="time-select-group">
@@ -528,16 +561,28 @@
                     <select class="form-select-sm" id="edit-absence-start-h"></select> : <select class="form-select-sm" id="edit-absence-start-m"></select> 〜 <select class="form-select-sm" id="edit-absence-end-h"></select> : <select class="form-select-sm" id="edit-absence-end-m"></select>
                   </td>
                 </tr>
-                <tr id="edit-row-paid" class="hidden">
-                  <th>有給 <span style="color: #64748b; font-size: 10px;">時間</span></th>
-                  <td class="time-select-group">
-                    <select class="form-select-sm" id="edit-paid-start-h"></select> : <select class="form-select-sm" id="edit-paid-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-end-h"></select> : <select class="form-select-sm" id="edit-paid-end-m"></select>
-                  </td>
-                </tr>
                 <tr id="edit-row-early" class="hidden">
                   <th>早退 <span style="color: #64748b; font-size: 10px;">時間</span></th>
                   <td class="time-select-group">
                     <select class="form-select-sm" id="edit-early-start-h"></select> : <select class="form-select-sm" id="edit-early-start-m"></select> 〜 <select class="form-select-sm" id="edit-early-end-h"></select> : <select class="form-select-sm" id="edit-early-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-paid-am" class="hidden">
+                  <th>午前休 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-paid-am-start-h"></select> : <select class="form-select-sm" id="edit-paid-am-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-am-end-h"></select> : <select class="form-select-sm" id="edit-paid-am-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-paid-pm" class="hidden">
+                  <th>午後休 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-paid-pm-start-h"></select> : <select class="form-select-sm" id="edit-paid-pm-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-pm-end-h"></select> : <select class="form-select-sm" id="edit-paid-pm-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-paid-full" class="hidden">
+                  <th>有給 <span style="color: #64748b; font-size: 10px;">時間</span></th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-paid-full-start-h"></select> : <select class="form-select-sm" id="edit-paid-full-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-full-end-h"></select> : <select class="form-select-sm" id="edit-paid-full-end-m"></select>
                   </td>
                 </tr>
                 <tr>
@@ -545,15 +590,6 @@
                   <td>
                     <label><input type="checkbox" id="edit-check-direct-in"> 直行</label>
                     <label style="margin-left:10px;"><input type="checkbox" id="edit-check-direct-out"> 直帰</label>
-                  </td>
-                </tr>
-                <tr>
-                  <th>その他</th>
-                  <td>
-                    <label><input type="checkbox" id="edit-check-late" onchange="toggleExtraTimeRow('edit', 'late')"> 遅刻</label>
-                    <label style="margin-left:10px;"><input type="checkbox" id="edit-check-absence" onchange="toggleExtraTimeRow('edit', 'absence')"> 欠勤</label>
-                    <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid" onchange="toggleExtraTimeRow('edit', 'paid')"> 有給</label>
-                    <label style="margin-left:10px;"><input type="checkbox" id="edit-check-early" onchange="toggleExtraTimeRow('edit', 'early')"> 早退</label>
                   </td>
                 </tr>
               </table>

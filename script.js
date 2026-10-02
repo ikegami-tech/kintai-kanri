@@ -614,13 +614,19 @@ function handleCellAction(actionType) {
     document.getElementById('create-end-h').value = '--';
     document.getElementById('create-end-m').value = '--';
     
-    ['late', 'absence', 'paid', 'early'].forEach(type => {
+    ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
       const cb = document.getElementById(`create-check-${type}`);
       if (cb) { cb.checked = false; toggleExtraTimeRow('create', type); }
-      document.getElementById(`create-${type}-start-h`).value = '--';
-      document.getElementById(`create-${type}-start-m`).value = '--';
-      document.getElementById(`create-${type}-end-h`).value = '--';
-      document.getElementById(`create-${type}-end-m`).value = '--';
+      
+      let defSH = '--', defSM = '--', defEH = '--', defEM = '--';
+      if (type === 'paid-am') { defSH = '09'; defSM = '00'; defEH = '14'; defEM = '00'; }
+      if (type === 'paid-pm') { defSH = '13'; defSM = '00'; defEH = '18'; defEM = '00'; }
+      if (type === 'paid-full') { defSH = '09'; defSM = '00'; defEH = '18'; defEM = '00'; }
+
+      document.getElementById(`create-${type}-start-h`).value = defSH;
+      document.getElementById(`create-${type}-start-m`).value = defSM;
+      document.getElementById(`create-${type}-end-h`).value = defEH;
+      document.getElementById(`create-${type}-end-m`).value = defEM;
     });
 
     const cbIn = document.getElementById('create-check-direct-in');
@@ -662,8 +668,8 @@ function handleCellAction(actionType) {
     if (cbOut) cbOut.checked = rawMemo.includes('直帰');
     toggleDirectMailArea('modal-record-edit');
 
-    const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給', early: '早退' };
-    ['late', 'absence', 'paid', 'early'].forEach(type => {
+    const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
+    ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
       const cb = document.getElementById(`edit-check-${type}`);
       let sh = '--', sm = '--', eh = '--', em = '--';
       let checked = false;
@@ -674,7 +680,15 @@ function handleCellAction(actionType) {
         sh = match[1]; sm = match[2]; eh = match[3]; em = match[4];
       } else if (rawMemo.includes(`【${labelMap[type]}】`)) {
         checked = true;
+        if (type === 'paid-am') { sh = '09'; sm = '00'; eh = '14'; em = '00'; }
+        if (type === 'paid-pm') { sh = '13'; sm = '00'; eh = '18'; em = '00'; }
+        if (type === 'paid-full') { sh = '09'; sm = '00'; eh = '18'; em = '00'; }
+      } else {
+        if (type === 'paid-am') { sh = '09'; sm = '00'; eh = '14'; em = '00'; }
+        if (type === 'paid-pm') { sh = '13'; sm = '00'; eh = '18'; em = '00'; }
+        if (type === 'paid-full') { sh = '09'; sm = '00'; eh = '18'; em = '00'; }
       }
+      
       if (cb) { cb.checked = checked; toggleExtraTimeRow('edit', type); }
       const elSh = document.getElementById(`edit-${type}-start-h`);
       const elSm = document.getElementById(`edit-${type}-start-m`);
@@ -766,12 +780,13 @@ async function submitRecordCreate() {
 
   const cbLate = document.getElementById('create-check-late');
   const cbAbsence = document.getElementById('create-check-absence');
-  const cbPaid = document.getElementById('create-check-paid');
   const cbEarly = document.getElementById('create-check-early');
+  const cbPaidAm = document.getElementById('create-check-paid-am');
+  const cbPaidPm = document.getElementById('create-check-paid-pm');
+  const cbPaidFull = document.getElementById('create-check-paid-full');
 
-  // 出勤時間が未入力でも、遅刻・欠勤・有給・早退のいずれかにチェックが入っていれば保存を許可する
-  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbPaid && cbPaid.checked) && !(cbEarly && cbEarly.checked)) {
-    alert('出勤時間を指定するか、遅刻・欠勤・有給・早退のいずれかを選択してください。');
+  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbEarly && cbEarly.checked) && !(cbPaidAm && cbPaidAm.checked) && !(cbPaidPm && cbPaidPm.checked) && !(cbPaidFull && cbPaidFull.checked)) {
+    alert('出勤時間を指定するか、遅刻・欠勤・早退・有給のいずれかを選択してください。');
     return;
   }
 
@@ -789,8 +804,8 @@ async function submitRecordCreate() {
     memoParts.push(directMemoList.join('・'));
   }
 
-  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給', early: '早退' };
-  ['late', 'absence', 'paid', 'early'].forEach(type => {
+  const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
+  ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
     const cb = document.getElementById(`create-check-${type}`);
     if (cb && cb.checked) {
       const sh = document.getElementById(`create-${type}-start-h`)?.value || '--';
@@ -877,16 +892,18 @@ async function submitRecordEdit() {
   let cleanMemo = existingMemo
     .replace(/【遅刻】.*/g, '')
     .replace(/【欠勤】.*/g, '')
-    .replace(/【有給】.*/g, '')
     .replace(/【早退】.*/g, '')
+    .replace(/【午前休】.*/g, '')
+    .replace(/【午後休】.*/g, '')
+    .replace(/【有給】.*/g, '')
     .replace(/休日出勤/g, '')
     .replace(/管理者修正/g, '')
     .trim();
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
-  const labelMap = { late: '遅刻', absence: '欠勤', paid: '有給', early: '早退' };
-  ['late', 'absence', 'paid', 'early'].forEach(type => {
+  const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
+  ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
     const cb = document.getElementById(`edit-check-${type}`);
     if (cb && cb.checked) {
       const sh = document.getElementById(`edit-${type}-start-h`)?.value || '--';
@@ -2304,8 +2321,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h',
     'create-late-start-h', 'create-late-end-h', 'edit-late-start-h', 'edit-late-end-h',
     'create-absence-start-h', 'create-absence-end-h', 'edit-absence-start-h', 'edit-absence-end-h',
-    'create-paid-start-h', 'create-paid-end-h', 'edit-paid-start-h', 'edit-paid-end-h',
-    'create-early-start-h', 'create-early-end-h', 'edit-early-start-h', 'edit-early-end-h'
+    'create-early-start-h', 'create-early-end-h', 'edit-early-start-h', 'edit-early-end-h',
+    'create-paid-am-start-h', 'create-paid-am-end-h', 'edit-paid-am-start-h', 'edit-paid-am-end-h',
+    'create-paid-pm-start-h', 'create-paid-pm-end-h', 'edit-paid-pm-start-h', 'edit-paid-pm-end-h',
+    'create-paid-full-start-h', 'create-paid-full-end-h', 'edit-paid-full-start-h', 'edit-paid-full-end-h'
   ];
   let hoursHtml = '<option value="--">--</option>';
   for (let h = 0; h < 24; h++) {
@@ -2321,8 +2340,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-start-m', 'create-end-m', 'edit-start-m', 'edit-end-m',
     'create-late-start-m', 'create-late-end-m', 'edit-late-start-m', 'edit-late-end-m',
     'create-absence-start-m', 'create-absence-end-m', 'edit-absence-start-m', 'edit-absence-end-m',
-    'create-paid-start-m', 'create-paid-end-m', 'edit-paid-start-m', 'edit-paid-end-m',
-    'create-early-start-m', 'create-early-end-m', 'edit-early-start-m', 'edit-early-end-m'
+    'create-early-start-m', 'create-early-end-m', 'edit-early-start-m', 'edit-early-end-m',
+    'create-paid-am-start-m', 'create-paid-am-end-m', 'edit-paid-am-start-m', 'edit-paid-am-end-m',
+    'create-paid-pm-start-m', 'create-paid-pm-end-m', 'edit-paid-pm-start-m', 'edit-paid-pm-end-m',
+    'create-paid-full-start-m', 'create-paid-full-end-m', 'edit-paid-full-start-m', 'edit-paid-full-end-m'
   ];
   let minutesHtml = '<option value="--">--</option>';
   for (let m = 0; m < 60; m++) {
