@@ -1,15 +1,17 @@
 {
   "expo": {
-    "name": "toho-timecard-app",
+    "name": "勤怠管理",
     "slug": "toho-timecard-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tohonext.timecard"
     },
     "android": {
+      "package": "com.tohonext.timecard",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
