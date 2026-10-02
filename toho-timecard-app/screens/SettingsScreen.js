@@ -107,6 +107,13 @@ export default function SettingsScreen() {
     }
   };
 
+  const getDefaultTemplateBody = (type) => {
+    const footer = '\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。';
+    return type === '直行'
+      ? `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。${footer}`
+      : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。${footer}`;
+  };
+
   // APIからログイン中のユーザー専用のテンプレートを取得
   const loadTemplates = async () => {
     if (!user) return;
@@ -114,9 +121,14 @@ export default function SettingsScreen() {
       const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates?employee_id=${user.id}&type=${encodeURIComponent(tplType)}`);
       if (res.ok) {
         const data = await res.json();
-        setTemplates(data);
+        if (data.length > 0) {
+          setTemplates(data);
+        } else {
+          // まだ作成されていない場合はWeb版と同じデフォルト表示をセット
+          setTemplates([{ id: 'default', name: 'テンプレ1', body: getDefaultTemplateBody(tplType) }]);
+        }
       } else {
-        setTemplates([]);
+        setTemplates([{ id: 'default', name: 'テンプレ1', body: getDefaultTemplateBody(tplType) }]);
       }
     } catch (e) {
       console.error('テンプレート取得エラー:', e);
@@ -132,7 +144,8 @@ export default function SettingsScreen() {
     try {
       setLoading(true);
       const payload = {
-        id: selectedTpl && selectedTpl.id ? selectedTpl.id : null,
+        // 'default'（初期表示用の未保存データ）を編集した場合は新規(null)として保存する
+        id: (selectedTpl && selectedTpl.id && selectedTpl.id !== 'default') ? selectedTpl.id : null,
         employee_id: user.id,
         type: tplType,
         name: tplNameInput.trim(),
@@ -157,8 +170,9 @@ export default function SettingsScreen() {
 
   const addNewTemplate = () => {
     setSelectedTpl({ id: null }); // nullは新規作成フラグ
-    setTplNameInput(`テンプレ${templates.length + 1}`);
-    setTplBodyInput(tplType === '直行' ? '直行連絡です。' : '直帰連絡です。');
+    const nextNum = templates.length > 0 && templates[0].id !== 'default' ? templates.length + 1 : 1;
+    setTplNameInput(`テンプレ${nextNum}`);
+    setTplBodyInput(getDefaultTemplateBody(tplType));
   };
 
   return (
@@ -233,19 +247,21 @@ export default function SettingsScreen() {
           </View>
 
           <ScrollView style={styles.modalBody}>
-            <View style={[styles.detailCard, { marginBottom: 16 }]}>
-              <Text style={styles.inputLabel}>デフォルト送信先メールアドレス</Text>
-              <TextInput 
-                style={styles.textInput} 
-                value={defaultEmail} 
-                onChangeText={setDefaultEmail} 
-                keyboardType="email-address" 
-                autoCapitalize="none" 
-              />
-              <TouchableOpacity onPress={saveEmailSetting} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>送信先を保存</Text>
-              </TouchableOpacity>
-            </View>
+            {user && user.role === 'システム管理者' && (
+              <View style={[styles.detailCard, { marginBottom: 16 }]}>
+                <Text style={styles.inputLabel}>デフォルト送信先メールアドレス</Text>
+                <TextInput 
+                  style={styles.textInput} 
+                  value={defaultEmail} 
+                  onChangeText={setDefaultEmail} 
+                  keyboardType="email-address" 
+                  autoCapitalize="none" 
+                />
+                <TouchableOpacity onPress={saveEmailSetting} style={styles.primaryBtn}>
+                  <Text style={styles.primaryBtnText}>送信先を保存</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.tabHeaderRow}>
               <TouchableOpacity onPress={() => { setTplType('直行'); setSelectedTpl(null); }} style={[styles.typeTab, tplType === '直行' && styles.typeTabActive]}>
