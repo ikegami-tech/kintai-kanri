@@ -1912,72 +1912,64 @@ return filteredEmps.map(emp => {
         if (att.memo.includes('【午前休】')) paidDays += 0.5;
         if (att.memo.includes('【午後休】')) paidDays += 0.5;
 
-        // 実際の出勤・退勤時間を取得（記録がない場合は定時とみなして計算を防ぐ）
         let actualStart = BASE_START;
         let actualEnd = BASE_END;
+        let timeFound = false;
 
+        // ①出勤・退勤時間が直接記録されている場合
         if (att.clock_in) {
             const [sh, sm] = att.clock_in.split(':').map(Number);
             actualStart = sh * 60 + sm;
+            timeFound = true;
         }
         if (att.clock_out) {
             const [eh, em] = att.clock_out.split(':').map(Number);
             actualEnd = eh * 60 + em;
             if (actualEnd < actualStart && eh < 12) actualEnd += 24 * 60;
+            timeFound = true;
         }
 
-        // ▼ 遅刻の計算 ▼
-        // 【遅刻】チェックがある場合、基準時間(9:00)から実際の出勤時間までを遅刻とする
-        if (att.memo.includes('【遅刻】')) {
-           if (actualStart > BASE_START) {
-               // 14:05出勤（欠勤と同時）などの場合も、遅刻としては「その時間の前まで（欠勤部分）」は除外するため、
-               // モーダルで入力された時間を優先して遅刻時間を計算する
-               const lateMatch = att.memo.match(/【遅刻】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
-               if (lateMatch) {
-                   const sh = parseInt(lateMatch[1], 10), sm = parseInt(lateMatch[2], 10);
-                   const eh = parseInt(lateMatch[3], 10), em = parseInt(lateMatch[4], 10);
-                   let startMins = sh * 60 + sm;
-                   let endMins = eh * 60 + em;
-                   if (endMins < startMins) endMins += 24 * 60;
-                   lateMins += (endMins - startMins);
-               } else {
-                   // 時間指定がない場合は自動計算（9:00〜出勤時間）
-                   lateMins += (actualStart - BASE_START);
-               }
-           }
+        // ②出退勤時間がなく、メモ側に時間が指定されている場合（手入力）
+        if (!timeFound) {
+            const match = att.memo.match(/【(?:遅刻|欠勤|早退|有給|午前休|午後休)】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+            if (match) {
+                const sh = parseInt(match[1], 10), sm = parseInt(match[2], 10);
+                const eh = parseInt(match[3], 10), em = parseInt(match[4], 10);
+                actualStart = sh * 60 + sm;
+                actualEnd = eh * 60 + em;
+                if (actualEnd < actualStart && eh < 12) actualEnd += 24 * 60;
+                timeFound = true;
+            }
         }
 
-        // ▼ 欠勤の計算 ▼
-        const absenceMatch = att.memo.match(/【欠勤】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
-        if (absenceMatch) {
-          const sh = parseInt(absenceMatch[1], 10), sm = parseInt(absenceMatch[2], 10);
-          const eh = parseInt(absenceMatch[3], 10), em = parseInt(absenceMatch[4], 10);
-          let startMins = sh * 60 + sm;
-          let endMins = eh * 60 + em;
-          if (endMins < startMins) endMins += 24 * 60;
-          absenceMins += (endMins - startMins);
-        } else if (att.memo.includes('【欠勤】') && !att.clock_in && !att.clock_out) {
-            // 時間指定がない全休の場合は 1日分(8時間 = 480分。休憩1h引く)
+        if (timeFound) {
+            const hasLate = att.memo.includes('【遅刻】');
+            const hasAbsence = att.memo.includes('【欠勤】');
+            const hasEarly = att.memo.includes('【早退】');
+
+            // 出勤側の遅刻・欠勤の計算（9時以降の出勤）
+            if (actualStart > BASE_START) {
+                if (hasAbsence && hasLate) {
+                    // 欠勤と遅刻が同時の場合（例：14:05出勤なら 14時まで欠勤、14時〜14:05が遅刻）
+                    const hourStart = Math.floor(actualStart / 60) * 60;
+                    absenceMins += (hourStart - BASE_START);
+                    lateMins += (actualStart - hourStart);
+                } else if (hasAbsence) {
+                    absenceMins += (actualStart - BASE_START);
+                } else if (hasLate) {
+                    lateMins += (actualStart - BASE_START);
+                }
+            }
+
+            // 退勤側の早退の計算（18時より前の退勤）
+            if (actualEnd < BASE_END) {
+                if (hasEarly) {
+                    earlyMins += (BASE_END - actualEnd);
+                }
+            }
+        } else if (att.memo.includes('【欠勤】')) {
+            // 時間指定がない全休のケース（1日分 = 8時間 = 480分）
             absenceMins += 480; 
-        }
-
-        // ▼ 早退の計算 ▼
-        // 【早退】チェックがある場合、実際の退勤時間から基準時間(18:00)までを早退とする
-        if (att.memo.includes('【早退】')) {
-           if (actualEnd < BASE_END) {
-               const earlyMatch = att.memo.match(/【早退】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
-               if (earlyMatch) {
-                   const sh = parseInt(earlyMatch[1], 10), sm = parseInt(earlyMatch[2], 10);
-                   const eh = parseInt(earlyMatch[3], 10), em = parseInt(earlyMatch[4], 10);
-                   let startMins = sh * 60 + sm;
-                   let endMins = eh * 60 + em;
-                   if (endMins < startMins) endMins += 24 * 60;
-                   earlyMins += (endMins - startMins);
-               } else {
-                   // 時間指定がない場合は自動計算（退勤時間〜18:00）
-                   earlyMins += (BASE_END - actualEnd);
-               }
-           }
         }
       }
 
