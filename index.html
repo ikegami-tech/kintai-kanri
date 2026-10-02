@@ -436,21 +436,6 @@
                     <select class="form-select-sm" id="create-end-m"></select>
                   </td>
                 </tr>
-                <tr>
-                  <th>その他</th>
-                  <td>
-                    <div style="margin-bottom: 8px;">
-                      <label><input type="checkbox" id="create-check-late" onchange="toggleExtraTimeRow('create', 'late')"> 遅刻</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-absence" onchange="toggleExtraTimeRow('create', 'absence')"> 欠勤</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-early" onchange="toggleExtraTimeRow('create', 'early')"> 早退</label>
-                    </div>
-                    <div>
-                      <label><input type="checkbox" id="create-check-paid-am" onchange="toggleExtraTimeRow('create', 'paid-am')"> 午前休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-pm" onchange="toggleExtraTimeRow('create', 'paid-pm')"> 午後休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-full" onchange="toggleExtraTimeRow('create', 'paid-full')"> 有給</label>
-                    </div>
-                  </td>
-                </tr>
                 <tr id="create-row-late" class="hidden">
                   <th>遅刻 <span style="color: #64748b; font-size: 10px;">時間</span></th>
                   <td class="time-select-group">
@@ -494,6 +479,21 @@
                     <label style="margin-left:10px;"><input type="checkbox" id="create-check-direct-out"> 直帰</label>
                   </td>
                 </tr>
+                <tr>
+                  <th>その他</th>
+                  <td>
+                    <div style="margin-bottom: 8px;">
+                      <label><input type="checkbox" id="create-check-late" onchange="toggleExtraTimeRow('create', 'late')"> 遅刻</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-absence" onchange="toggleExtraTimeRow('create', 'absence')"> 欠勤</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-early" onchange="toggleExtraTimeRow('create', 'early')"> 早退</label>
+                    </div>
+                    <div>
+                      <label><input type="checkbox" id="create-check-paid-am" onchange="toggleExtraTimeRow('create', 'paid-am')"> 午前休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-pm" onchange="toggleExtraTimeRow('create', 'paid-pm')"> 午後休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-full" onchange="toggleExtraTimeRow('create', 'paid-full')"> 有給</label>
+                    </div>
+                  </td>
+                </tr>
               </table>
             </div>
             <div class="record-modal-footer">
@@ -532,21 +532,6 @@
                     <span>〜</span>
                     <select class="form-select-sm" id="edit-end-h"></select> :
                     <select class="form-select-sm" id="edit-end-m"></select>
-                  </td>
-                </tr>
-                <tr>
-                  <th>その他</th>
-                  <td>
-                    <div style="margin-bottom: 8px;">
-                      <label><input type="checkbox" id="edit-check-late" onchange="toggleExtraTimeRow('edit', 'late')"> 遅刻</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-absence" onchange="toggleExtraTimeRow('edit', 'absence')"> 欠勤</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-early" onchange="toggleExtraTimeRow('edit', 'early')"> 早退</label>
-                    </div>
-                    <div>
-                      <label><input type="checkbox" id="edit-check-paid-am" onchange="toggleExtraTimeRow('edit', 'paid-am')"> 午前休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-pm" onchange="toggleExtraTimeRow('edit', 'paid-pm')"> 午後休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-full" onchange="toggleExtraTimeRow('edit', 'paid-full')"> 有給</label>
-                    </div>
                   </td>
                 </tr>
                 <tr id="edit-row-late" class="hidden">
@@ -590,6 +575,21 @@
                   <td>
                     <label><input type="checkbox" id="edit-check-direct-in"> 直行</label>
                     <label style="margin-left:10px;"><input type="checkbox" id="edit-check-direct-out"> 直帰</label>
+                  </td>
+                </tr>
+                <tr>
+                  <th>その他</th>
+                  <td>
+                    <div style="margin-bottom: 8px;">
+                      <label><input type="checkbox" id="edit-check-late" onchange="toggleExtraTimeRow('edit', 'late')"> 遅刻</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-absence" onchange="toggleExtraTimeRow('edit', 'absence')"> 欠勤</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-early" onchange="toggleExtraTimeRow('edit', 'early')"> 早退</label>
+                    </div>
+                    <div>
+                      <label><input type="checkbox" id="edit-check-paid-am" onchange="toggleExtraTimeRow('edit', 'paid-am')"> 午前休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-pm" onchange="toggleExtraTimeRow('edit', 'paid-pm')"> 午後休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-full" onchange="toggleExtraTimeRow('edit', 'paid-full')"> 有給</label>
+                    </div>
                   </td>
                 </tr>
               </table>

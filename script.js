@@ -1527,8 +1527,8 @@ async function renderMatrixTable() {
           if (inText || outText) {
              timeText = `${inText}<br>${outText}`;
           } else {
-             // clock_inがない場合でも、メモから遅刻・欠勤・有給の時間を抽出して表示する
-             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
+             // clock_inがない場合でも、メモから遅刻・欠勤・有給・午前休・午後休の時間を抽出して表示する
+             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
              } else {
