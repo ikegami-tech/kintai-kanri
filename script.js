@@ -1454,11 +1454,17 @@ async function renderMatrixTable() {
     const dateStr = att.work_date;
     
     if (!summaryMap[att.employee_id]) {
-      summaryMap[att.employee_id] = { days: 0, workMins: 0 };
+      // countedDates という配列を追加して、カウント済みの日付を記録するようにします
+      summaryMap[att.employee_id] = { days: 0, workMins: 0, countedDates: [] };
     }
 
     if (att.clock_in && att.clock_out) {
-      summaryMap[att.employee_id].days++;
+      // 同じ日付がまだカウントされていなければ日数を＋1し、記録配列に追加する
+      if (!summaryMap[att.employee_id].countedDates.includes(dateStr)) {
+        summaryMap[att.employee_id].days++;
+        summaryMap[att.employee_id].countedDates.push(dateStr);
+      }
+      
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       let inMinutes = inH * 60 + inM;
@@ -3329,7 +3335,7 @@ async function renderShops() {
 }
 
 function openCreateShopModal() {
-  document.getElementById('create-shop-id').value = '';
+  // 店舗IDは自動生成するため、名前のみリセット
   document.getElementById('create-shop-name').value = '';
   document.getElementById('modal-shop-create').classList.remove('hidden');
 }
@@ -3339,9 +3345,20 @@ function closeCreateShopModal() {
 }
 
 async function submitCreateShop() {
-  const id = document.getElementById('create-shop-id').value.trim();
   const name = document.getElementById('create-shop-name').value.trim();
-  if (!id || !name) return alert('店舗IDと店舗名を入力してください。');
+  if (!name) return alert('店舗名を入力してください。');
+  
+  // 店舗IDの自動採番ロジック (現在の最大IDを探して+1する)
+  let maxNum = 0;
+  for (const key in SHOP_LIST) {
+    const match = key.match(/^shop_(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  const nextNum = maxNum + 1;
+  const id = `shop_${String(nextNum).padStart(2, '0')}`;
   
   try {
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops', {

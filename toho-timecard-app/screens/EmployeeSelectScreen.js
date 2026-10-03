@@ -205,7 +205,10 @@ export default function EmployeeSelectScreen({ navigation }) {
   const ssStr = `:${String(time.getSeconds()).padStart(2, '0')}`;
 
   const renderEmployeeItem = ({ item }) => {
-    const att = attendances.find((a) => Number(a.employee_id) === Number(item.id));
+    // 当日の打刻履歴をすべて取得し、一番最後の（最新の）状態を判定する
+    const empAtts = attendances.filter((a) => Number(a.employee_id) === Number(item.id));
+    const att = empAtts.length > 0 ? empAtts[empAtts.length - 1] : null;
+    
     const isWorking = att && att.clock_in && !att.clock_out;
     const clockInTime = att && att.clock_in ? att.clock_in.substring(0, 5) : '';
 

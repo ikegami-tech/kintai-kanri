@@ -24,29 +24,72 @@ export default function TimeClockScreen({ route, navigation }) {
   const [time, setTime] = useState(new Date());
   const [loading, setLoading] = useState(false);
 
+  // 追加：ボタンのグレーアウト制御用ステート
+  const [isWorking, setIsWorking] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(true);
+
   // 直行・直帰メール用ステート
   const [mailModalVisible, setMailModalVisible] = useState(false);
-  const [modalMode, setModalMode] = useState('mail'); // 'mail'(メール確認) または 'tplEdit'(テンプレ編集)
-  const [actionType, setActionType] = useState(''); // '直行' or '直帰'
+  const [modalMode, setModalMode] = useState('mail'); 
+  const [actionType, setActionType] = useState(''); 
   const [actionTimeStr, setActionTimeStr] = useState('');
   const [mailTo, setMailTo] = useState('kintai@toho-next.com');
   const [mailSubject, setMailSubject] = useState('');
   const [mailBody, setMailBody] = useState('');
 
-  // テンプレート関連ステート
   const [templates, setTemplates] = useState([]);
   const [activeTemplateId, setActiveTemplateId] = useState(null);
-
-  // テンプレート編集・追加用ステート
-  const [tplEditMode, setTplEditMode] = useState('edit'); // 'edit' or 'add'
+  const [tplEditMode, setTplEditMode] = useState('edit'); 
   const [tplNameInput, setTplNameInput] = useState('');
   const [tplBodyInput, setTplBodyInput] = useState('');
 
-  // リアルタイム時計（1秒更新）
+  // リアルタイム時計
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // 追加：画面を開いた時に「現在出勤中か」を判定する
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTodayStatus = async () => {
+      try {
+        let currentShopId = 'shop_01';
+        const userStr = await AsyncStorage.getItem('@logged_in_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          currentShopId = user.shop_id || 'shop_01';
+        }
+
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const workDate = `${yyyy}-${mm}-${dd}`;
+
+        const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, { cache: 'no-store' });
+        if (res.ok) {
+          const monthData = await res.json();
+          const todaysAtts = monthData.filter(a => Number(a.employee_id) === Number(empId) && a.work_date === workDate);
+          
+          if (todaysAtts.length > 0) {
+            const latestAtt = todaysAtts[todaysAtts.length - 1];
+            // 出勤時間が記録されていて、退勤時間が空なら「出勤中」
+            if (isMounted) setIsWorking(latestAtt.clock_in && !latestAtt.clock_out);
+          } else {
+            if (isMounted) setIsWorking(false);
+          }
+        }
+      } catch (e) {
+        console.warn('出勤状態の取得失敗:', e);
+      } finally {
+        if (isMounted) setStatusLoading(false);
+      }
+    };
+    
+    fetchTodayStatus();
+    return () => { isMounted = false; };
+  }, [empId]);
 
   const formatTime = (date) => {
     const hh = String(date.getHours()).padStart(2, '0');
@@ -55,7 +98,6 @@ export default function TimeClockScreen({ route, navigation }) {
     return `${hh}:${mm}:${ss}`;
   };
 
-  // GPS位置情報（緯度・経度）を取得するヘルパー関数
   const getGpsCoords = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -73,7 +115,6 @@ export default function TimeClockScreen({ route, navigation }) {
     }
   };
 
-  // テンプレート読み込み＆打刻時間の置換処理
   const loadTemplatesAndSetBody = async (type, hhmm) => {
     const footer = '\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。';
     const defaultTemplateBody = type === '直行'
@@ -98,7 +139,6 @@ export default function TimeClockScreen({ route, navigation }) {
     const firstTpl = loadedTemplates[0];
     setActiveTemplateId(firstTpl.id);
 
-    // 打刻時間の置換
     let bodyText = firstTpl.body || defaultTemplateBody;
     if (bodyText.includes('打刻：') || bodyText.includes('打刻 :')) {
       bodyText = bodyText.replace(/(打刻\s*[:：])([^\n]*)/g, `$1 ${hhmm}`);
@@ -108,7 +148,6 @@ export default function TimeClockScreen({ route, navigation }) {
     setMailBody(bodyText);
   };
 
-  // テンプレート切替処理
   const handleSelectTemplate = (tpl) => {
     setActiveTemplateId(tpl.id);
     let bodyText = tpl.body || '';
@@ -118,7 +157,6 @@ export default function TimeClockScreen({ route, navigation }) {
     setMailBody(bodyText);
   };
 
-  // テンプレート編集・追加モードに切り替える
   const openTemplateEditModal = (mode) => {
     setTplEditMode(mode);
     if (mode === 'add') {
@@ -132,7 +170,6 @@ export default function TimeClockScreen({ route, navigation }) {
     setModalMode('tplEdit');
   };
 
-  // テンプレート保存処理 (API送信)
   const saveTemplate = async () => {
     if (!tplNameInput.trim()) {
       Alert.alert('エラー', 'ボタン名を入力してください。');
@@ -142,7 +179,6 @@ export default function TimeClockScreen({ route, navigation }) {
     try {
       setLoading(true);
 
-      // ★修正: 新規追加時、まだ「テンプレ1」が未保存の初期状態なら、一緒に「テンプレ1」も保存する
       if (tplEditMode === 'add' && templates.length === 1 && templates[0].id === 'default') {
         const defaultPayload = {
           id: null,
@@ -187,7 +223,6 @@ export default function TimeClockScreen({ route, navigation }) {
     }
   };
 
-  // 出勤・退勤ボタン押下時
   const handleSimpleClock = async (type) => {
     Alert.alert('打刻確認', `${type}します。よろしいですか？`, [
       { text: 'キャンセル', style: 'cancel' },
@@ -198,7 +233,6 @@ export default function TimeClockScreen({ route, navigation }) {
     ]);
   };
 
-  // 直行・直帰ボタン押下時（メール確認モーダルを開く）
   const handleDirectClock = async (type) => {
     const now = new Date();
     const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -206,21 +240,17 @@ export default function TimeClockScreen({ route, navigation }) {
     setActionType(type);
     setActionTimeStr(hhmm);
 
-    // 保存されたメール設定を取得（未設定時はデフォルト値）
     try {
       const savedEmail = await AsyncStorage.getItem('@default_mail_to');
       let targetEmail = savedEmail || 'kintai@toho-next.com';
 
-      // ▼▼▼ ここから追加：審査用の特定ログイン時に宛先を上書き ▼▼▼
       const userStr = await AsyncStorage.getItem('@logged_in_user');
       if (userStr) {
         const loggedInUser = JSON.parse(userStr);
-        // ログインID(メール)に 'ikegami' が含まれているか判定
         if (loggedInUser.email && loggedInUser.email.includes('ikegami')) {
-          targetEmail = 'ikegami@toho-next.com'; // ※ここに池上様が受信したい安全なアドレスを記載してください
+          targetEmail = 'ikegami@toho-next.com'; 
         }
       }
-      // ▲▲▲ ここまで追加 ▲▲▲
 
       setMailTo(targetEmail);
     } catch (e) {
@@ -235,7 +265,6 @@ export default function TimeClockScreen({ route, navigation }) {
     setMailModalVisible(true);
   };
 
-  // APIへ打刻データを送信
   const submitAttendance = async (type, bodyText) => {
     if (!empId) {
       Alert.alert('エラー', '従業員情報が正しく取得できていません。一覧から選び直してください。');
@@ -245,7 +274,6 @@ export default function TimeClockScreen({ route, navigation }) {
     try {
       setLoading(true);
 
-      // ▼▼▼ ここから追加：ログイン中の店舗IDを取得 ▼▼▼
       let currentShopId = 'shop_01';
       try {
         const userStr = await AsyncStorage.getItem('@logged_in_user');
@@ -256,7 +284,6 @@ export default function TimeClockScreen({ route, navigation }) {
       } catch (e) {
         console.warn('店舗ID取得エラー:', e);
       }
-      // ▲▲▲ ここまで追加 ▲▲▲
 
       const coords = await getGpsCoords();
 
@@ -267,19 +294,26 @@ export default function TimeClockScreen({ route, navigation }) {
       const workDate = `${yyyy}-${mm}-${dd}`;
       const timeVal = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
 
-      // 1. 当日の既存打刻レコードがあるか確認
       let existingAtt = null;
       try {
         const checkRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, { cache: 'no-store' });
         if (checkRes.ok) {
           const monthData = await checkRes.json();
-          existingAtt = monthData.find(a => Number(a.employee_id) === Number(empId) && a.work_date === workDate);
+          const todaysAtts = monthData.filter(a => Number(a.employee_id) === Number(empId) && a.work_date === workDate);
+          
+          if (todaysAtts.length > 0) {
+            const latestAtt = todaysAtts[todaysAtts.length - 1];
+            if (type === '出勤' || type === '直行') {
+              if (!latestAtt.clock_out) existingAtt = latestAtt;
+            } else {
+              existingAtt = latestAtt;
+            }
+          }
         }
       } catch (checkErr) {
         console.warn('既存打刻の確認失敗:', checkErr);
       }
 
-      // 2. 出勤時間・退勤時間の更新判定（既存データがあれば維持して統合）
       let clockInVal = existingAtt ? existingAtt.clock_in : null;
       let clockOutVal = existingAtt ? existingAtt.clock_out : null;
 
@@ -289,7 +323,6 @@ export default function TimeClockScreen({ route, navigation }) {
         clockOutVal = timeVal;
       }
 
-      // 3. メモ & GPS位置情報タグの統合・重複防止ロジック
       let existingMemo = existingAtt ? (existingAtt.memo || '') : '';
       let inLoc = '';
       let outLoc = '';
@@ -312,9 +345,8 @@ export default function TimeClockScreen({ route, navigation }) {
       if (inLoc) memoParts.push(`[IN_LOC:${inLoc}]`);
       if (outLoc) memoParts.push(`[OUT_LOC:${outLoc}]`);
 
-      // タグ・システム文字を除去した既存メモ本文を抽出して維持
       let cleanExistingMemo = existingMemo
-        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+        .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/管理者修正|休日出勤/g, '')
         .trim();
 
@@ -325,11 +357,10 @@ export default function TimeClockScreen({ route, navigation }) {
         memoParts.push(cleanExistingMemo);
       }
 
-      // 4. 送信ペイロード構築 (既存IDがあれば指定して上書き更新)
       const payload = {
         id: existingAtt ? existingAtt.id : null,
         employee_id: Number(empId),
-        shop_id: currentShopId, // ★追加：店舗ID
+        shop_id: currentShopId, 
         work_date: workDate,
         clock_in: clockInVal,
         clock_out: clockOutVal,
@@ -369,12 +400,10 @@ export default function TimeClockScreen({ route, navigation }) {
           <Text style={styles.backBtn}>＜ 従業員選択へ</Text>
         </TouchableOpacity>
         <Text style={styles.empTitle}>{empName} 様</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('History', { empId, empName })}
-          style={styles.backBtnBox}
-        >
-          <Text style={styles.backBtn}>履歴 📋</Text>
-        </TouchableOpacity>
+        {/* 履歴ボタンを削除し、レイアウトを保つためのダミー要素に変更 */}
+        <View style={styles.backBtnBox}>
+          <Text style={[styles.backBtn, { color: 'transparent' }]}>履歴</Text>
+        </View>
       </View>
 
       {/* 中央：リアルタイム時計 */}
@@ -385,28 +414,48 @@ export default function TimeClockScreen({ route, navigation }) {
         <Text style={styles.clockText}>{formatTime(time)}</Text>
       </View>
 
-      {/* 下部：スマレジ風 4等分フラットボタン */}
+      {/* 下部：スマレジ風 4等分フラットボタン（グレーアウト制御を追加） */}
       <View style={styles.actionGridSquare}>
-        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleSimpleClock('出勤')}>
-          <Text style={styles.btnLabelSquare}>出勤</Text>
+        <TouchableOpacity 
+          style={[styles.actionBtnSquare, (isWorking || statusLoading) && styles.btnDisabled]} 
+          activeOpacity={0.7} 
+          onPress={() => handleSimpleClock('出勤')}
+          disabled={isWorking || statusLoading}
+        >
+          <Text style={[styles.btnLabelSquare, (isWorking || statusLoading) && styles.btnLabelDisabled]}>出勤</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
         
-        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleSimpleClock('退勤')}>
-          <Text style={styles.btnLabelSquare}>退勤</Text>
+        <TouchableOpacity 
+          style={[styles.actionBtnSquare, (!isWorking || statusLoading) && styles.btnDisabled]} 
+          activeOpacity={0.7} 
+          onPress={() => handleSimpleClock('退勤')}
+          disabled={!isWorking || statusLoading}
+        >
+          <Text style={[styles.btnLabelSquare, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>退勤</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
         
-        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleDirectClock('直行')}>
-          <Text style={styles.btnLabelSquare}>直行</Text>
+        <TouchableOpacity 
+          style={[styles.actionBtnSquare, (isWorking || statusLoading) && styles.btnDisabled]} 
+          activeOpacity={0.7} 
+          onPress={() => handleDirectClock('直行')}
+          disabled={isWorking || statusLoading}
+        >
+          <Text style={[styles.btnLabelSquare, (isWorking || statusLoading) && styles.btnLabelDisabled]}>直行</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
         
-        <TouchableOpacity style={styles.actionBtnSquare} activeOpacity={0.7} onPress={() => handleDirectClock('直帰')}>
-          <Text style={styles.btnLabelSquare}>直帰</Text>
+        <TouchableOpacity 
+          style={[styles.actionBtnSquare, (!isWorking || statusLoading) && styles.btnDisabled]} 
+          activeOpacity={0.7} 
+          onPress={() => handleDirectClock('直帰')}
+          disabled={!isWorking || statusLoading}
+        >
+          <Text style={[styles.btnLabelSquare, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>直帰</Text>
         </TouchableOpacity>
       </View>
 
@@ -638,6 +687,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  /* 追加: グレーアウト用のスタイル */
+  btnDisabled: {
+    backgroundColor: '#94a3b8', 
+  },
+  btnLabelDisabled: {
+    color: '#e2e8f0', 
   },
   btnDivider: {
     width: 1,
