@@ -3317,6 +3317,9 @@ async function renderShops() {
     if (!response.ok) throw new Error('店舗データの取得に失敗しました');
     const shops = await response.json();
     
+    // ★追加: 店舗ID（shop_XX）の昇順に並び替える処理
+    shops.sort((a, b) => a.id.localeCompare(b.id));
+    
     tbody.innerHTML = shops.map(shop => `
       <tr>
         <!-- 店舗ID(shop.id)のセルを削除 -->
