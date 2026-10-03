@@ -13,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
 
@@ -208,7 +209,20 @@ export default function TimeClockScreen({ route, navigation }) {
     // 保存されたメール設定を取得（未設定時はデフォルト値）
     try {
       const savedEmail = await AsyncStorage.getItem('@default_mail_to');
-      setMailTo(savedEmail || 'kintai@toho-next.com');
+      let targetEmail = savedEmail || 'kintai@toho-next.com';
+
+      // ▼▼▼ ここから追加：審査用の特定ログイン時に宛先を上書き ▼▼▼
+      const userStr = await AsyncStorage.getItem('@logged_in_user');
+      if (userStr) {
+        const loggedInUser = JSON.parse(userStr);
+        // ログインID(メール)に 'ikegami' が含まれているか判定
+        if (loggedInUser.email && loggedInUser.email.includes('ikegami')) {
+          targetEmail = 'ikegami@toho-next.com'; // ※ここに池上様が受信したい安全なアドレスを記載してください
+        }
+      }
+      // ▲▲▲ ここまで追加 ▲▲▲
+
+      setMailTo(targetEmail);
     } catch (e) {
       setMailTo('kintai@toho-next.com');
     }
@@ -231,6 +245,19 @@ export default function TimeClockScreen({ route, navigation }) {
     try {
       setLoading(true);
 
+      // ▼▼▼ ここから追加：ログイン中の店舗IDを取得 ▼▼▼
+      let currentShopId = 'shop_01';
+      try {
+        const userStr = await AsyncStorage.getItem('@logged_in_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          currentShopId = user.shop_id || 'shop_01';
+        }
+      } catch (e) {
+        console.warn('店舗ID取得エラー:', e);
+      }
+      // ▲▲▲ ここまで追加 ▲▲▲
+
       const coords = await getGpsCoords();
 
       const now = new Date();
@@ -243,7 +270,7 @@ export default function TimeClockScreen({ route, navigation }) {
       // 1. 当日の既存打刻レコードがあるか確認
       let existingAtt = null;
       try {
-        const checkRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}`, { cache: 'no-store' });
+        const checkRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, { cache: 'no-store' });
         if (checkRes.ok) {
           const monthData = await checkRes.json();
           existingAtt = monthData.find(a => Number(a.employee_id) === Number(empId) && a.work_date === workDate);
@@ -302,6 +329,7 @@ export default function TimeClockScreen({ route, navigation }) {
       const payload = {
         id: existingAtt ? existingAtt.id : null,
         employee_id: Number(empId),
+        shop_id: currentShopId, // ★追加：店舗ID
         work_date: workDate,
         clock_in: clockInVal,
         clock_out: clockOutVal,

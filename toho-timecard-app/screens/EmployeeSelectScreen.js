@@ -10,9 +10,11 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native'; // ★修正: useIsFocusedを追加
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
 
 const screenWidth = Dimensions.get('window').width;
@@ -62,6 +64,9 @@ export default function EmployeeSelectScreen({ navigation }) {
   const [selectedTab, setSelectedTab] = useState('ALL');
   const [time, setTime] = useState(new Date());
 
+  // ★修正: 画面が手前にあるかを判定するフックを追加
+  const isFocused = useIsFocused();
+
   // 現在ログイン中の店舗情報
   const [currentShopId, setCurrentShopId] = useState('shop_01');
 
@@ -105,71 +110,76 @@ export default function EmployeeSelectScreen({ navigation }) {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      let isMounted = true;
-      let shopIdForTimer = 'shop_01';
+  // ★修正: useFocusEffectをuseEffectに置き換え、isFocusedを監視する
+  useEffect(() => {
+    let isMounted = true;
+    let shopIdForTimer = 'shop_01';
 
-      const initData = async () => {
-        setLoading(true);
-        
-        // ▼位置情報がOFFになっていないかチェック▼
-        try {
-          const locEnabled = await Location.hasServicesEnabledAsync();
-          if (!locEnabled) {
-            Alert.alert(
-              '位置情報がオフになっています',
-              '出退勤の打刻を行うには、端末の位置情報サービスをオンにしてから操作してください。'
-            );
-          }
-        } catch (e) {
-          console.warn('位置情報チェックエラー', e);
+    const initData = async () => {
+      // 画面がアクティブでない時は何もしない
+      if (!isFocused) return;
+
+      setLoading(true);
+      
+      try {
+        const locEnabled = await Location.hasServicesEnabledAsync();
+        if (!locEnabled) {
+          Alert.alert(
+            '位置情報がオフになっています',
+            '出退勤の打刻を行うには、端末の位置情報サービスをオンにしてから操作してください。'
+          );
         }
+      } catch (e) {
+        console.warn('位置情報チェックエラー', e);
+      }
 
-        try {
-          const userStr = await AsyncStorage.getItem('@logged_in_user');
-          if (userStr) {
-            const user = JSON.parse(userStr);
-            shopIdForTimer = user.shop_id || 'shop_01';
-            
-            // 店舗名の判定とヘッダータイトルの書き換え (全31店舗対応)
-            const shopList = {
-              'shop_01': 'TH国分寺', 'shop_02': 'TH立川', 'shop_03': 'TH品川', 'shop_04': 'TH大田東京',
-              'shop_05': 'TH練馬', 'shop_06': 'TH城東', 'shop_07': 'TH武蔵野', 'shop_08': 'TH町田',
-              'shop_09': 'TH溝の口', 'shop_10': 'TH横浜', 'shop_11': 'TH湘南', 'shop_12': 'TH川口',
-              'shop_13': 'TH浦和', 'shop_14': 'TH新都心', 'shop_15': 'TH船橋', 'shop_16': 'TH新小岩',
-              'shop_17': 'TH杉並', 'shop_18': 'TH世田谷', 'shop_19': 'TH横浜西口', 'shop_20': 'TH松戸',
-              'shop_21': 'TH調布', 'shop_22': 'TH王子', 'shop_23': 'TH横浜戸塚', 'shop_24': 'TH逗子・葉山リゾート',
-              'shop_25': 'TH東京', 'shop_26': 'TH新横浜', 'shop_27': 'TH江坂', 'shop_28': 'TH名古屋城東',
-              'shop_29': 'TH名古屋中央', 'shop_30': 'TH柏', 'shop_31': 'NEXT'
-            };
-            const shopName = shopList[shopIdForTimer] || '店舗未設定';
-            setCurrentShopId(shopIdForTimer);
-            navigation.getParent()?.setOptions({ title: `🕒 ${shopName}` });
-          }
-        } catch (e) {
-          console.warn('ログイン情報読み込みエラー:', e);
+      try {
+        const userStr = await AsyncStorage.getItem('@logged_in_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          shopIdForTimer = user.shop_id || 'shop_01';
+          
+          const shopList = {
+            'shop_01': 'TH国分寺', 'shop_02': 'TH立川', 'shop_03': 'TH品川', 'shop_04': 'TH大田東京',
+            'shop_05': 'TH練馬', 'shop_06': 'TH城東', 'shop_07': 'TH武蔵野', 'shop_08': 'TH町田',
+            'shop_09': 'TH溝の口', 'shop_10': 'TH横浜', 'shop_11': 'TH湘南', 'shop_12': 'TH川口',
+            'shop_13': 'TH浦和', 'shop_14': 'TH新都心', 'shop_15': 'TH船橋', 'shop_16': 'TH新小岩',
+            'shop_17': 'TH杉並', 'shop_18': 'TH世田谷', 'shop_19': 'TH横浜西口', 'shop_20': 'TH松戸',
+            'shop_21': 'TH調布', 'shop_22': 'TH王子', 'shop_23': 'TH横浜戸塚', 'shop_24': 'TH逗子・葉山リゾート',
+            'shop_25': 'TH東京', 'shop_26': 'TH新横浜', 'shop_27': 'TH江坂', 'shop_28': 'TH名古屋城東',
+            'shop_29': 'TH名古屋中央', 'shop_30': 'TH柏', 'shop_31': 'NEXT'
+          };
+          const shopName = shopList[shopIdForTimer] || '店舗未設定';
+          setCurrentShopId(shopIdForTimer);
+          navigation.getParent()?.setOptions({ title: `🕒 ${shopName}` });
         }
+      } catch (e) {
+        console.warn('ログイン情報読み込みエラー:', e);
+      }
 
-        await Promise.all([
-          fetchEmployees(shopIdForTimer),
-          fetchTodayAttendances(shopIdForTimer)
-        ]);
-        if (isMounted) setLoading(false);
-      };
+      await Promise.all([
+        fetchEmployees(shopIdForTimer),
+        fetchTodayAttendances(shopIdForTimer)
+      ]);
+      if (isMounted) setLoading(false);
+    };
 
-      initData();
+    initData();
 
-      const timer = setTimeout(() => {
-        if (isMounted) fetchTodayAttendances(shopIdForTimer);
-      }, 1200);
+    // 画面が手前に来た直後と、API反映待ちの2.5秒後に再取得する
+    const timer1 = setTimeout(() => {
+      if (isMounted && isFocused) fetchTodayAttendances(shopIdForTimer);
+    }, 1000);
+    const timer2 = setTimeout(() => {
+      if (isMounted && isFocused) fetchTodayAttendances(shopIdForTimer);
+    }, 2500);
 
-      return () => {
-        isMounted = false;
-        clearTimeout(timer);
-      };
-    }, [navigation])
-  );
+    return () => {
+      isMounted = false;
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [isFocused, navigation]);
 
   const onRefresh = async () => {
     setRefreshing(true);
