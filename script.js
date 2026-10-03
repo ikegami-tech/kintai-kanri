@@ -114,6 +114,16 @@ async function changeSidebarShopDiv(shopId) {
 
 // ユーザー権限と店舗表示の初期化制御
 function applyUserPermissions(user) {
+  // ★追加：サイドバー左上のログインユーザー名・店舗名を動的に更新
+  const userNameEl = document.querySelector('.user-name');
+  const userRoleEl = document.querySelector('.user-role');
+  if (userNameEl && user.name) {
+    userNameEl.textContent = user.name;
+  }
+  if (userRoleEl) {
+    userRoleEl.textContent = SHOP_LIST[user.shop_id] || user.department || '東宝ハウスNEXT';
+  }
+
   if (user.shop_id && SHOP_LIST[user.shop_id]) {
     currentSelectedShopId = user.shop_id;
   } else {
