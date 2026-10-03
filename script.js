@@ -1673,9 +1673,11 @@ async function renderDailyTable() {
     console.error('日表示データ取得エラー:', error);
   }
 
+  // 当日の打刻データを配列として取得する（1日に複数回の打刻に対応）
   const todayAttendanceMap = {};
   attendancesData.filter(a => a.work_date === dateKey).forEach(a => {
-    todayAttendanceMap[a.employee_id] = a;
+    if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
+    todayAttendanceMap[a.employee_id].push(a);
   });
 
   const tbody = document.getElementById('daily-tbody');
@@ -1686,160 +1688,173 @@ async function renderDailyTable() {
   }
 
   const rowHtmlList = await Promise.all(empList.map(async emp => {
-    const att = todayAttendanceMap[emp.id];
-    const formatTime = (t) => t ? t.substring(0, 5) : '';
+    const atts = todayAttendanceMap[emp.id] || [];
     
-    let timeStr = '-';
-    let statusDotClass = '';
-    let actionStr = '出勤';
-    let fullTimeStr = `${month}/${date} -`;
-    
-    if (att && att.clock_in) {
-      if (att.clock_out) {
-        timeStr = `${formatTime(att.clock_in)} ～ ${formatTime(att.clock_out)}`;
-        statusDotClass = 'dot-finished';
-        actionStr = '退勤';
-        fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)} - ${formatTime(att.clock_out)}`;
-      } else {
-        timeStr = `${formatTime(att.clock_in)} ～`;
-        statusDotClass = 'dot-working';
-        actionStr = '出勤';
-        fullTimeStr = `${month}/${date} ${formatTime(att.clock_in)}`;
-      }
-    } else if (att && att.memo) {
-      // clock_inがない場合でも、メモから遅刻・欠勤・有給・早退・午前休・午後休の時間を抽出して表示する
-      let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-      if (extMatch) {
-         timeStr = `${extMatch[1]} ～ ${extMatch[2]}`;
-         statusDotClass = 'dot-finished';
-         actionStr = '退勤';
-         fullTimeStr = `${month}/${date} ${extMatch[1]} - ${extMatch[2]}`;
-      }
-    }
-
-    let memoHtml = '';
-    let pureMemo = '';
-    if (att && att.memo) {
-      if (att.memo.includes('管理者修正') && timeStr !== '-') {
-        timeStr = `<span class="time-edited">${timeStr}</span>`;
-      }
-
-      const hasDirectIn = att.memo.includes('直行');
-      const hasDirectOut = att.memo.includes('直帰');
-      let directTags = [];
-      if (hasDirectIn) directTags.push('直行');
-      if (hasDirectOut) directTags.push('直帰');
-
-      let cleanMemo = att.memo
-        .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
-        .replace(/\[.*?\]/g, '')
-        .replace(/管理者修正/g, ''); // 休日出勤を消さずに残す
-
-      if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
-        const parts = cleanMemo.split('直帰');
-        cleanMemo = parts[0].split('直行')[0];
-      } else if (cleanMemo.includes('直行')) {
-        cleanMemo = cleanMemo.split('直行')[0];
-      } else if (cleanMemo.includes('直帰')) {
-        cleanMemo = cleanMemo.split('直帰')[0];
-      }
-
-      let otherMemo = cleanMemo.trim();
-
-      let tooltipParts = [];
-      if (directTags.length > 0) {
-        tooltipParts.push(directTags.join('・'));
-      }
-      if (otherMemo) {
-        tooltipParts.push(otherMemo);
-      }
-
-      pureMemo = tooltipParts.join('\n').trim();
-
-      if (pureMemo) {
-        memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
-      }
-    }
-
-    const isDirectIn = att && att.memo && att.memo.includes('直行');
-    const isDirectOut = att && att.memo && att.memo.includes('直帰');
-
-    let inCoords = '';
-    let outCoords = '';
-    if (att && att.memo) {
-      const inMatch = att.memo.match(/\[IN_LOC:([^\]]+)\]/);
-      if (inMatch) inCoords = inMatch[1];
-      const outMatch = att.memo.match(/\[OUT_LOC:([^\]]+)\]/);
-      if (outMatch) outCoords = outMatch[1];
-    }
-
-    const inAddress = inCoords ? await reverseGeocode(inCoords) : '位置情報未取得';
-    const outAddress = outCoords ? await reverseGeocode(outCoords) : '位置情報未取得';
-
-    const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
-
-    const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
-    const centerSpacer = '<div style="flex-grow: 1;"></div>';
-    let slots = [emptySpacer, emptySpacer, centerSpacer, emptySpacer, emptySpacer];
-
-    if (att && att.clock_in) {
-      const inLabel = isDirectIn ? '直行出勤' : '出勤';
-      const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
-      const inClass = isDirectIn ? 'direct-style' : '';
-      const inBadgeClass = isDirectIn ? 'direct-badge' : '';
-      const inFullTime = `${month}/${date} ${formatTime(att.clock_in)}`;
-      const targetInLoc = inCoords || '位置情報未取得';
-
-      const html = `
-        <div class="avatar-map-box">
-          <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n住所:${inAddress}">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          </div>
-          <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${targetInLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
-        </div>
+    if (atts.length === 0) {
+      return `
+        <tr>
+          <td class="emp-name-cell">
+            <span class="dot-status" style="background-color: #ccc;"></span>
+            <a href="javascript:void(0)" class="emp-link" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
+          </td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
       `;
-      if (isDirectIn) {
-        slots[1] = html;
-      } else {
-        slots[0] = html;
-      }
     }
 
-    if (att && att.clock_out) {
-      const outLabel = isDirectOut ? '直帰退勤' : '退勤';
-      const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
-      const outClass = isDirectOut ? 'direct-style' : '';
-      const outBadgeClass = isDirectOut ? 'direct-badge' : '';
-      const outFullTime = `${month}/${date} ${formatTime(att.clock_out)}`;
-      const targetOutLoc = outCoords || '位置情報未取得';
+    // 時間順にソート
+    atts.sort((a, b) => {
+      if (!a.clock_in && !b.clock_in) return 0;
+      if (!a.clock_in) return 1;
+      if (!b.clock_in) return -1;
+      return a.clock_in.localeCompare(b.clock_in);
+    });
 
-      const html = `
-        <div class="avatar-map-box">
-          <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n住所:${outAddress}">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    // 最新の打刻状態からステータスドットを判定
+    const latestAtt = atts[atts.length - 1];
+    let statusDotClass = 'dot-finished';
+    if (latestAtt && latestAtt.clock_in && !latestAtt.clock_out) {
+      statusDotClass = 'dot-working';
+    }
+
+    let timeAndMemoList = [];
+    let mapBoxList = [];
+
+    for (let idx = 0; idx < atts.length; idx++) {
+      const att = atts[idx];
+      const formatTime = (t) => t ? t.substring(0, 5) : '';
+
+      let timeStr = '-';
+      if (att && att.clock_in) {
+        if (att.clock_out) {
+          timeStr = `${formatTime(att.clock_in)} ～ ${formatTime(att.clock_out)}`;
+        } else {
+          timeStr = `${formatTime(att.clock_in)} ～`;
+        }
+      } else if (att && att.memo) {
+        let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        if (extMatch) {
+          timeStr = `${extMatch[1]} ～ ${extMatch[2]}`;
+        }
+      }
+
+      let memoHtml = '';
+      if (att && att.memo) {
+        if (att.memo.includes('管理者修正') && timeStr !== '-') {
+          timeStr = `<span class="time-edited">${timeStr}</span>`;
+        }
+
+        const hasDirectIn = att.memo.includes('直行');
+        const hasDirectOut = att.memo.includes('直帰');
+        let directTags = [];
+        if (hasDirectIn) directTags.push('直行');
+        if (hasDirectOut) directTags.push('直帰');
+
+        let cleanMemo = att.memo
+          .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+          .replace(/\[.*?\]/g, '')
+          .replace(/管理者修正/g, '');
+
+        if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
+          const parts = cleanMemo.split('直帰');
+          cleanMemo = parts[0].split('直行')[0];
+        } else if (cleanMemo.includes('直行')) {
+          cleanMemo = cleanMemo.split('直行')[0];
+        } else if (cleanMemo.includes('直帰')) {
+          cleanMemo = cleanMemo.split('直帰')[0];
+        }
+
+        let otherMemo = cleanMemo.trim();
+        let tooltipParts = [];
+        if (directTags.length > 0) tooltipParts.push(directTags.join('・'));
+        if (otherMemo) tooltipParts.push(otherMemo);
+
+        const pureMemo = tooltipParts.join('\n').trim();
+        if (pureMemo) {
+          memoHtml = `<span class="memo-icon" data-tooltip="${pureMemo}">💬</span>`;
+        }
+      }
+
+      const isDirectIn = att && att.memo && att.memo.includes('直行');
+      const isDirectOut = att && att.memo && att.memo.includes('直帰');
+
+      let inCoords = '';
+      let outCoords = '';
+      if (att && att.memo) {
+        const inMatch = att.memo.match(/\[IN_LOC:([^\]]+)\]/);
+        if (inMatch) inCoords = inMatch[1];
+        const outMatch = att.memo.match(/\[OUT_LOC:([^\]]+)\]/);
+        if (outMatch) outCoords = outMatch[1];
+      }
+
+      const inAddress = inCoords ? await reverseGeocode(inCoords) : '位置情報未取得';
+      const outAddress = outCoords ? await reverseGeocode(outCoords) : '位置情報未取得';
+      const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
+
+      const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
+      const centerSpacer = '<div style="flex-grow: 1;"></div>';
+      let slots = [emptySpacer, emptySpacer, centerSpacer, emptySpacer, emptySpacer];
+
+      if (att && att.clock_in) {
+        const inLabel = isDirectIn ? '直行出勤' : '出勤';
+        const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
+        const inClass = isDirectIn ? 'direct-style' : '';
+        const inBadgeClass = isDirectIn ? 'direct-badge' : '';
+        const inFullTime = `${month}/${date} ${formatTime(att.clock_in)}`;
+        const targetInLoc = inCoords || '位置情報未取得';
+
+        const html = `
+          <div class="avatar-map-box">
+            <div class="avatar-circle ${inClass} has-tooltip" data-tooltip="${inLabel}\n${inFullTime}\n住所:${inAddress}">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <button class="btn-map-badge ${inBadgeClass}" onclick="openMapModal('${emp.name}', '${inLabel}', '${targetInLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${inBadgeText}</button>
           </div>
-          <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${targetOutLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
-        </div>
-      `;
-      if (isDirectOut) {
-        slots[3] = html;
-      } else {
-        slots[4] = html;
+        `;
+        if (isDirectIn) slots[1] = html;
+        else slots[0] = html;
       }
-    }
 
-    const mapBoxHtml = (att && (att.clock_in || att.clock_out)) 
-      ? `<div class="avatar-slot-group" style="display: flex; width: 100%;">${slots.join('')}</div>` 
-      : '<span style="color: #ccc; font-size: 13px;">-</span>';
+      if (att && att.clock_out) {
+        const outLabel = isDirectOut ? '直帰退勤' : '退勤';
+        const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
+        const outClass = isDirectOut ? 'direct-style' : '';
+        const outBadgeClass = isDirectOut ? 'direct-badge' : '';
+        const outFullTime = `${month}/${date} ${formatTime(att.clock_out)}`;
+        const targetOutLoc = outCoords || '位置情報未取得';
+
+        const html = `
+          <div class="avatar-map-box">
+            <div class="avatar-circle ${outClass} has-tooltip" data-tooltip="${outLabel}\n${outFullTime}\n住所:${outAddress}">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <button class="btn-map-badge ${outBadgeClass}" onclick="openMapModal('${emp.name}', '${outLabel}', '${targetOutLoc}', '${rawMemoForModal.replace(/\n/g, '\\n')}')">${outBadgeText}</button>
+          </div>
+        `;
+        if (isDirectOut) slots[3] = html;
+        else slots[4] = html;
+      }
+
+      const borderStyle = idx !== atts.length - 1 ? 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 6px;' : '';
+
+      timeAndMemoList.push(`<div style="${borderStyle}">${timeStr} ${memoHtml}</div>`);
+
+      const mapBoxHtml = (att && (att.clock_in || att.clock_out)) 
+        ? `<div class="avatar-slot-group" style="display: flex; width: 100%; ${borderStyle}">${slots.join('')}</div>` 
+        : '<span style="color: #ccc; font-size: 13px;">-</span>';
+      
+      mapBoxList.push(mapBoxHtml);
+    }
 
     return `
       <tr>
         <td class="emp-name-cell">
-          ${statusDotClass ? `<span class="dot-status ${statusDotClass}"></span>` : '<span class="dot-status" style="background-color: #ccc;"></span>'}
+          <span class="dot-status ${statusDotClass}"></span>
           <a href="javascript:void(0)" class="emp-link" onclick="showEmployeeDetail('${emp.name}')">${emp.name}</a>
         </td>
-        <td>${timeStr} ${memoHtml}</td>
-        <td>${mapBoxHtml}</td>
+        <td>${timeAndMemoList.join('')}</td>
+        <td>${mapBoxList.join('')}</td>
       </tr>
     `;
   }));
