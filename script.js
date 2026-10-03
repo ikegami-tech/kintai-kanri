@@ -720,8 +720,7 @@ function handleCellAction(actionType) {
       let cleanMemo = raw
         .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
-        .replace(/管理者修正/g, '')
-        .replace(/休日出勤/g, '');
+        .replace(/管理者修正/g, ''); // 休日出勤を消さずに残す
 
       if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
           const parts = cleanMemo.split('直帰');
