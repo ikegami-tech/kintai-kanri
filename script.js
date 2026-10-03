@@ -1555,10 +1555,9 @@ async function renderMatrixTable() {
             if (hasDirectOut) directTags.push('直帰');
 
             let cleanMemo = att.memo
-              .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
-              .replace(/管理者修正/g, '')
-              .replace(/休日出勤/g, '');
+              .replace(/管理者修正/g, ''); // 休日出勤を消さずに残す
 
             if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
                 const parts = cleanMemo.split('直帰');
@@ -1725,8 +1724,7 @@ async function renderDailyTable() {
       let cleanMemo = att.memo
         .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/\[.*?\]/g, '')
-        .replace(/管理者修正/g, '')
-        .replace(/休日出勤/g, '');
+        .replace(/管理者修正/g, ''); // 休日出勤を消さずに残す
 
       if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
         const parts = cleanMemo.split('直帰');
@@ -3228,7 +3226,13 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   let finalMemoParts = [];
 
   if (existingMemo.includes('管理者修正')) finalMemoParts.push('管理者修正');
-  if (existingMemo.includes('休日出勤')) finalMemoParts.push('休日出勤');
+  
+  // 休日設定されている日、土日、または既存メモに「休日出勤」がある場合に自動付与
+  const isWeekend = (now.getDay() === 0 || now.getDay() === 6);
+  const isHolidaySetting = typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal];
+  if (isHolidaySetting || isWeekend || existingMemo.includes('休日出勤')) {
+    if (!finalMemoParts.includes('休日出勤')) finalMemoParts.push('休日出勤');
+  }
 
   let inLoc = '';
   let outLoc = '';

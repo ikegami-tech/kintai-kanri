@@ -340,7 +340,12 @@ export default function TimeClockScreen({ route, navigation }) {
 
       let memoParts = [];
       if (existingMemo.includes('管理者修正')) memoParts.push('管理者修正');
-      if (existingMemo.includes('休日出勤')) memoParts.push('休日出勤');
+      
+      // 土曜日(6)・日曜日(0)、または既存メモに「休日出勤」がある場合に自動付与
+      const isWeekend = (now.getDay() === 0 || now.getDay() === 6);
+      if (isWeekend || existingMemo.includes('休日出勤')) {
+        memoParts.push('休日出勤');
+      }
 
       if (inLoc) memoParts.push(`[IN_LOC:${inLoc}]`);
       if (outLoc) memoParts.push(`[OUT_LOC:${outLoc}]`);
