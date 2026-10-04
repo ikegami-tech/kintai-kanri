@@ -80,7 +80,15 @@ export default function EmployeeSelectScreen({ navigation }) {
       const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${shopId}`);
       const data = await response.json();
       if (Array.isArray(data)) {
-        const activeEmps = data.filter((e) => e.status !== '利用停止');
+        // 利用停止中のユーザー、および「社長」「次長」を除外してセット
+        const activeEmps = data.filter((e) => {
+          if (e.status === '利用停止') return false;
+          
+          const dept = e.department || e.office || '';
+          if (dept === '社長' || dept === '次長') return false;
+          
+          return true;
+        });
         setEmployees(activeEmps);
       }
     } catch (error) {
