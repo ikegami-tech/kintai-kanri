@@ -1186,6 +1186,35 @@ function showEmployeeDetail(identifier) {
   location.hash = `#/employee-detail?id=${emp.id}`;
 }
 
+// 店舗に応じて所属プルダウンの選択肢を切り替える関数
+function updateDepartmentOptions(shopSelectId, deptSelectId, currentVal = '') {
+  const shopSelect = document.getElementById(shopSelectId);
+  const deptSelect = document.getElementById(deptSelectId);
+  if (!shopSelect || !deptSelect) return;
+
+  const selectedShopId = shopSelect.value;
+  const selectedShopName = SHOP_LIST[selectedShopId] || '';
+  
+  // 店舗がNEXT（またはshop_01）かどうかを判定
+  const isNext = selectedShopName === 'NEXT' || selectedShopId === 'shop_01';
+
+  let deptList = [];
+  if (isNext) {
+    // NEXTの順番: 社長、次長、LP、PRコンシェルジュ、ホーム課、システム課、事務
+    deptList = ['社長', '次長', 'LP', 'PRコンシェルジュ', 'ホーム課', 'システム課', '事務'];
+  } else {
+    // NEXT以外: 社長、店長、次長、課長、社員、受付
+    deptList = ['社長', '店長', '次長', '課長', '社員', '受付'];
+  }
+
+  let html = '';
+  deptList.forEach(dept => {
+    const selected = (dept === currentVal) ? 'selected' : '';
+    html += `<option value="${dept}" ${selected}>${dept}</option>`;
+  });
+  deptSelect.innerHTML = html;
+}
+
 function openEditEmployee() {
   const emp = currentEmployeeList.find(e => Number(e.id) === Number(currentEmpTargetId));
   if (!emp) return;
@@ -1201,11 +1230,11 @@ function openEditEmployee() {
   const genderRadios = document.querySelectorAll('input[name="gender"]');
   genderRadios.forEach(r => r.checked = (r.value === (emp.gender || '未選択')));
 
-  const deptSelect = document.querySelector('#employee-edit-form .form-select');
-  if (deptSelect) deptSelect.value = emp.office || 'NEXT';
-
   const shopSelect = document.getElementById('edit-shop-id');
   if (shopSelect) shopSelect.value = emp.shop_id || 'shop_01';
+
+  // ★店舗に合わせて所属プルダウンを動的にセット
+  updateDepartmentOptions('edit-shop-id', 'edit-dept-id', emp.office);
 
   const roleRadios = document.querySelectorAll('input[name="role"]');
   roleRadios.forEach(r => r.checked = (r.value === (emp.role || '一般')));
@@ -1282,6 +1311,8 @@ async function saveEmployeeEdit(event) {
 
 function openCreateEmployee() {
   document.getElementById('employee-create-form').reset();
+  // ★新規作成時に所属プルダウンをセット
+  updateDepartmentOptions('new-shop-id', 'new-dept-id');
   location.hash = '#/employee-create';
 }
 
@@ -2920,6 +2951,7 @@ function renderTcEmpList() {
   today.setHours(0, 0, 0, 0);
 
   list = list.filter(emp => {
+    // 退職者の除外
     if (emp.retireDate && emp.retireDate !== '-') {
       const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
       const retireDateObj = new Date(cleanDate);
@@ -2930,6 +2962,12 @@ function renderTcEmpList() {
         }
       }
     }
+
+    // ★追加: 所属が「社長」または「次長」の従業員は打刻アプリ一覧に表示しない
+    if (emp.office === '社長' || emp.office === '次長') {
+      return false;
+    }
+
     return true;
   });
   

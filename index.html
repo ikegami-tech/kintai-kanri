@@ -816,21 +816,16 @@
                   <tr>
                     <th>所属 <span class="badge-req">必須</span></th>
                     <td>
-                      <select class="form-select">
-                        <option value="社長">社長</option>
-                        <option value="LP">LP</option>
-                        <option value="PRコンシェルジュ">PRコンシェルジュ</option>
-                        <option value="ホーム課">ホーム課</option>
-                        <option value="システム課" selected>システム課</option>
-                        <option value="事務">事務</option>
+                      <select class="form-select" id="edit-dept-id">
+                        <!-- JSで動的に選択肢を生成 -->
                       </select>
                     </td>
                   </tr>
-                  <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="edit-shop-id"></select></td></tr>
+                  <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="edit-shop-id" onchange="updateDepartmentOptions('edit-shop-id', 'edit-dept-id')"></select></td></tr>
                   <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
-                      <label><input type="radio" name="role" value="一般"> 一般 (アプリ打刻のみ)</label>
+                      <label><input type="radio" name="role" value="一般"> 一般</label>
                       <label style="margin-left: 15px;"><input type="radio" name="role" value="勤怠管理者"> 勤怠管理者</label>
                       <label style="margin-left: 15px;"><input type="radio" name="role" value="システム管理者" checked> システム管理者</label>
                     </td>
@@ -877,21 +872,16 @@
                   <tr>
                     <th>所属 <span class="badge-req">必須</span></th>
                     <td>
-                      <select class="form-select" required>
-                        <option value="社長">社長</option>
-                        <option value="LP">LP</option>
-                        <option value="PRコンシェルジュ">PRコンシェルジュ</option>
-                        <option value="ホーム課">ホーム課</option>
-                        <option value="システム課">システム課</option>
-                        <option value="事務">事務</option>
+                      <select class="form-select" id="new-dept-id" required>
+                        <!-- JSで動的に選択肢を生成 -->
                       </select>
                     </td>
                   </tr>
-                  <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="new-shop-id" required></select></td></tr>
+                  <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="new-shop-id" required onchange="updateDepartmentOptions('new-shop-id', 'new-dept-id')"></select></td></tr>
                   <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
-                      <label><input type="radio" name="new_role" value="一般" checked> 一般 (アプリ打刻のみ)</label>
+                      <label><input type="radio" name="new_role" value="一般" checked> 一般</label>
                       <label style="margin-left: 15px;"><input type="radio" name="new_role" value="勤怠管理者"> 勤怠管理者</label>
                       <label style="margin-left: 15px;"><input type="radio" name="new_role" value="システム管理者"> システム管理者</label>
                     </td>
