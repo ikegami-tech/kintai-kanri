@@ -74,6 +74,7 @@ async function changeGlobalShop() {
   const select = document.getElementById('global-shop-select');
   if (select) {
     currentSelectedShopId = select.value;
+    sessionStorage.setItem('selectedShopId', currentSelectedShopId);
     
     // 左メニュー側の表示も更新
     const currentShopNameSpan = document.getElementById('sidebar-shop-current-name');
@@ -89,6 +90,7 @@ async function changeGlobalShop() {
 // 左メニュー(アコーディオン内のdiv)からの切り替え処理
 async function changeSidebarShopDiv(shopId) {
   currentSelectedShopId = shopId;
+  sessionStorage.setItem('selectedShopId', currentSelectedShopId);
   
   // 右上プルダウンの値を連動させる
   const globalSelect = document.getElementById('global-shop-select');
@@ -124,7 +126,11 @@ function applyUserPermissions(user) {
     userRoleEl.textContent = SHOP_LIST[user.shop_id] || user.department || '東宝ハウスNEXT';
   }
 
-  if (user.shop_id && SHOP_LIST[user.shop_id]) {
+  // sessionStorageに手動選択した店舗があれば優先、無ければ初期店舗をセット
+  const savedShopId = sessionStorage.getItem('selectedShopId');
+  if (savedShopId && SHOP_LIST[savedShopId]) {
+    currentSelectedShopId = savedShopId;
+  } else if (user.shop_id && SHOP_LIST[user.shop_id]) {
     currentSelectedShopId = user.shop_id;
   } else {
     const sortedShops = Object.keys(SHOP_LIST).sort();
@@ -289,6 +295,7 @@ async function handleRouting() {
     if (path === 'paid-leave') renderExtraCategoryTable('paid-leave', '【有給】');
     if (path === 'employee-detail' && currentEmpTargetId) showEmployeeDetail(currentEmpTargetId);
     if (path === 'employee-edit' && currentEmpTargetId) openEditEmployee();
+    if (path === 'employee-create') initCreateEmployeeView();
     if (path === 'web-timeclock') initWebTimeclock();
     if (path === 'shops') renderShops();
   }
@@ -1193,10 +1200,10 @@ function updateDepartmentOptions(shopSelectId, deptSelectId, currentVal = '') {
   if (!shopSelect || !deptSelect) return;
 
   const selectedShopId = shopSelect.value;
-  const selectedShopName = SHOP_LIST[selectedShopId] || '';
+  const selectedShopName = (SHOP_LIST[selectedShopId] || '').trim();
   
-  // 店舗がNEXT（またはshop_01）かどうかを判定
-  const isNext = selectedShopName === 'NEXT' || selectedShopId === 'shop_01';
+  // 店舗名が「NEXT」かどうかで判定（shop_01などのID固定判定を解除）
+  const isNext = (selectedShopName === 'NEXT');
 
   let deptList = [];
   if (isNext) {
@@ -1233,7 +1240,7 @@ function openEditEmployee() {
   const shopSelect = document.getElementById('edit-shop-id');
   if (shopSelect) shopSelect.value = emp.shop_id || 'shop_01';
 
-  // ★店舗に合わせて所属プルダウンを動的にセット
+  // 店舗に合わせて所属プルダウンを正確にセット
   updateDepartmentOptions('edit-shop-id', 'edit-dept-id', emp.office);
 
   const roleRadios = document.querySelectorAll('input[name="role"]');
@@ -1273,13 +1280,14 @@ async function saveEmployeeEdit(event) {
 
   const emailInput = document.getElementById('edit-email');
   const shopSelect = document.getElementById('edit-shop-id');
+  const deptSelect = document.getElementById('edit-dept-id');
 
   const payload = {
     name: nameVal,
     kana: kanaVal,
     gender: genderEl ? genderEl.value : (currentEmp ? currentEmp.gender : '未選択'),
     email: emailInput ? emailInput.value.trim() : (currentEmp ? currentEmp.email : ''),
-    department: form.querySelector('.form-select') ? form.querySelector('.form-select').value : 'NEXT',
+    department: deptSelect ? deptSelect.value : (currentEmp ? currentEmp.office : '社長'),
     role: roleEl ? roleEl.value : (currentEmp ? currentEmp.role : '一般'),
     show_attendance: attEl ? (attEl.value === 'あり' ? 1 : 0) : 1,
     join_date: document.getElementById('edit-join-date').value ? document.getElementById('edit-join-date').value.replace(/\//g, '-') : null,
@@ -1310,10 +1318,26 @@ async function saveEmployeeEdit(event) {
 }
 
 function openCreateEmployee() {
-  document.getElementById('employee-create-form').reset();
-  // ★新規作成時に所属プルダウンをセット
+  const form = document.getElementById('employee-create-form');
+  if (form) form.reset();
+
+  // 現在表示選択している店舗をセットしてから所属プルダウンを切り替え
+  const shopSelect = document.getElementById('new-shop-id');
+  if (shopSelect) shopSelect.value = currentSelectedShopId;
+
   updateDepartmentOptions('new-shop-id', 'new-dept-id');
   location.hash = '#/employee-create';
+}
+
+function initCreateEmployeeView() {
+  const shopSelect = document.getElementById('new-shop-id');
+  if (shopSelect) {
+    if (!shopSelect.value || shopSelect.value === '') {
+      shopSelect.value = currentSelectedShopId;
+    }
+  }
+  const currentDeptVal = document.getElementById('new-dept-id')?.value || '';
+  updateDepartmentOptions('new-shop-id', 'new-dept-id', currentDeptVal);
 }
 
 function closeCreateEmployee() {
@@ -1327,15 +1351,15 @@ async function saveNewEmployee(event) {
   btn.disabled = true;
   const form = event.target;
   const inputs = form.querySelectorAll('.form-input');
-  const selects = form.querySelectorAll('.form-select');
   const shopSelect = document.getElementById('new-shop-id');
+  const deptSelect = document.getElementById('new-dept-id');
 
   const payload = {
     name: inputs[0].value,
     kana: inputs[1].value,
     gender: form.querySelector('input[name="new_gender"]:checked').value,
     email: inputs[2].value,
-    department: selects[0].value,
+    department: deptSelect ? deptSelect.value : '社長',
     role: form.querySelector('input[name="new_role"]:checked').value,
     show_attendance: form.querySelector('input[name="new_attendance_display"]:checked').value === 'あり' ? 1 : 0,
     join_date: inputs[3].value ? inputs[3].value.replace(/\//g, '-') : null,
