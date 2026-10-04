@@ -1924,11 +1924,15 @@ async function fetchOvertimeData(year, month, selectedDept) {
     filteredEmps = empList.filter(emp => emp.office === selectedDept);
   }
 
-return filteredEmps.map(emp => {
+  return filteredEmps.map(emp => {
     const myAttendances = attendancesData.filter(a => a.employee_id === emp.id);
     let weekdayDays = 0, weekendDays = 0;
     let totalWorkMins = 0, totalOvertimeMins = 0;
     let paidDays = 0, absenceMins = 0, lateMins = 0, earlyMins = 0;
+
+    // 同一日の重複出勤カウントを防止する記録配列
+    let countedWeekdayDates = [];
+    let countedWeekendDates = [];
 
     myAttendances.forEach(att => {
       // 基準の勤務時間（9:00 〜 18:00 = 540分 〜 1080分）
@@ -2004,12 +2008,23 @@ return filteredEmps.map(emp => {
       // 以下は既存の実労働時間・残業時間の集計
       if (!att.clock_in || !att.clock_out) return;
 
-      const isHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+      const dateObj = new Date(att.work_date.replace(/-/g, '/'));
+      const dayOfWeek = dateObj.getDay();
+      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+      const isHolidaySetting = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+      const isHoliday = isHolidaySetting || isWeekend || (att.memo && att.memo.includes('休日出勤'));
       
+      // 同じ日付でまだカウントしていない場合のみ出勤日数を+1
       if (isHoliday) {
-        weekendDays++;
+        if (!countedWeekendDates.includes(att.work_date)) {
+          weekendDays++;
+          countedWeekendDates.push(att.work_date);
+        }
       } else {
-        weekdayDays++;
+        if (!countedWeekdayDates.includes(att.work_date)) {
+          weekdayDays++;
+          countedWeekdayDates.push(att.work_date);
+        }
       }
 
       const [inH, inM] = att.clock_in.split(':').map(Number);
@@ -2058,7 +2073,7 @@ return filteredEmps.map(emp => {
       paidDays,
       absenceMins,
       lateMins,
-      earlyMins // ここを追加
+      earlyMins
     };
   });
 }
