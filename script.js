@@ -1222,6 +1222,16 @@ function updateDepartmentOptions(shopSelectId, deptSelectId, currentVal = '') {
   deptSelect.innerHTML = html;
 }
 
+// ログインユーザー情報の取得補助関数
+function getLoggedInUserInfo() {
+  try {
+    const userStr = localStorage.getItem('loggedInUser');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function openEditEmployee() {
   const emp = currentEmployeeList.find(e => Number(e.id) === Number(currentEmpTargetId));
   if (!emp) return;
@@ -1237,8 +1247,21 @@ function openEditEmployee() {
   const genderRadios = document.querySelectorAll('input[name="gender"]');
   genderRadios.forEach(r => r.checked = (r.value === (emp.gender || '未選択')));
 
+  const user = getLoggedInUserInfo();
   const shopSelect = document.getElementById('edit-shop-id');
-  if (shopSelect) shopSelect.value = emp.shop_id || 'shop_01';
+  if (shopSelect) {
+    shopSelect.value = emp.shop_id || 'shop_01';
+    // 勤怠管理者の場合は店舗変更不可（システム管理者のみ変更可）
+    if (user && user.role !== 'システム管理者') {
+      shopSelect.disabled = true;
+      shopSelect.style.backgroundColor = '#eef2f7';
+      shopSelect.style.cursor = 'not-allowed';
+    } else {
+      shopSelect.disabled = false;
+      shopSelect.style.backgroundColor = '';
+      shopSelect.style.cursor = '';
+    }
+  }
 
   // 店舗に合わせて所属プルダウンを正確にセット
   updateDepartmentOptions('edit-shop-id', 'edit-dept-id', emp.office);
@@ -1321,19 +1344,43 @@ function openCreateEmployee() {
   const form = document.getElementById('employee-create-form');
   if (form) form.reset();
 
-  // 現在表示選択している店舗をセットしてから所属プルダウンを切り替え
+  const user = getLoggedInUserInfo();
   const shopSelect = document.getElementById('new-shop-id');
-  if (shopSelect) shopSelect.value = currentSelectedShopId;
+  if (shopSelect) {
+    // 勤怠管理者の場合は自身の所属店舗に固定して選択不可にする
+    if (user && user.role !== 'システム管理者') {
+      shopSelect.value = user.shop_id || currentSelectedShopId;
+      shopSelect.disabled = true;
+      shopSelect.style.backgroundColor = '#eef2f7';
+      shopSelect.style.cursor = 'not-allowed';
+    } else {
+      shopSelect.value = currentSelectedShopId;
+      shopSelect.disabled = false;
+      shopSelect.style.backgroundColor = '';
+      shopSelect.style.cursor = '';
+    }
+  }
 
   updateDepartmentOptions('new-shop-id', 'new-dept-id');
   location.hash = '#/employee-create';
 }
 
 function initCreateEmployeeView() {
+  const user = getLoggedInUserInfo();
   const shopSelect = document.getElementById('new-shop-id');
   if (shopSelect) {
-    if (!shopSelect.value || shopSelect.value === '') {
-      shopSelect.value = currentSelectedShopId;
+    if (user && user.role !== 'システム管理者') {
+      shopSelect.value = user.shop_id || currentSelectedShopId;
+      shopSelect.disabled = true;
+      shopSelect.style.backgroundColor = '#eef2f7';
+      shopSelect.style.cursor = 'not-allowed';
+    } else {
+      if (!shopSelect.value || shopSelect.value === '') {
+        shopSelect.value = currentSelectedShopId;
+      }
+      shopSelect.disabled = false;
+      shopSelect.style.backgroundColor = '';
+      shopSelect.style.cursor = '';
     }
   }
   const currentDeptVal = document.getElementById('new-dept-id')?.value || '';
