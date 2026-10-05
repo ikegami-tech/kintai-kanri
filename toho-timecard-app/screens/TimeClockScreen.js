@@ -98,13 +98,13 @@ export default function TimeClockScreen({ route, navigation }) {
     return `${hh}:${mm}:${ss}`;
   };
 
-  // ★★★ 超厳格化された位置情報取得ロジック ★★★
-  const getGpsCoords = async () => {
+// 引数 isGpsRequired を追加
+  const getGpsCoords = async (isGpsRequired) => {
     try {
       // ① 端末自体のGPS（位置情報サービス）がONになっているか確認
       const enabled = await Location.hasServicesEnabledAsync();
       if (!enabled) {
-        Alert.alert('位置情報エラー', '端末のGPS（位置情報サービス）がOFFになっています。\n端末の設定画面からGPS機能をONにしてください。');
+        if (isGpsRequired) Alert.alert('エラー', '端末の位置情報（GPS）がOFFになっています。端末の設定からONにしてください。');
         return null;
       }
 
@@ -112,38 +112,37 @@ export default function TimeClockScreen({ route, navigation }) {
       let permission = await Location.getForegroundPermissionsAsync();
       
       // 権限が確定していない場合はリクエストダイアログを出す
-      if (permission.status !== 'granted') {
+      if (permission.status !== 'granted' && permission.canAskAgain) {
         permission = await Location.requestForegroundPermissionsAsync();
       }
 
       // 最終的に権限が「granted（許可）」になっていない場合は完全にブロック
       if (permission.status !== 'granted') {
-        Alert.alert(
-          '位置情報エラー', 
-          'アプリへの位置情報の利用が許可されていません。\n端末の「設定」アプリから位置情報を「許可」してください。'
-        );
-        return null; // ★ここで確実に null を返す
-      }
-
-      // ③ キャッシュを無視して強制的に最新のGPS座標を取得
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-        maximumAge: 0,
-      });
-
-      if (!location || !location.coords || !location.coords.latitude) {
-        Alert.alert('位置情報エラー', '位置情報の座標が取得できませんでした。');
+        if (isGpsRequired) {
+          Alert.alert(
+            'エラー', 
+            'アプリへの位置情報の利用が許可されていません。端末の設定アプリから、このアプリの位置情報を「許可」に変更してください。'
+          );
+        }
         return null;
       }
 
+      // ③ 実際に位置情報を取得
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 10000
+      });
+      
+      if (!location || !location.coords) {
+        if (isGpsRequired) Alert.alert('エラー', '位置情報の座標が取得できませんでした。');
+        return null;
+      }
+      
       return `${location.coords.latitude},${location.coords.longitude}`;
       
     } catch (error) {
-      console.warn('GPS取得処理例外:', error);
-      Alert.alert(
-        '位置情報エラー',
-        '位置情報の取得に失敗しました。\n端末のGPSがONになっているか、アプリの権限が許可されているか確認してください。'
-      );
+      console.warn('GPS取得失敗例外:', error);
+      if (isGpsRequired) Alert.alert('エラー', '位置情報の取得中にエラーが発生しました。設定が許可されているか確認してください。');
       return null;
     }
   };
@@ -298,24 +297,19 @@ export default function TimeClockScreen({ route, navigation }) {
     setMailModalVisible(true);
   };
 
-  const submitAttendance = async (type, bodyText) => {
+const submitAttendance = async (type, bodyText) => {
     if (!empId) {
       Alert.alert('エラー', '従業員情報が正しく取得できていません。一覧から選び直してください。');
       return;
     }
 
     try {
-      setLoading(true); // 連打防止
+      setLoading(true);
 
-      // 1. 【絶対防壁】まず最初に位置情報を取得する。失敗すれば null が返る
-      const coords = await getGpsCoords();
-
-      // 2. 位置情報が取得できなかった場合、ここで処理を完全停止（API通信させない）
-      if (coords === null || coords === undefined || coords === '') {
-        setLoading(false);
-        setMailModalVisible(false);
-        return; // ★これ以上下の処理には絶対に進まない
-      }
+      // ★追加：SettingsScreenで設定した「位置情報を必須にする」状態を読み込む
+      const requireGpsStr = await AsyncStorage.getItem('@require_gps');
+      // 設定が存在しない場合はデフォルトで true（必須）とする
+      const isGpsRequired = requireGpsStr !== 'false';
 
       let currentShopId = 'shop_01';
       try {
@@ -326,6 +320,18 @@ export default function TimeClockScreen({ route, navigation }) {
         }
       } catch (e) {
         console.warn('店舗ID取得エラー:', e);
+      }
+
+      // ★修正：取得処理にフラグを渡す
+      const coords = await getGpsCoords(isGpsRequired);
+
+      // ★修正：位置情報が【必須】なのに取得できなかった場合のみ、強制終了する
+      if (isGpsRequired) {
+        if (!coords || typeof coords !== 'string' || coords.trim() === '') {
+          setLoading(false);
+          setMailModalVisible(false);
+          return; // エラーアラートは getGpsCoords 内で表示済みのため、ここで処理を止める
+        }
       }
 
       const now = new Date();
