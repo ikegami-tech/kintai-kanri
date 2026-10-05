@@ -100,18 +100,27 @@ export default function TimeClockScreen({ route, navigation }) {
 
   const getGpsCoords = async () => {
     try {
+      // 端末のGPS機能（位置情報サービス）自体がONになっているかチェック
+      const enabled = await Location.hasServicesEnabledAsync();
+      if (!enabled) {
+        Alert.alert('位置情報エラー', '端末の位置情報（GPS）機能がOFFになっています。設定画面等で位置情報をONにしてからやり直してください。');
+        return null;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('位置情報エラー', '打刻には位置情報の許可が必要です。端末の設定をご確認ください。');
         return null;
       }
+
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
       return `${location.coords.latitude},${location.coords.longitude}`;
     } catch (error) {
       console.warn('GPS取得失敗:', error);
-      return '';
+      Alert.alert('位置情報取得エラー', '位置情報を取得できませんでした。端末のGPS機能をご確認ください。');
+      return null;
     }
   };
 
@@ -285,7 +294,18 @@ export default function TimeClockScreen({ route, navigation }) {
         console.warn('店舗ID取得エラー:', e);
       }
 
+      // 位置情報必須設定の確認（未設定の場合はデフォルトtrue）
+      const savedRequireGps = await AsyncStorage.getItem('@require_gps');
+      const isRequireGps = savedRequireGps !== null ? savedRequireGps === 'true' : true;
+
       const coords = await getGpsCoords();
+
+      // ★位置情報が必須に設定されており、位置情報が取得できなかった場合は打刻処理を中断する
+      if (isRequireGps && !coords) {
+        setLoading(false);
+        setMailModalVisible(false);
+        return;
+      }
 
       const now = new Date();
       const yyyy = now.getFullYear();
