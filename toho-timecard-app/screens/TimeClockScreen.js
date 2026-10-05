@@ -100,49 +100,31 @@ export default function TimeClockScreen({ route, navigation }) {
 
   const getGpsCoords = async () => {
     try {
-      // ① アプリ側の位置情報パーミッション（権限）の確認
-      let perm = await Location.getForegroundPermissionsAsync();
-      if (perm.status !== 'granted') {
-        perm = await Location.requestForegroundPermissionsAsync();
-      }
-
-      // アプリの位置情報権限が許可されていない場合は確実にブロック
-      if (perm.status !== 'granted') {
-        Alert.alert(
-          '位置情報エラー',
-          'アプリの位置情報利用が許可されていません。端末の「設定」アプリ >「プライバシーとセキュリティ」>「位置情報サービス」から、本アプリの位置情報権限を「許可」に変更してください。'
-        );
-        return null;
-      }
-
-      // ② 端末のGPS機能（位置情報サービス）自体のON/OFF確認
+      // ① 端末自体のGPS（位置情報サービス）がONになっているか確認
       const enabled = await Location.hasServicesEnabledAsync();
       if (!enabled) {
-        Alert.alert(
-          '位置情報エラー',
-          '端末のGPS（位置情報サービス）がOFFになっています。端末の設定で位置情報をONにしてから再度お試しください。'
-        );
+        Alert.alert('エラー', '端末の位置情報（GPS）がOFFになっています。端末の設定からONにしてください。');
         return null;
       }
 
-      // ③ 位置情報の取得（取得失敗やタイムアウト対策を含む）
+      // ② アプリへの位置情報アクセス権限が許可されているか確認
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('エラー', 'アプリへの位置情報の利用が許可されていません。端末の設定から許可してください。');
+        return null;
+      }
+
+      // ③ 実際に位置情報を取得
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 6000,
       });
-
-      if (!location || !location.coords || location.coords.latitude === undefined) {
-        Alert.alert('位置情報エラー', '位置情報の取得に失敗しました。電波状況をご確認の上、再度お試しください。');
-        return null;
-      }
-
+      
+      if (!location || !location.coords) return null;
+      
       return `${location.coords.latitude},${location.coords.longitude}`;
     } catch (error) {
-      console.warn('GPS取得処理例外:', error);
-      Alert.alert(
-        '位置情報エラー',
-        'アプリの位置情報利用が許可されていないか、GPS機能が無効です。端末の設定をご確認ください。'
-      );
+      console.warn('GPS取得失敗:', error);
+      Alert.alert('エラー', '位置情報の取得に失敗しました。電波状況の良い場所で再度お試しください。');
       return null;
     }
   };
@@ -306,16 +288,6 @@ export default function TimeClockScreen({ route, navigation }) {
     try {
       setLoading(true);
 
-      // ★最初に位置情報（GPS & アプリ権限）を取得・厳格チェック
-      const coords = await getGpsCoords();
-
-      // ★ coords が取得できない（null・undefined・空文字）場合は即座に通信を阻止して中断
-      if (!coords || typeof coords !== 'string' || coords.trim() === '') {
-        setLoading(false);
-        setMailModalVisible(false);
-        return;
-      }
-
       let currentShopId = 'shop_01';
       try {
         const userStr = await AsyncStorage.getItem('@logged_in_user');
@@ -325,6 +297,16 @@ export default function TimeClockScreen({ route, navigation }) {
         }
       } catch (e) {
         console.warn('店舗ID取得エラー:', e);
+      }
+
+      // 位置情報を取得
+      const coords = await getGpsCoords();
+
+      // ★【強力なガード】位置情報が取得できなかった場合は、一切の打刻通信を行わずに処理を強制終了する
+      if (!coords || typeof coords !== 'string' || coords.trim() === '') {
+        setLoading(false);
+        setMailModalVisible(false);
+        return;
       }
 
       const now = new Date();
