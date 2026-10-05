@@ -98,13 +98,12 @@ export default function TimeClockScreen({ route, navigation }) {
     return `${hh}:${mm}:${ss}`;
   };
 
-// 引数 isGpsRequired を追加
-  const getGpsCoords = async (isGpsRequired) => {
+const getGpsCoords = async () => {
     try {
       // ① 端末自体のGPS（位置情報サービス）がONになっているか確認
       const enabled = await Location.hasServicesEnabledAsync();
       if (!enabled) {
-        if (isGpsRequired) Alert.alert('エラー', '端末の位置情報（GPS）がOFFになっています。端末の設定からONにしてください。');
+        Alert.alert('エラー', '端末の位置情報（GPS）がOFFになっています。端末の設定からONにしてください。');
         return null;
       }
 
@@ -118,12 +117,10 @@ export default function TimeClockScreen({ route, navigation }) {
 
       // 最終的に権限が「granted（許可）」になっていない場合は完全にブロック
       if (permission.status !== 'granted') {
-        if (isGpsRequired) {
-          Alert.alert(
-            'エラー', 
-            'アプリへの位置情報の利用が許可されていません。端末の設定アプリから、このアプリの位置情報を「許可」に変更してください。'
-          );
-        }
+        Alert.alert(
+          'エラー', 
+          'アプリへの位置情報の利用が許可されていません。端末の設定アプリから、このアプリの位置情報を「許可」に変更してください。'
+        );
         return null;
       }
 
@@ -134,7 +131,7 @@ export default function TimeClockScreen({ route, navigation }) {
       });
       
       if (!location || !location.coords) {
-        if (isGpsRequired) Alert.alert('エラー', '位置情報の座標が取得できませんでした。');
+        Alert.alert('エラー', '位置情報の座標が取得できませんでした。');
         return null;
       }
       
@@ -142,7 +139,7 @@ export default function TimeClockScreen({ route, navigation }) {
       
     } catch (error) {
       console.warn('GPS取得失敗例外:', error);
-      if (isGpsRequired) Alert.alert('エラー', '位置情報の取得中にエラーが発生しました。設定が許可されているか確認してください。');
+      Alert.alert('エラー', '位置情報の取得中にエラーが発生しました。設定が許可されているか確認してください。');
       return null;
     }
   };
@@ -311,6 +308,14 @@ const submitAttendance = async (type, bodyText) => {
       // 設定が存在しない場合はデフォルトで true（必須）とする
       const isGpsRequired = requireGpsStr !== 'false';
 
+      // ★修正：アプリ側の設定（トグルスイッチ）がOFFの場合はエラーにして弾く
+      if (!isGpsRequired) {
+        setLoading(false);
+        setMailModalVisible(false);
+        Alert.alert('エラー', 'アプリの設定で位置情報がOFFになっているため打刻できません。設定画面から位置情報をONにしてください。');
+        return; // ここで処理を終了し、打刻させない
+      }
+
       let currentShopId = 'shop_01';
       try {
         const userStr = await AsyncStorage.getItem('@logged_in_user');
@@ -322,16 +327,14 @@ const submitAttendance = async (type, bodyText) => {
         console.warn('店舗ID取得エラー:', e);
       }
 
-      // ★修正：取得処理にフラグを渡す
-      const coords = await getGpsCoords(isGpsRequired);
+      // 位置情報を取得
+      const coords = await getGpsCoords();
 
-      // ★修正：位置情報が【必須】なのに取得できなかった場合のみ、強制終了する
-      if (isGpsRequired) {
-        if (!coords || typeof coords !== 'string' || coords.trim() === '') {
-          setLoading(false);
-          setMailModalVisible(false);
-          return; // エラーアラートは getGpsCoords 内で表示済みのため、ここで処理を止める
-        }
+      // ★修正：位置情報が取得できなかった場合は、一切の打刻通信を行わずに処理を強制終了する
+      if (!coords || typeof coords !== 'string' || coords.trim() === '') {
+        setLoading(false);
+        setMailModalVisible(false);
+        return; // エラーアラートは getGpsCoords 内で表示済みのため、ここで処理を止める
       }
 
       const now = new Date();
