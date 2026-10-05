@@ -107,24 +107,39 @@ export default function TimeClockScreen({ route, navigation }) {
         return null;
       }
 
-      // ② アプリへの位置情報アクセス権限が許可されているか確認
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('エラー', 'アプリへの位置情報の利用が許可されていません。端末の設定から許可してください。');
-        return null;
+      // ② まず現在のアプリ権限ステータスを確認
+      let permission = await Location.getForegroundPermissionsAsync();
+      
+      // 権限が確定していない場合はリクエストダイアログを出す
+      if (permission.status !== 'granted' && permission.canAskAgain) {
+        permission = await Location.requestForegroundPermissionsAsync();
+      }
+
+      // 最終的に権限が「granted（許可）」になっていない場合は完全にブロック
+      if (permission.status !== 'granted') {
+        Alert.alert(
+          'エラー', 
+          'アプリへの位置情報の利用が許可されていません。端末の設定アプリから、このアプリの位置情報を「許可」に変更してください。'
+        );
+        return null; // ★ここで確実に null を返す
       }
 
       // ③ 実際に位置情報を取得
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+        timeout: 10000 // 取得タイムアウトを10秒に設定
       });
       
-      if (!location || !location.coords) return null;
+      if (!location || !location.coords) {
+        Alert.alert('エラー', '位置情報の座標が取得できませんでした。');
+        return null;
+      }
       
       return `${location.coords.latitude},${location.coords.longitude}`;
+      
     } catch (error) {
-      console.warn('GPS取得失敗:', error);
-      Alert.alert('エラー', '位置情報の取得に失敗しました。電波状況の良い場所で再度お試しください。');
+      console.warn('GPS取得失敗例外:', error);
+      Alert.alert('エラー', '位置情報の取得中にエラーが発生しました。設定が許可されているか確認してください。');
       return null;
     }
   };
