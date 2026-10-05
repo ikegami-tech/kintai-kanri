@@ -3351,6 +3351,18 @@ function getCurrentLocationCoords() {
 }
 
 async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
+  // 位置情報がオフ、または取得できない場合は確実にブロックする
+  if (!isTcLocationOn) {
+    showModal('打刻できません。', 'この端末では、打刻時に位置情報を送信設定する必要があります。ページ右上にある位置情報ボタンをオンにして操作をやり直してください。');
+    return;
+  }
+
+  const currentCoords = await getCurrentLocationCoords();
+  if (!currentCoords || currentCoords === '位置情報未取得') {
+    showModal('位置情報エラー', '位置情報を取得できませんでした。ブラウザまたは端末の位置情報（GPS）機能を許可・オンにしてやり直してください。');
+    return;
+  }
+
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -3367,8 +3379,6 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   } else if (actionType === '退勤' || actionType === '直帰') {
     clockOut = timeVal;
   }
-
-  const currentCoords = await getCurrentLocationCoords();
 
   let existingMemo = att && att.memo ? att.memo : '';
   let finalMemoParts = [];

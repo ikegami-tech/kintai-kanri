@@ -294,14 +294,10 @@ export default function TimeClockScreen({ route, navigation }) {
         console.warn('店舗ID取得エラー:', e);
       }
 
-      // 位置情報必須設定の確認（未設定の場合はデフォルトtrue）
-      const savedRequireGps = await AsyncStorage.getItem('@require_gps');
-      const isRequireGps = savedRequireGps !== null ? savedRequireGps === 'true' : true;
-
       const coords = await getGpsCoords();
 
-      // ★位置情報が必須に設定されており、位置情報が取得できなかった場合は打刻処理を中断する
-      if (isRequireGps && !coords) {
+      // ★位置情報（GPS）が取得できなかった場合は、常に打刻処理を完全にブロックして中断する
+      if (!coords) {
         setLoading(false);
         setMailModalVisible(false);
         return;
