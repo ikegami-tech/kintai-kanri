@@ -2608,7 +2608,13 @@ function renderMonthButtons() {
   const grid = document.getElementById('smaregi-month-grid');
   
   let activeMonth = -1;
-  let targetDate = (currentPickerTarget === 'matrix') ? currentMatrixDate : currentOvertimeDate;
+  // ★修正：どの画面（ターゲット）から呼ばれたかに応じて参照する日付変数を切り替える
+  let targetDate = currentMatrixDate; // デフォルトは月表示
+  if (currentPickerTarget === 'overtime') targetDate = currentOvertimeDate;
+  if (currentPickerTarget === 'daily') targetDate = currentDailyDate;
+  if (currentPickerTarget === 'dashboard') targetDate = (typeof currentDashboardDate !== 'undefined') ? currentDashboardDate : new Date();
+  if (currentPickerTarget === 'holiday') targetDate = currentHolidayDate;
+
   if (targetDate.getFullYear() === year) {
     activeMonth = targetDate.getMonth() + 1;
   }
