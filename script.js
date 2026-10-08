@@ -1650,14 +1650,15 @@ async function renderMatrixTable() {
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
              } else {
-                 timeText = ``; // ★ 時刻がない場合（メモのみ）は空にして「-」を消す
+                 // ★ 透明なダミー文字を入れて、高さを潰さずに見えなくする
+                 timeText = `<span style="visibility: hidden;">-<br>-</span>`; 
              }
           }
 
           let memoHtml = '';
           if (att.memo) {
-            // ハイフン判定を外し、空文字以外の場合のみ編集済スタイルを適用
-            if (att.memo.includes('管理者修正') && timeText !== '') {
+            // 透明文字が入っている場合も除外して編集済スタイルを適用
+            if (att.memo.includes('管理者修正') && !timeText.includes('visibility: hidden')) {
                timeText = `<span class="time-edited">${timeText}</span>`;
             }
 
@@ -1829,7 +1830,8 @@ async function renderDailyTable() {
       const att = atts[idx];
       const formatTime = (t) => t ? t.substring(0, 5) : '';
 
-      let timeStr = '-';
+      // ★ 透明なダミー文字を入れて、高さを潰さずに見えなくする
+      let timeStr = '<span style="visibility: hidden;">-</span>'; 
       if (att && att.clock_in) {
         if (att.clock_out) {
           timeStr = `${formatTime(att.clock_in)} ～ ${formatTime(att.clock_out)}`;
@@ -1845,7 +1847,8 @@ async function renderDailyTable() {
 
       let memoHtml = '';
       if (att && att.memo) {
-        if (att.memo.includes('管理者修正') && timeStr !== '-') {
+        // 透明文字が入っている場合も除外して編集済スタイルを適用
+        if (att.memo.includes('管理者修正') && !timeStr.includes('visibility: hidden')) {
           timeStr = `<span class="time-edited">${timeStr}</span>`;
         }
 
