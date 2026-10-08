@@ -2436,13 +2436,22 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   }
 
   if (nameFilter) {
+    // 検索キーワードの空白除去＆ひらがなをカタカナに変換
     const normalizedFilter = nameFilter
       .replace(/[\s ]/g, '')
       .replace(/[\u3041-\u3096]/g, match => String.fromCharCode(match.charCodeAt(0) + 0x60));
 
     result = result.filter(emp => {
-      const normalizedName = emp.name.replace(/[\s ]/g, '');
-      const normalizedKana = emp.kana.replace(/[\s ]/g, '');
+      // 値が null や undefined の場合のエラー（クラッシュ）を防止
+      const safeName = emp.name || '';
+      const safeKana = emp.kana || '';
+      
+      const normalizedName = safeName.replace(/[\s ]/g, '');
+      // 登録データ側もひらがなをカタカナに変換して比較（表記ゆれ吸収）
+      const normalizedKana = safeKana
+        .replace(/[\s ]/g, '')
+        .replace(/[\u3041-\u3096]/g, match => String.fromCharCode(match.charCodeAt(0) + 0x60));
+        
       return normalizedName.includes(normalizedFilter) || normalizedKana.includes(normalizedFilter);
     });
   }
