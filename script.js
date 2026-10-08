@@ -1626,7 +1626,9 @@ async function renderMatrixTable() {
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
       const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
-      let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : 'cell-click';
+      const hasRetireDate = retireDateObj !== null; // ★ 退職日が設定されているか
+      
+      let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : (hasRetireDate ? 'cell-readonly' : 'cell-click');
       
       let cellData = '';
       if (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) {
@@ -1674,7 +1676,7 @@ async function renderMatrixTable() {
             if (hasDirectOut) directTags.push('直帰');
 
             let cleanMemo = att.memo
-              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
               .replace(/管理者修正/g, ''); // 休日出勤を消さずに残す
 
@@ -1705,7 +1707,8 @@ async function renderMatrixTable() {
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
           const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
           
-          const blockOnClick = isAfterRetire 
+          // ★ 退職日が設定されている従業員は過去も含めて全セル編集不可にする
+          const blockOnClick = hasRetireDate 
             ? '' 
             : `onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')"`;
 
@@ -1717,8 +1720,10 @@ async function renderMatrixTable() {
         cellData = `<div class="retired-time-box">${cellData}</div>`;
       }
       
-      if (isAfterRetire) {
-        tbodyHtml += `<td class="${tdClass}" style="background-color: #f4f7f9; cursor: not-allowed;">${cellData}</td>`;
+      if (hasRetireDate) {
+        // ★ 退職日が設定されている場合、セル全体の新規作成アクションも無効化
+        const bgStyle = isAfterRetire ? 'background-color: #f4f7f9; cursor: not-allowed;' : 'cursor: default;';
+        tbodyHtml += `<td class="${tdClass}" style="${bgStyle}">${cellData}</td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
       }
