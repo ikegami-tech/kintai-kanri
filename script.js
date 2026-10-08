@@ -1037,7 +1037,8 @@ async function submitRecordMemo() {
     work_date: dateVal,
     clock_in: clockIn,
     clock_out: clockOut,
-    memo: memoParts.join('\n').trim()
+    memo: memoParts.join('\n').trim(),
+    shop_id: currentSelectedShopId // ★追加：現在選択中の店舗IDを紐付けて保存する
   };
 
   try {
