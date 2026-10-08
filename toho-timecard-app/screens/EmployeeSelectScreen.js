@@ -37,22 +37,38 @@ const INITIAL_TABS = [
 const SmaregiFaceIcon = ({ isWorking }) => {
   const color = isWorking ? '#ffffff' : '#788d9e';
   return (
-    <View style={[styles.faceCircle, { borderColor: color }]}>
-      <View style={styles.faceEyesRow}>
+    <View style={{ position: 'relative', width: 42, height: 42, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: color, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: 18, marginBottom: 4, alignItems: 'center' }}>
+          {isWorking ? (
+            <>
+              {/* 出勤中：左目パッチリ丸(●)、右目ウィンク(⌒) */}
+              <View style={{ width: 6.5, height: 6.5, borderRadius: 3.5, backgroundColor: color }} />
+              <View style={{ width: 7, height: 4, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderTopLeftRadius: 4, borderTopRightRadius: 4, borderColor: color }} />
+            </>
+          ) : (
+            <>
+              {/* 出勤前：両目寝てる (︶ ︶) */}
+              <View style={{ width: 7, height: 4, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: color, marginTop: 2 }} />
+              <View style={{ width: 7, height: 4, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: color, marginTop: 2 }} />
+            </>
+          )}
+        </View>
         {isWorking ? (
-          <>
-            {/* 左目はパッチリ開いた大きめの丸、右目はウィンク（⌒）でスマレジ風の笑顔を表現 */}
-            <View style={[styles.openEye, { backgroundColor: color, width: 6.5, height: 6.5, borderRadius: 3.5 }]} />
-            <View style={[styles.winkEye, { borderColor: color }]} />
-          </>
+          /* 出勤中：にっこり口 (◡) */
+          <View style={{ width: 14, height: 6, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, borderColor: color }} />
         ) : (
-          <>
-            <View style={[styles.closedEye, { borderColor: color }]} />
-            <View style={[styles.closedEye, { borderColor: color }]} />
-          </>
+          /* 出勤前：お口ぽかん (o) */
+          <View style={{ width: 4, height: 4, borderRadius: 2, borderWidth: 1.5, borderColor: color, marginTop: 1 }} />
         )}
       </View>
-      <View style={[styles.smileMouth, { borderColor: color }]} />
+      {!isWorking && (
+        /* 出勤前：右上の zZ マーク */
+        <View style={{ position: 'absolute', top: -2, right: -4, flexDirection: 'row', alignItems: 'flex-start' }}>
+          <Text style={{ fontSize: 10, color: '#788d9e', fontWeight: 'bold', marginTop: 4, marginRight: 1 }}>z</Text>
+          <Text style={{ fontSize: 14, color: '#788d9e', fontWeight: 'bold' }}>Z</Text>
+        </View>
+      )}
     </View>
   );
 };
