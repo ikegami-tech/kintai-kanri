@@ -2465,15 +2465,21 @@ async function renderEmployees() {
   const container = document.getElementById('emp-list-container');
   container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">読み込み中...</div>';
 
-  const data = await fetchEmployeesAPI(currentInitialFilter, currentNameFilter);
-  currentEmployeeList = data;
+  // ★ 1. 月表示や編集用に「全従業員」の最新データを取得してシステム全体に保持する
+  currentEmployeeList = await fetchEmployeesAPI('ALL', '');
 
-  if (data.length === 0) {
+  // ★ 2. 従業員一覧に表示するための「フィルタリング（絞り込み）適用後」のデータを用意する
+  let displayData = currentEmployeeList;
+  if (currentInitialFilter !== 'ALL' || currentNameFilter !== '') {
+    displayData = await fetchEmployeesAPI(currentInitialFilter, currentNameFilter);
+  }
+
+  if (displayData.length === 0) {
     container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub);">該当する従業員が見つかりません。</div>';
     return;
   }
 
-  container.innerHTML = data.map(emp => {
+  container.innerHTML = displayData.map(emp => {
     const statusClass = emp.status === '利用停止' ? '' : 'hidden';
     const toggleAction = emp.status === '利用停止' ? '再開' : '停止';
     return `
