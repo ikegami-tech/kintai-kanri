@@ -100,19 +100,34 @@ export default function EmployeeSelectScreen({ navigation }) {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
 
     try {
+      let allData = [];
       const res = await fetch(
         `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${shopId}`,
         { cache: 'no-store' }
       );
       if (res.ok) {
-        const data = await res.json();
-        const todayData = data.filter((item) => item.work_date === todayStr);
-        setAttendances(todayData);
+        allData = await res.json();
       }
+
+      // 日跨ぎ（月末月初）対応：1日〜5日の場合は前月データも取得して最新状態を正確に判定する
+      if (now.getDate() <= 5) {
+        let prevM = now.getMonth();
+        let prevY = yyyy;
+        if (prevM === 0) { prevM = 12; prevY--; }
+        const resPrev = await fetch(
+          `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${shopId}`,
+          { cache: 'no-store' }
+        );
+        if (resPrev.ok) {
+          const prevData = await resPrev.json();
+          allData = [...prevData, ...allData];
+        }
+      }
+
+      // 今日だけのフィルタリングを外し、月全体（＋前月）のデータをセットして最新状態を維持
+      setAttendances(allData);
     } catch (e) {
       console.warn('本日の打刻取得エラー:', e);
     }
