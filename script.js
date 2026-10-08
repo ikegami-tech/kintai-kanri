@@ -274,8 +274,9 @@ async function handleRouting() {
     return;
   }
 
-  if (currentEmployeeList.length === 0 && (path.includes('employee') || path === 'monthly' || path === 'daily' || path === 'overtime')) {
-    await renderEmployees();
+  // ★ どの画面を開いても、まだデータがなければ「全従業員データ」を確実に取得する
+  if (currentEmployeeList.length === 0 && path !== 'dashboard' && path !== 'shops' && path !== 'holiday-setting') {
+    currentEmployeeList = await fetchEmployeesAPI('ALL', '');
   }
 
   const pages = document.querySelectorAll('.page-content');
