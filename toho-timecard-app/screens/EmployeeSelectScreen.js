@@ -42,8 +42,8 @@ const SmaregiFaceIcon = ({ isWorking }) => {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: 18, marginBottom: 4, alignItems: 'center' }}>
           {isWorking ? (
             <>
-              {/* 出勤中：左目パッチリ丸(●)、右目ウィンク(⌒) */}
-              <View style={{ width: 6.5, height: 6.5, borderRadius: 3.5, backgroundColor: color }} />
+              {/* 出勤中：両目ともにっこり (⌒ ⌒) */}
+              <View style={{ width: 7, height: 4, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderTopLeftRadius: 4, borderTopRightRadius: 4, borderColor: color }} />
               <View style={{ width: 7, height: 4, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderTopLeftRadius: 4, borderTopRightRadius: 4, borderColor: color }} />
             </>
           ) : (
@@ -55,8 +55,11 @@ const SmaregiFaceIcon = ({ isWorking }) => {
           )}
         </View>
         {isWorking ? (
-          /* 出勤中：にっこり口 (◡) */
-          <View style={{ width: 14, height: 6, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, borderColor: color }} />
+          /* 出勤中：大きく開いた口 (▽) */
+          <View style={{ alignItems: 'center', marginTop: 1 }}>
+            <View style={{ width: 12, height: 1.5, backgroundColor: color, zIndex: 2 }} />
+            <View style={{ width: 9, height: 9, borderBottomWidth: 1.5, borderRightWidth: 1.5, borderColor: color, transform: [{ rotate: '45deg' }], marginTop: -4.5, zIndex: 1 }} />
+          </View>
         ) : (
           /* 出勤前：お口ぽかん (o) */
           <View style={{ width: 4, height: 4, borderRadius: 2, borderWidth: 1.5, borderColor: color, marginTop: 1 }} />
