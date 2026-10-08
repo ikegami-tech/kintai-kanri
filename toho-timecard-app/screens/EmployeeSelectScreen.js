@@ -41,8 +41,9 @@ const SmaregiFaceIcon = ({ isWorking }) => {
       <View style={styles.faceEyesRow}>
         {isWorking ? (
           <>
+            {/* 左目はパッチリ開いた大きめの丸、右目はウィンク（⌒）でスマレジ風の笑顔を表現 */}
+            <View style={[styles.openEye, { backgroundColor: color, width: 6.5, height: 6.5, borderRadius: 3.5 }]} />
             <View style={[styles.winkEye, { borderColor: color }]} />
-            <View style={[styles.openEye, { backgroundColor: color }]} />
           </>
         ) : (
           <>
