@@ -1026,7 +1026,12 @@ async function submitRecordMemo() {
   const outMatch = rawMemo.match(/\[OUT_LOC:([^\]]+)\]/);
   if (outMatch) outLoc = outMatch[1];
 
-  let memoParts = ['管理者修正'];
+  let memoParts = [];
+  // 過去に時間を編集した（管理者修正が付いている）場合のみタグを維持し、新規でメモだけ追加した場合は付与しない
+  if (rawMemo.includes('管理者修正')) {
+    memoParts.push('管理者修正');
+  }
+  
   if (inLoc) memoParts.push(`[IN_LOC:${inLoc}]`);
   if (outLoc) memoParts.push(`[OUT_LOC:${outLoc}]`);
   if (memoText) memoParts.push(memoText);
