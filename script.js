@@ -1650,13 +1650,14 @@ async function renderMatrixTable() {
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
              } else {
-                 timeText = `<span style="color:#aaa;">-</span>`; // 時刻がない場合は「-」を表示
+                 timeText = ``; // ★ 時刻がない場合（メモのみ）は空にして「-」を消す
              }
           }
 
           let memoHtml = '';
           if (att.memo) {
-            if (att.memo.includes('管理者修正') && timeText !== '<span style="color:#aaa;">-</span>') {
+            // ハイフン判定を外し、空文字以外の場合のみ編集済スタイルを適用
+            if (att.memo.includes('管理者修正') && timeText !== '') {
                timeText = `<span class="time-edited">${timeText}</span>`;
             }
 
