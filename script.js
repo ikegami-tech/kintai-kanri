@@ -2127,10 +2127,9 @@ async function fetchOvertimeData(year, month, selectedDept) {
       if (!att.clock_in || !att.clock_out) return;
 
       const dateObj = new Date(att.work_date.replace(/-/g, '/'));
-      const dayOfWeek = dateObj.getDay();
-      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+      // ★ 土日判定を削除し、休日設定マスタまたは手動メモの「休日出勤」のみを参照する
       const isHolidaySetting = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
-      const isHoliday = isHolidaySetting || isWeekend || (att.memo && att.memo.includes('休日出勤'));
+      const isHoliday = isHolidaySetting || (att.memo && att.memo.includes('休日出勤'));
       
       // 同じ日付でまだカウントしていない場合のみ出勤日数を+1
       if (isHoliday) {
@@ -3422,10 +3421,9 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
 
   if (existingMemo.includes('管理者修正')) finalMemoParts.push('管理者修正');
   
-  // 休日設定されている日、土日、または既存メモに「休日出勤」がある場合に自動付与
-  const isWeekend = (now.getDay() === 0 || now.getDay() === 6);
+  // ★ 土日判定を削除し、休日設定されている日のみ「休日出勤」を自動付与する
   const isHolidaySetting = typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal];
-  if (isHolidaySetting || isWeekend || existingMemo.includes('休日出勤')) {
+  if (isHolidaySetting || existingMemo.includes('休日出勤')) {
     if (!finalMemoParts.includes('休日出勤')) finalMemoParts.push('休日出勤');
   }
 
