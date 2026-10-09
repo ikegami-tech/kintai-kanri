@@ -202,6 +202,9 @@ document.getElementById('login-form').addEventListener('submit', async function(
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('app-view').classList.remove('hidden');
 
+    // ★追加: 画面切り替え前に従業員データを確実に取得して保持する
+    await renderEmployees();
+
     location.hash = '#/dashboard';
     handleRouting();
   } catch (error) {
@@ -1504,7 +1507,12 @@ async function renderDashboard() {
 
   const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+  // ★修正: データ未ロード時はAPIから取得して全体で保持（currentEmployeeList）する
+  let empList = currentEmployeeList;
+  if (!empList || empList.length === 0) {
+    empList = await fetchEmployeesAPI('ALL', '');
+    currentEmployeeList = empList;
+  }
 
   let attendancesData = [];
   try {
