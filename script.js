@@ -346,9 +346,16 @@ async function handleRouting() {
 
 function switchPage(pageId, element = null) {
   const sidebar = document.getElementById('sidebar');
-  // サイドバーが折りたたまれている（閉じている）場合のみ展開する
-  if (sidebar && sidebar.classList.contains('collapsed')) {
-    sidebar.classList.remove('collapsed');
+  
+  // ★ サイドバーが開いている状態でメニューをクリックした場合、自動で閉じるように変更
+  if (sidebar && !sidebar.classList.contains('collapsed')) {
+    sidebar.classList.add('collapsed');
+    
+    // 中のサブメニューも一旦リセットして閉じる
+    const submenus = document.querySelectorAll('.nav-submenu');
+    const arrows = document.querySelectorAll('.menu-arrow');
+    submenus.forEach(menu => menu.classList.remove('open'));
+    arrows.forEach(arrow => arrow.classList.remove('open'));
   }
 
   location.hash = '#/' + pageId;
