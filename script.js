@@ -347,15 +347,20 @@ async function handleRouting() {
 function switchPage(pageId, element = null) {
   const sidebar = document.getElementById('sidebar');
   
-  // ★ サイドバーが開いている状態でメニューをクリックした場合、自動で閉じるように変更
-  if (sidebar && !sidebar.classList.contains('collapsed')) {
-    sidebar.classList.add('collapsed');
-    
-    // 中のサブメニューも一旦リセットして閉じる
-    const submenus = document.querySelectorAll('.nav-submenu');
-    const arrows = document.querySelectorAll('.menu-arrow');
-    submenus.forEach(menu => menu.classList.remove('open'));
-    arrows.forEach(arrow => arrow.classList.remove('open'));
+  if (sidebar) {
+    if (sidebar.classList.contains('collapsed')) {
+      // ★ 閉じている状態でアイコンをクリックされたら展開する（広げる）
+      sidebar.classList.remove('collapsed');
+    } else {
+      // ★ 開いている状態でメニュー項目をクリックされたら自動で閉じる（小さくする）
+      sidebar.classList.add('collapsed');
+      
+      // 中のアコーディオン（勤怠管理など）も一旦リセットして閉じる
+      const submenus = document.querySelectorAll('.submenu');
+      const arrows = document.querySelectorAll('.arrow-icon');
+      submenus.forEach(menu => menu.classList.remove('open'));
+      arrows.forEach(arrow => arrow.classList.remove('open'));
+    }
   }
 
   location.hash = '#/' + pageId;
