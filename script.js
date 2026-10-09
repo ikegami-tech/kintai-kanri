@@ -2212,6 +2212,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
     return {
       id: emp.id,
       name: emp.name,
+      kana: emp.kana || '', // ★ 名前ソート用にフリガナ（kana）を追加
       dept: emp.office,
       weekdayDays,
       weekendDays,
@@ -2244,10 +2245,14 @@ async function renderOvertimeTable() {
   const displayData = await fetchOvertimeData(year, month, selectedDept);
 
   const sortedData = [...displayData].sort((a, b) => {
-    let valA = a[overtimeSortKey];
-    let valB = b[overtimeSortKey];
+    // ★ 名前(name)でソート指示が来た時は、フリガナ(kana)を使って並び替える
+    let key = overtimeSortKey === 'name' ? 'kana' : overtimeSortKey;
+    let valA = a[key] !== undefined ? a[key] : '';
+    let valB = b[key] !== undefined ? b[key] : '';
+
     if (typeof valA === 'string') {
-      return overtimeSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      // 日本語の五十音順として正しく比較する ('ja' を指定)
+      return overtimeSortAsc ? valA.localeCompare(valB, 'ja') : valB.localeCompare(valA, 'ja');
     } else {
       return overtimeSortAsc ? valA - valB : valB - valA;
     }
