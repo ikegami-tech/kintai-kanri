@@ -1208,7 +1208,12 @@ function showEmployeeDetail(identifier) {
     emp = currentEmployeeList.find(e => e.name === identifier);
   }
   
-  if (!emp) return;
+  // ★修正: データが存在しない場合は警告を表示し、強制的に従業員一覧へ戻す
+  if (!emp) {
+    alert('指定された従業員データが見つかりません。');
+    location.hash = '#/employees';
+    return;
+  }
   currentEmpTargetId = emp.id;
 
   document.getElementById('detail-emp-name').textContent = emp.name;
