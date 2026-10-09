@@ -248,12 +248,21 @@ export default function EmployeeSelectScreen({ navigation }) {
   const ssStr = `:${String(time.getSeconds()).padStart(2, '0')}`;
 
   const renderEmployeeItem = ({ item }) => {
-    // 当日の打刻履歴をすべて取得し、一番最後の（最新の）状態を判定する
+    // 当日の打刻履歴をすべて取得
     const empAtts = attendances.filter((a) => Number(a.employee_id) === Number(item.id));
-    const att = empAtts.length > 0 ? empAtts[empAtts.length - 1] : null;
     
-    const isWorking = att && att.clock_in && !att.clock_out;
-    const clockInTime = att && att.clock_in ? att.clock_in.substring(0, 5) : '';
+    // ★ 複数回の打刻があっても、「退勤していない（clock_outが空）データ」が1つでもあれば出勤中とする
+    const activeAtt = empAtts.find(a => a.clock_in && !a.clock_out);
+    const isWorking = !!activeAtt;
+    
+    // 出勤時刻は、現在出勤中のデータがあればそれを表示。なければ最後の打刻の出勤時刻を表示。
+    let clockInTime = '';
+    if (activeAtt) {
+      clockInTime = activeAtt.clock_in.substring(0, 5);
+    } else if (empAtts.length > 0) {
+      const lastAtt = empAtts[empAtts.length - 1];
+      clockInTime = lastAtt.clock_in ? lastAtt.clock_in.substring(0, 5) : '';
+    }
 
     return (
       <TouchableOpacity

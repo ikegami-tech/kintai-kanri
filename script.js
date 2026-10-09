@@ -1498,9 +1498,11 @@ async function renderDashboard() {
     console.error('ダッシュボード用データ取得エラー:', error);
   }
 
+  // ★ 1日の複数の打刻履歴を配列で保持するように変更
   const todayAttendanceMap = {};
   attendancesData.filter(a => a.work_date === todayKey).forEach(a => {
-    todayAttendanceMap[a.employee_id] = a;
+    if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
+    todayAttendanceMap[a.employee_id].push(a);
   });
 
   const notStarted = [];
@@ -1508,15 +1510,26 @@ async function renderDashboard() {
   const finished = [];
 
   empList.forEach(emp => {
-    const att = todayAttendanceMap[emp.id];
+    const atts = todayAttendanceMap[emp.id] || [];
     const formatTime = (t) => t ? t.substring(0, 5) : '';
 
-    if (!att || !att.clock_in) {
+    if (atts.length === 0) {
       notStarted.push({ name: emp.name, timeStr: '-' });
-    } else if (att.clock_in && !att.clock_out) {
-      working.push({ name: emp.name, timeStr: `${formatTime(att.clock_in)} -` });
-    } else if (att.clock_in && att.clock_out) {
-      finished.push({ name: emp.name, timeStr: `${formatTime(att.clock_in)} - ${formatTime(att.clock_out)}` });
+    } else {
+      // ★ 1件でも「未退勤」のデータがあれば出勤中とする
+      const activeAtt = atts.find(a => a.clock_in && !a.clock_out);
+      
+      if (activeAtt) {
+        working.push({ name: emp.name, timeStr: `${formatTime(activeAtt.clock_in)} -` });
+      } else {
+        // 全ての打刻が退勤済みなら、最後の打刻を表示して「退勤済」とする
+        const lastAtt = atts[atts.length - 1];
+        if (lastAtt.clock_in && lastAtt.clock_out) {
+          finished.push({ name: emp.name, timeStr: `${formatTime(lastAtt.clock_in)} - ${formatTime(lastAtt.clock_out)}` });
+        } else {
+          notStarted.push({ name: emp.name, timeStr: '-' });
+        }
+      }
     }
   });
 
