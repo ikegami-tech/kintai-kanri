@@ -3,7 +3,9 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // ★追加: JWTライブラリ
 
+const JWT_SECRET = 'toho_kintai_super_secret_key_2026'; // ★追加: 署名用の秘密鍵（本来は環境変数に入れます）
 const sesClient = new SESClient({ region: "ap-northeast-1" });
 
 const app = express();
@@ -45,24 +47,38 @@ app.post('/api/shops', (req, res) => {
 // 従業員管理API (拡張: shop_id, login_id 対応)
 // ==========================================
 app.get('/api/employees', (req, res) => {
-  const { shop_id } = req.query;
-  let sql = 'SELECT * FROM employees';
-  const params = [];
-  
-  // 店舗IDが指定されている場合は絞り込む（システム管理者は指定なしで全件取得）
-  if (shop_id) {
-    sql += ' WHERE shop_id = ?';
-    params.push(shop_id);
+  // ★追加: トークンの検証と権限チェック
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: '認証エラー: トークンがありません' });
   }
-  sql += ' ORDER BY kana ASC';
 
-  db.query(sql, params, (err, results) => {
-    if (err) {
-      console.error('データ取得エラー:', err);
-      return res.status(500).json({ error: 'データ取得に失敗しました' });
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { shop_id } = req.query;
+
+    // 「システム管理者」ではなく、かつ「自分の所属店舗以外」をリクエストした場合は弾く
+    if (decoded.role !== 'システム管理者' && decoded.shop_id !== shop_id) {
+      return res.status(403).json({ error: '権限がありません' });
     }
-    res.json(results);
-  });
+
+    let sql = 'SELECT * FROM employees';
+    const params = [];
+    
+    if (shop_id) {
+      sql += ' WHERE shop_id = ?';
+      params.push(shop_id);
+    }
+    sql += ' ORDER BY kana ASC';
+
+    db.query(sql, params, (err, results) => {
+      if (err) return res.status(500).json({ error: 'データ取得に失敗しました' });
+      res.json(results);
+    });
+  } catch (err) {
+    return res.status(401).json({ error: '認証エラー: トークンが無効です' });
+  }
 });
 
 app.post('/api/employees', (req, res) => {
@@ -249,7 +265,15 @@ app.post('/api/auth/login', (req, res) => {
       if (!isMatch) return res.status(401).json({ error: 'ログインIDまたはパスワードが間違っています' });
 
       delete user.password;
-      res.json({ message: 'ログイン成功', user: user });
+      
+      // ★追加: ユーザー情報からトークン（通行証）を生成する（有効期限は24時間）
+      const token = jwt.sign(
+        { id: user.id, role: user.role, shop_id: user.shop_id },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({ message: 'ログイン成功', user: user, token: token }); // ★ token も一緒に返す
     } catch (error) {
       res.status(500).json({ error: 'ログイン処理中にエラーが発生しました' });
     }

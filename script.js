@@ -186,14 +186,16 @@ document.getElementById('login-form').addEventListener('submit', async function(
 
     const responseData = await response.json();
     const user = responseData.user;
+    const token = responseData.token; // ★追加: APIからトークンを受け取る
 
     if (user && user.role === '一般') {
       alert('一般権限のアカウントはWeb管理画面にログインできません。（打刻アプリをご利用ください）');
       return;
     }
 
-    if (user) {
+    if (user && token) { // ★修正: tokenがあることも確認
       localStorage.setItem('loggedInUser', JSON.stringify(user));
+      localStorage.setItem('authToken', token); // ★追加: トークンを保存
       applyUserPermissions(user);
     }
 
@@ -2432,7 +2434,20 @@ function filterByName(nameStr) {
 async function fetchEmployeesAPI(initialFilter, nameFilter) {
   let result = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`);
+    const token = localStorage.getItem('authToken'); // ★追加: 保存したトークンを読み込む
+
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`, {
+      // ★追加: ヘッダーにトークンをセットしてリクエストを送る
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.status === 403) {
+      alert('この店舗のデータを閲覧する権限がありません。');
+      return [];
+    }
+
     let dbData = await response.json();
 
     if (Array.isArray(dbData)) {
