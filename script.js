@@ -383,14 +383,23 @@ function closeModal() {
   document.getElementById('modal').classList.add('hidden');
 }
 
+// ★追加：連打された時に前のタイマーをキャンセルするための変数を用意
+let toastTimer1 = null;
+let toastTimer2 = null;
+
 function showToast(msg) {
   const toast = document.getElementById('toast-message');
   toast.textContent = msg;
   toast.classList.remove('hidden');
   toast.style.opacity = '1';
-  setTimeout(() => {
+  
+  // ★追加：すでに動いているタイマーがあればリセットする（連打対策）
+  if (toastTimer1) clearTimeout(toastTimer1);
+  if (toastTimer2) clearTimeout(toastTimer2);
+
+  toastTimer1 = setTimeout(() => {
     toast.style.opacity = '0';
-    setTimeout(() => toast.classList.add('hidden'), 500);
+    toastTimer2 = setTimeout(() => toast.classList.add('hidden'), 500);
   }, 2500);
 }
 
