@@ -407,6 +407,11 @@ document.addEventListener('click', function(e) {
       sidebar.classList.add('collapsed');
     }
   }
+
+  // ★追加：モーダルの背景（黒いオーバーレイ部分）をクリックした際にモーダルを閉じる
+  if (e.target.classList.contains('modal') || e.target.classList.contains('modal-overlay')) {
+    e.target.classList.add('hidden');
+  }
 });
 
 function toggleMailAccordion() {
