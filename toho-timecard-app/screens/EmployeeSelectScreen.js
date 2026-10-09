@@ -97,7 +97,13 @@ export default function EmployeeSelectScreen({ navigation }) {
 
   const fetchEmployees = async (shopId) => {
     try {
-      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${shopId}`);
+      const token = await AsyncStorage.getItem('@auth_token');
+
+      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${shopId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       if (Array.isArray(data)) {
         // 利用停止中のユーザー、および「社長」「次長」を除外してセット
@@ -122,10 +128,15 @@ export default function EmployeeSelectScreen({ navigation }) {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
 
     try {
+      const token = await AsyncStorage.getItem('@auth_token');
+
       let allData = [];
       const res = await fetch(
         `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${shopId}`,
-        { cache: 'no-store' }
+        { 
+          cache: 'no-store',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
       );
       if (res.ok) {
         allData = await res.json();
@@ -138,7 +149,10 @@ export default function EmployeeSelectScreen({ navigation }) {
         if (prevM === 0) { prevM = 12; prevY--; }
         const resPrev = await fetch(
           `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${shopId}`,
-          { cache: 'no-store' }
+          { 
+            cache: 'no-store',
+            headers: { 'Authorization': `Bearer ${token}` }
+          }
         );
         if (resPrev.ok) {
           const prevData = await resPrev.json();

@@ -59,8 +59,11 @@ export default function LoginScreen({ navigation }) {
         throw new Error(data.error || 'ログインに失敗しました');
       }
 
-      // ログイン成功時、ユーザー情報を端末に記憶してメイン画面へ
+      // ログイン成功時、ユーザー情報とトークンを端末に記憶してメイン画面へ
       await AsyncStorage.setItem('@logged_in_user', JSON.stringify(data.user));
+      if (data.token) {
+        await AsyncStorage.setItem('@auth_token', data.token); // ★トークンを保存
+      }
       navigation.replace('Main');
 
     } catch (error) {
