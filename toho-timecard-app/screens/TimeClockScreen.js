@@ -49,11 +49,14 @@ export default function TimeClockScreen({ route, navigation }) {
     return () => clearInterval(timer);
   }, []);
 
-  // 追加：画面を開いた時に「現在出勤中か」を判定する
+// 追加：画面を開いた時に「現在出勤中か」を判定する
   useEffect(() => {
     let isMounted = true;
     const fetchTodayStatus = async () => {
       try {
+        setStatusLoading(true);
+
+        const token = await AsyncStorage.getItem('@auth_token');
         let currentShopId = 'shop_01';
         const userStr = await AsyncStorage.getItem('@logged_in_user');
         if (userStr) {
@@ -66,36 +69,42 @@ export default function TimeClockScreen({ route, navigation }) {
         const mm = String(now.getMonth() + 1).padStart(2, '0');
 
         let allData = [];
-        const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, { cache: 'no-store' });
+        // ★ shop_id の指定を外して全データ取得するか、トークン付きで確実に取得
+        const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
+          cache: 'no-store',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
         if (res.ok) {
           allData = await res.json();
         }
 
-        // 月末月初の日跨ぎ対応
         if (now.getDate() <= 5) {
           let prevM = now.getMonth();
           let prevY = yyyy;
           if (prevM === 0) { prevM = 12; prevY--; }
-          const resPrev = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, { cache: 'no-store' });
+          const resPrev = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
+            cache: 'no-store',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
           if (resPrev.ok) {
             const prevData = await resPrev.json();
             allData = [...prevData, ...allData];
           }
         }
 
-        // 該当従業員の当月・過去の打刻データを抽出
-        const empAtts = allData.filter(a => Number(a.employee_id) === Number(empId));
+        // 該当従業員の打刻データを抽出
+        const empAtts = Array.isArray(allData) ? allData.filter(a => Number(a.employee_id) === Number(empId)) : [];
         
-        // ★修正: clock_inが存在し、かつ clock_out が null / undefined / 空文字 / "--:--" のものを「未退勤（出勤中）」と判定
+        // ★未退勤判定：clock_inがあり、clock_outが存在しない(null, "", undefined)データを探す
         const activeAtt = empAtts.find(a => {
-          const hasIn = a.clock_in && a.clock_in !== '' && a.clock_in !== '--:--';
-          const noOut = !a.clock_out || a.clock_out === '' || a.clock_out === '--:--';
+          const hasIn = a.clock_in && String(a.clock_in).trim() !== '' && a.clock_in !== '--:--';
+          const noOut = !a.clock_out || String(a.clock_out).trim() === '' || a.clock_out === '--:--';
           return hasIn && noOut;
         });
 
         if (isMounted) {
-          // 未退勤データ（出勤・直行後）が存在すれば出勤中(true)とする
-          setIsWorking(!!activeAtt);
+          setIsWorking(Boolean(activeAtt));
         }
       } catch (e) {
         console.warn('出勤状態の取得失敗:', e);
@@ -365,8 +374,14 @@ const submitAttendance = async (type, bodyText) => {
       let targetWorkDate = workDate; // 保存対象の「日付」
 
       try {
+        // ★修正: トークンを取得してヘッダーに付与する
+        const token = await AsyncStorage.getItem('@auth_token');
+
         let allData = [];
-        const checkRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, { cache: 'no-store' });
+        const checkRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
+          cache: 'no-store',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (checkRes.ok) {
           allData = await checkRes.json();
         }
@@ -375,29 +390,35 @@ const submitAttendance = async (type, bodyText) => {
           let prevM = now.getMonth();
           let prevY = yyyy;
           if (prevM === 0) { prevM = 12; prevY--; }
-          const checkResPrev = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, { cache: 'no-store' });
+          const checkResPrev = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
+            cache: 'no-store',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
           if (checkResPrev.ok) {
             const prevData = await checkResPrev.json();
             allData = [...prevData, ...allData];
           }
         }
 
-        const myAtts = allData.filter(a => Number(a.employee_id) === Number(empId));
+        const myAtts = Array.isArray(allData) ? allData.filter(a => Number(a.employee_id) === Number(empId)) : [];
           
-        if (myAtts.length > 0) {
-          const latestAtt = myAtts[myAtts.length - 1];
-          if (type === '出勤' || type === '直行') {
-            if (latestAtt.work_date === workDate && !latestAtt.clock_out) {
-              existingAtt = latestAtt;
-            }
+        if (type === '出勤' || type === '直行') {
+          // 出勤・直行の場合：本日の未退勤データがあればそれを取得
+          existingAtt = myAtts.find(a => a.work_date === workDate && a.clock_in && (!a.clock_out || a.clock_out === '' || a.clock_out === '--:--'));
+        } else {
+          // ★退勤・直帰の場合：全打刻の中から「未退勤（clock_inがありclock_outが空）」の出勤レコードを直接探す
+          const activeAtt = myAtts.find(a => {
+            const hasIn = a.clock_in && String(a.clock_in).trim() !== '' && a.clock_in !== '--:--';
+            const noOut = !a.clock_out || String(a.clock_out).trim() === '' || a.clock_out === '--:--';
+            return hasIn && noOut;
+          });
+
+          if (activeAtt) {
+            existingAtt = activeAtt;
+            targetWorkDate = activeAtt.work_date; // 出勤した日付のレコードに退勤時間を上書き記録
           } else {
-            // 退勤・直帰の場合：過去日であっても「未退勤」のデータがあればその日をターゲットにする
-            if (latestAtt.clock_in && !latestAtt.clock_out) {
-              existingAtt = latestAtt;
-              targetWorkDate = latestAtt.work_date; // ★ 日跨ぎ対応：出勤した日をターゲットにする
-            } else if (latestAtt.work_date === workDate) {
-              existingAtt = latestAtt;
-            }
+            // 万が一未退勤が見つからない場合は本日のデータを探す
+            existingAtt = myAtts.find(a => a.work_date === workDate);
           }
         }
       } catch (checkErr) {

@@ -1647,7 +1647,55 @@ async function renderMatrixTable() {
   });
 
   let tbodyHtml = '';
-  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+  // ★修正: マトリクス表では削除済みデータも含めて最新を取得し、対象月以前のデータであれば表示対象にする
+  let rawEmpList = currentEmployeeList;
+  try {
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const dbData = await res.json();
+      if (Array.isArray(dbData)) {
+        rawEmpList = dbData.map(emp => ({
+          id: emp.id,
+          name: emp.name,
+          kana: emp.kana,
+          gender: emp.gender || '未選択',
+          email: emp.email || '',
+          show_attendance: emp.show_attendance,
+          retireDate: emp.retire_date ? new Date(emp.retire_date).toLocaleDateString('ja-JP') : '-',
+          role: emp.role || '一般',
+          roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
+          status: emp.status || '利用中',
+          empType: '正社員',
+          office: emp.department || 'NEXT',
+          joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
+          shop_id: emp.shop_id || 'shop_01'
+        }));
+      }
+    }
+  } catch(e) {}
+
+  // ★削除した月（退職月）の「翌月以降」であれば、マトリクス表から自動的に非表示（除外）にする
+  const empList = rawEmpList.filter(emp => {
+    if (emp.status === '削除' || (emp.retireDate && emp.retireDate !== '-')) {
+      if (emp.retireDate && emp.retireDate !== '-') {
+        const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+        const rDate = new Date(cleanDate);
+        if (!isNaN(rDate)) {
+          // 削除（退職）の翌月1日を取得
+          const nextMonthOfRetire = new Date(rDate.getFullYear(), rDate.getMonth() + 1, 1);
+          const currentViewMonth = new Date(year, month - 1, 1);
+          // 表示しようとしている月が「削除翌月以降」なら表示しない（消す）
+          if (currentViewMonth >= nextMonthOfRetire) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  });
 
   empList.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
@@ -2458,22 +2506,25 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
       console.error('APIレスポンスが配列ではありません:', dbData);
       return [];
     }
-    result = dbData.map(emp => ({
-      id: emp.id,
-      name: emp.name,
-      kana: emp.kana,
-      gender: emp.gender || '未選択',
-      email: emp.email || '',
-      show_attendance: emp.show_attendance,
-      retireDate: emp.retire_date ? new Date(emp.retire_date).toLocaleDateString('ja-JP') : '-',
-      role: emp.role || '一般',
-      roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
-      status: emp.status || '利用中',
-      empType: '正社員',
-      office: emp.department || 'NEXT',
-      joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
-      shop_id: emp.shop_id || 'shop_01'
-    }));
+    result = dbData
+      // ★追加: 従業員一覧画面等では「削除」済みのユーザーを除外する
+      .filter(emp => emp.status !== '削除')
+      .map(emp => ({
+        id: emp.id,
+        name: emp.name,
+        kana: emp.kana,
+        gender: emp.gender || '未選択',
+        email: emp.email || '',
+        show_attendance: emp.show_attendance,
+        retireDate: emp.retire_date ? new Date(emp.retire_date).toLocaleDateString('ja-JP') : '-',
+        role: emp.role || '一般',
+        roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
+        status: emp.status || '利用中',
+        empType: '正社員',
+        office: emp.department || 'NEXT',
+        joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
+        shop_id: emp.shop_id || 'shop_01'
+      }));
   } catch (error) {
     console.error('API取得エラー:', error);
     return [];
