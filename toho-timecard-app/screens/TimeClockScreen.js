@@ -83,14 +83,13 @@ export default function TimeClockScreen({ route, navigation }) {
           }
         }
 
-        // 今日だけでなく、全ての履歴から最新の1件を取得する
+        // 該当従業員の当月・過去の打刻データの中から、未退勤（clock_inがありclock_outが空）のデータがあるか判定
         const empAtts = allData.filter(a => Number(a.employee_id) === Number(empId));
-        if (empAtts.length > 0) {
-          const latestAtt = empAtts[empAtts.length - 1];
-          // 最新の打刻が未退勤なら、日付が変わっていても「出勤中」とする
-          if (isMounted) setIsWorking(latestAtt.clock_in && !latestAtt.clock_out);
-        } else {
-          if (isMounted) setIsWorking(false);
+        const activeAtt = empAtts.find(a => a.clock_in && !a.clock_out);
+
+        if (isMounted) {
+          // 未退勤データ（出勤・直行後）が存在すれば出勤中(true)とする
+          setIsWorking(!!activeAtt);
         }
       } catch (e) {
         console.warn('出勤状態の取得失敗:', e);
@@ -467,6 +466,13 @@ const submitAttendance = async (type, bodyText) => {
       });
 
       if (!response.ok) throw new Error('打刻処理に失敗しました');
+
+      // ★追加: 出勤・直行の場合は出勤中(true)、退勤・直帰の場合は退勤済(false)にステートを即時更新
+      if (type === '出勤' || type === '直行') {
+        setIsWorking(true);
+      } else if (type === '退勤' || type === '直帰') {
+        setIsWorking(false);
+      }
 
       Alert.alert('打刻完了', `『${empName}』様の【${type}】を完了しました。`, [
         { text: 'OK', onPress: () => navigation.goBack() },
