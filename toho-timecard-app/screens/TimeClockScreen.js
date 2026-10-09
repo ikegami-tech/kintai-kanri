@@ -83,9 +83,15 @@ export default function TimeClockScreen({ route, navigation }) {
           }
         }
 
-        // 該当従業員の当月・過去の打刻データの中から、未退勤（clock_inがありclock_outが空）のデータがあるか判定
+        // 該当従業員の当月・過去の打刻データを抽出
         const empAtts = allData.filter(a => Number(a.employee_id) === Number(empId));
-        const activeAtt = empAtts.find(a => a.clock_in && !a.clock_out);
+        
+        // ★修正: clock_inが存在し、かつ clock_out が null / undefined / 空文字 / "--:--" のものを「未退勤（出勤中）」と判定
+        const activeAtt = empAtts.find(a => {
+          const hasIn = a.clock_in && a.clock_in !== '' && a.clock_in !== '--:--';
+          const noOut = !a.clock_out || a.clock_out === '' || a.clock_out === '--:--';
+          return hasIn && noOut;
+        });
 
         if (isMounted) {
           // 未退勤データ（出勤・直行後）が存在すれば出勤中(true)とする
