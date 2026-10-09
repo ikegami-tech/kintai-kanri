@@ -1503,7 +1503,7 @@ async function renderDashboard() {
 
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('ダッシュボード用データ取得エラー:', error);
@@ -1598,7 +1598,7 @@ async function renderMatrixTable() {
 
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) {
       attendancesData = await response.json();
     }
@@ -1824,7 +1824,7 @@ async function renderDailyTable() {
 
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('日表示データ取得エラー:', error);
@@ -2034,7 +2034,7 @@ async function renderExtraCategoryTable(pagePath, tagKeyword) {
   const month = now.getMonth() + 1;
 
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (!response.ok) throw new Error('データ取得失敗');
     const data = await response.json();
 
@@ -2072,7 +2072,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
   
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('残業集計用データ取得エラー:', error);
@@ -3093,7 +3093,7 @@ async function loadTcEmpList() {
 
   tcTodayAttendances = {};
   try {
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store' });
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (res.ok) {
       const data = await res.json();
       data.filter(a => a.work_date === todayKey).forEach(a => {

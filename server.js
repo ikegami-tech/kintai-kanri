@@ -128,31 +128,52 @@ app.patch('/api/employees/:id/status', (req, res) => {
 // 勤怠打刻API (拡張: shop_id 対応)
 // ==========================================
 app.get('/api/attendances/monthly', (req, res) => {
-  const { year, month, shop_id } = req.query;
-  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
-
-  let sql = `
-    SELECT 
-      a.id, a.employee_id, e.name AS employee_name, DATE_FORMAT(a.work_date, '%Y-%m-%d') AS work_date, DATE_FORMAT(a.clock_in, '%H:%i') AS clock_in, DATE_FORMAT(a.clock_out, '%H:%i') AS clock_out, a.memo, a.shop_id
-    FROM attendances a
-    JOIN employees e ON a.employee_id = e.id
-    WHERE a.work_date BETWEEN ? AND ?
-  `;
-  const params = [startDate, endDate];
-
-  if (shop_id) {
-    sql += ` AND a.shop_id = ?`;
-    params.push(shop_id);
+  // ★追加: トークンの検証と権限チェック
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: '認証エラー: トークンがありません' });
   }
 
-  sql += ` ORDER BY e.kana ASC, a.work_date ASC`;
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { year, month, shop_id } = req.query;
 
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).json({ error: 'データ取得に失敗しました' });
-    res.json(results);
-  });
+    // 「システム管理者」ではなく、かつ「自分の所属店舗以外」をリクエストした場合は弾く
+    if (decoded.role !== 'システム管理者' && decoded.shop_id !== shop_id) {
+      return res.status(403).json({ error: '権限がありません' });
+    }
+
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+
+    let sql = `
+      SELECT 
+        a.id, a.employee_id, e.name AS employee_name, DATE_FORMAT(a.work_date, '%Y-%m-%d') AS work_date, DATE_FORMAT(a.clock_in, '%H:%i') AS clock_in, DATE_FORMAT(a.clock_out, '%H:%i') AS clock_out, a.memo, a.shop_id
+      FROM attendances a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.work_date BETWEEN ? AND ?
+    `;
+    const params = [startDate, endDate];
+
+    if (shop_id) {
+      sql += ` AND a.shop_id = ?`;
+      params.push(shop_id);
+    }
+
+    sql += ` ORDER BY e.kana ASC, a.work_date ASC`;
+
+    db.query(sql, params, (err, results) => {
+      if (err) {
+        console.error('データ取得エラー:', err);
+        return res.status(500).json({ error: 'データ取得に失敗しました' });
+      }
+      res.json(results);
+    });
+  } catch (err) {
+    return res.status(401).json({ error: '認証エラー: トークンが無効です' });
+  }
 });
 
 app.post('/api/attendances', (req, res) => {
