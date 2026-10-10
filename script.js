@@ -3557,17 +3557,16 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   let clockIn = att ? att.clock_in : null;
   let clockOut = att ? att.clock_out : null;
 
-  // ★修正: 出勤日(att.work_date)と本日(dateVal)の日付差を正確に計算して+24時間を加算
-  if ((actionType === '退勤' || actionType === '直帰') && att && att.work_date) {
-    const cleanTargetDateStr = String(att.work_date).replace(/[年月]/g, '-').replace(/日/g, '').replace(/\//g, '-').substring(0, 10);
-    const inDate = new Date(cleanTargetDateStr + 'T00:00:00');
-    const todayDate = new Date(`${dateVal}T00:00:00`);
-    
-    const diffMs = todayDate.getTime() - inDate.getTime();
-    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 0) {
-      hours += (diffDays * 24);
+  // ★修正: 出勤日(att.work_date)と本日(dateVal)の文字列が違っていれば、前日出勤とみなして+24時間する
+  // ※Web打刻では att.work_date に出勤日の日付が入っているため、それを退勤日として維持する
+  let targetWorkDate = dateVal;
+  
+  if (actionType === '退勤' || actionType === '直帰') {
+    if (att && att.work_date) {
+      targetWorkDate = att.work_date;
+      if (att.work_date !== dateVal) {
+        hours += 24;
+      }
     }
   }
   
@@ -3633,7 +3632,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   const payload = {
     id: att ? att.id : null,
     employee_id: tcSelectedEmp.id,
-    work_date: dateVal,
+    work_date: targetWorkDate, // ★修正: dateVal から targetWorkDate に変更し、前日の日付で上書き保存する
     clock_in: clockIn,
     clock_out: clockOut,
     memo: finalMemoParts.join('\n').trim(),
