@@ -368,7 +368,8 @@ const submitAttendance = async (type, bodyText) => {
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
       const workDate = `${yyyy}-${mm}-${dd}`;
-      const timeVal = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
 
       let existingAtt = null;
       let targetWorkDate = workDate; // 保存対象の「日付」
@@ -427,6 +428,13 @@ const submitAttendance = async (type, bodyText) => {
 
       let clockInVal = existingAtt ? existingAtt.clock_in : null;
       let clockOutVal = existingAtt ? existingAtt.clock_out : null;
+
+      // ★追加: 出勤日と退勤日が異なっていれば、+24時間して翌日扱いにする
+      if ((type === '退勤' || type === '直帰') && existingAtt && targetWorkDate !== workDate) {
+        hours += 24;
+      }
+      
+      const timeVal = `${String(hours).padStart(2, '0')}:${minutes}:00`;
 
       if (type === '出勤' || type === '直行') {
         clockInVal = timeVal;

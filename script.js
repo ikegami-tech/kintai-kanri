@@ -1748,8 +1748,19 @@ async function renderMatrixTable() {
         cellData = validRecords.map((att, idx) => {
           // clock_inもclock_outもない（全休など）場合は、空のままにするか「--:--」を入れるか
           // ここでは時刻がない場合は空文字にし、メモアイコンだけが表示されるようにします
-          let inText = att.clock_in ? att.clock_in.substring(0, 5) : '';
-          let outText = att.clock_out ? att.clock_out.substring(0, 5) : '';
+          // ★追加: 24時間以上の場合は「翌」をつけて表示する関数
+          const formatDisplayTime = (timeStr) => {
+            if (!timeStr) return '';
+            const hm = timeStr.substring(0, 5);
+            const [h, m] = hm.split(':').map(Number);
+            if (h >= 24) {
+              return `翌${String(h - 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+            return hm;
+          };
+
+          let inText = formatDisplayTime(att.clock_in);
+          let outText = formatDisplayTime(att.clock_out);
           
           let timeText = '';
           if (inText || outText) {
@@ -2668,7 +2679,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-paid-full-start-h', 'create-paid-full-end-h', 'edit-paid-full-start-h', 'edit-paid-full-end-h'
   ];
   let hoursHtml = '<option value="--">--</option>';
-  for (let h = 0; h < 24; h++) {
+  for (let h = 0; h <= 47; h++) { // ★ 24から47に変更（翌23時まで対応）
     const hrStr = String(h).padStart(2, '0');
     hoursHtml += `<option value="${hrStr}">${hrStr}</option>`;
   }
@@ -3537,11 +3548,22 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   const month = now.getMonth() + 1;
   const day = now.getDate();
   const dateVal = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  const timeVal = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+  
+  // ★修正: 時間計算のために、時間(hours)と分(minutes)を分けて定義
+  let hours = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2, '0');
 
   const att = tcTodayAttendances[tcSelectedEmp.id];
   let clockIn = att ? att.clock_in : null;
   let clockOut = att ? att.clock_out : null;
+
+  // ★追加: 退勤・直帰の場合、すでに出勤した日付（att.work_date）と今日の日付（dateVal）が違っていれば +24時間する
+  if ((actionType === '退勤' || actionType === '直帰') && att && att.work_date && att.work_date !== dateVal) {
+    hours += 24;
+  }
+  
+  // 時間を2桁にして時刻文字列を作成
+  const timeVal = `${String(hours).padStart(2, '0')}:${minutes}:00`;
 
   if (actionType === '出勤' || actionType === '直行') {
     clockIn = timeVal;
