@@ -2504,6 +2504,16 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
       }
     });
 
+    // ★追加: 401(認証エラー・期限切れ)の場合は強制ログアウトさせる
+    if (response.status === 401) {
+      alert('ログインの有効期限が切れました。再度ログインしてください。');
+      localStorage.removeItem('loggedInUser');
+      localStorage.removeItem('authToken');
+      location.hash = ''; 
+      location.reload(); // 画面を更新してログイン画面へ戻す
+      return [];
+    }
+
     if (response.status === 403) {
       alert('この店舗のデータを閲覧する権限がありません。');
       return [];
