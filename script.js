@@ -3557,12 +3557,20 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   let clockIn = att ? att.clock_in : null;
   let clockOut = att ? att.clock_out : null;
 
-  // ★追加: 退勤・直帰の場合、すでに出勤した日付（att.work_date）と今日の日付（dateVal）が違っていれば +24時間する
-  if ((actionType === '退勤' || actionType === '直帰') && att && att.work_date && att.work_date !== dateVal) {
-    hours += 24;
+  // ★修正: 出勤日(att.work_date)と本日(dateVal)の日付差を正確に計算して+24時間を加算
+  if ((actionType === '退勤' || actionType === '直帰') && att && att.work_date) {
+    const cleanTargetDateStr = String(att.work_date).replace(/[年月]/g, '-').replace(/日/g, '').replace(/\//g, '-').substring(0, 10);
+    const inDate = new Date(cleanTargetDateStr + 'T00:00:00');
+    const todayDate = new Date(`${dateVal}T00:00:00`);
+    
+    const diffMs = todayDate.getTime() - inDate.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0) {
+      hours += (diffDays * 24);
+    }
   }
   
-  // 時間を2桁にして時刻文字列を作成
   const timeVal = `${String(hours).padStart(2, '0')}:${minutes}:00`;
 
   if (actionType === '出勤' || actionType === '直行') {

@@ -429,9 +429,18 @@ const submitAttendance = async (type, bodyText) => {
       let clockInVal = existingAtt ? existingAtt.clock_in : null;
       let clockOutVal = existingAtt ? existingAtt.clock_out : null;
 
-      // ★追加: 出勤日と退勤日が異なっていれば、+24時間して翌日扱いにする
-      if ((type === '退勤' || type === '直帰') && existingAtt && targetWorkDate !== workDate) {
-        hours += 24;
+      // ★修正: 出勤日(targetWorkDate)と本日(workDate)の日付差(日数)を正確に計算して+24時間(×日数)を加算する
+      if ((type === '退勤' || type === '直帰') && existingAtt && targetWorkDate) {
+        const cleanTargetDateStr = String(targetWorkDate).replace(/[年月]/g, '-').replace(/日/g, '').replace(/\//g, '-').substring(0, 10);
+        const inDate = new Date(cleanTargetDateStr + 'T00:00:00');
+        const todayDate = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+        
+        const diffMs = todayDate.getTime() - inDate.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 0) {
+          hours += (diffDays * 24); // 1日経過ごとに+24時間
+        }
       }
       
       const timeVal = `${String(hours).padStart(2, '0')}:${minutes}:00`;
