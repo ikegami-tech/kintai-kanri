@@ -2060,7 +2060,7 @@ async function renderDailyTable() {
         const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
         const inClass = isDirectIn ? 'direct-style' : '';
         const inBadgeClass = isDirectIn ? 'direct-badge' : '';
-        const inFullTime = `${month}/${date} ${formatTime(att.clock_in)}`;
+        const inFullTime = `${month}/${date} ${formatInTime(att.clock_in)}`; // ★ formatTime を formatInTime に変更
         const targetInLoc = inCoords || '位置情報未取得';
 
         const html = `
@@ -2080,7 +2080,7 @@ async function renderDailyTable() {
         const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
         const outClass = isDirectOut ? 'direct-style' : '';
         const outBadgeClass = isDirectOut ? 'direct-badge' : '';
-        const outFullTime = `${month}/${date} ${formatTime(att.clock_out)}`;
+        const outFullTime = `${month}/${date} ${formatOutTime(att.clock_out, att.memo)}`; // ★ formatTime を formatOutTime に変更
         const targetOutLoc = outCoords || '位置情報未取得';
 
         const html = `
