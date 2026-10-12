@@ -678,7 +678,11 @@ function handleCellAction(actionType) {
         startH = h; startM = m;
       }
       if (clockOut && clockOut.includes(':')) {
-        const [h, m] = clockOut.split(':');
+        let [h, m] = clockOut.split(':');
+        // ★追加: 編集画面を開く時に【翌日】フラグがあれば35時等に復元する
+        if (rawMemo.includes('【翌日】') && Number(h) < 24) {
+          h = String(Number(h) + 24).padStart(2, '0');
+        }
         endH = h; endM = m;
       }
     }
@@ -929,6 +933,15 @@ async function submitRecordEdit() {
 
   let memoParts = ['管理者修正'];
   
+  // ★追加: 編集画面で手動で24時間以上を選んだ場合、または元々フラグがある場合は引き継ぐ
+  if (endH !== '--' && parseInt(endH, 10) >= 24) {
+    memoParts.push('【翌日】');
+  } else if (existingMemo.includes('【翌日】') && (endH === '--' || parseInt(endH, 10) < 24)) {
+    // 24未満に修正された場合はフラグを外す
+  } else if (existingMemo.includes('【翌日】')) {
+    memoParts.push('【翌日】');
+  }
+
   if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
     if (!existingMemo.includes('休日出勤')) {
       memoParts.push('休日出勤');
@@ -946,6 +959,7 @@ async function submitRecordEdit() {
     .replace(/【有給】.*/g, '')
     .replace(/休日出勤/g, '')
     .replace(/管理者修正/g, '')
+    .replace(/【翌日】/g, '') // ★追加: ゴミとして残らないように消去
     .trim();
 
   if (cleanMemo) memoParts.push(cleanMemo);
@@ -1750,21 +1764,22 @@ async function renderMatrixTable() {
         });
 
         cellData = validRecords.map((att, idx) => {
-          // clock_inもclock_outもない（全休など）場合は、空のままにするか「--:--」を入れるか
-          // ここでは時刻がない場合は空文字にし、メモアイコンだけが表示されるようにします
-          // ★追加: 24時間以上の場合は「翌」をつけて表示する関数
-          const formatDisplayTime = (timeStr) => {
+          // ★修正: メモに【翌日】フラグがあれば +24時間 して「35:〇〇」の形式で表示する
+          const formatDisplayTime = (timeStr, isOutTime = false) => {
             if (!timeStr) return '';
             const hm = timeStr.substring(0, 5);
-            const [h, m] = hm.split(':').map(Number);
-            if (h >= 24) {
-              return `翌${String(h - 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            let [h, m] = hm.split(':').map(Number);
+            
+            // 退勤時刻で、かつメモに【翌日】があれば+24時間する
+            if (isOutTime && att.memo && att.memo.includes('【翌日】') && h < 24) {
+              h += 24;
             }
-            return hm;
+            
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
           };
 
-          let inText = formatDisplayTime(att.clock_in);
-          let outText = formatDisplayTime(att.clock_out);
+          let inText = formatDisplayTime(att.clock_in, false);
+          let outText = formatDisplayTime(att.clock_out, true);
           
           let timeText = '';
           if (inText || outText) {
@@ -1796,7 +1811,7 @@ async function renderMatrixTable() {
             let cleanMemo = att.memo
               .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
-              .replace(/管理者修正/g, ''); // 休日出勤を消さずに残す
+              .replace(/管理者修正|【翌日】/g, ''); // ★修正: 見えないフラグ【翌日】をメモから消去する
 
             if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
                 const parts = cleanMemo.split('直帰');
@@ -1957,15 +1972,23 @@ async function renderDailyTable() {
 
     for (let idx = 0; idx < atts.length; idx++) {
       const att = atts[idx];
-      const formatTime = (t) => t ? t.substring(0, 5) : '';
+      
+      // ★修正: フォーマット時、【翌日】フラグがあれば+24する
+      const formatInTime = (t) => t ? t.substring(0, 5) : '';
+      const formatOutTime = (t, memo) => {
+        if (!t) return '';
+        let [h, m] = t.substring(0, 5).split(':').map(Number);
+        if (memo && memo.includes('【翌日】') && h < 24) h += 24;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      };
 
       // ★ 透明なダミー文字を入れて、高さを潰さずに見えなくする
       let timeStr = '<span style="visibility: hidden;">-</span>'; 
       if (att && att.clock_in) {
         if (att.clock_out) {
-          timeStr = `${formatTime(att.clock_in)} ～ ${formatTime(att.clock_out)}`;
+          timeStr = `${formatInTime(att.clock_in)} ～ ${formatOutTime(att.clock_out, att.memo)}`;
         } else {
-          timeStr = `${formatTime(att.clock_in)} ～`;
+          timeStr = `${formatInTime(att.clock_in)} ～`;
         }
       } else if (att && att.memo) {
         let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
@@ -1990,7 +2013,7 @@ async function renderDailyTable() {
         let cleanMemo = att.memo
           .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
           .replace(/\[.*?\]/g, '')
-          .replace(/管理者修正/g, '');
+          .replace(/管理者修正|【翌日】/g, ''); // ★ここでも【翌日】を消す
 
         if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
           const parts = cleanMemo.split('直帰');
