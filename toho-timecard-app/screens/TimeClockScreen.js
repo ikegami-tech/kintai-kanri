@@ -3,7 +3,6 @@ import {
   StyleSheet,
   Text,
   View,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   Modal,
@@ -14,6 +13,7 @@ import {
   Keyboard,
   AppState, // ★追加: アプリのバックグラウンド状態を検知する機能
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
