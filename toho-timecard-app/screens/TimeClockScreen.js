@@ -426,26 +426,10 @@ const submitAttendance = async (type, bodyText) => {
         console.warn('既存打刻の確認失敗:', checkErr);
       }
 
-      let clockInVal = existingAtt ? existingAtt.clock_in : null;
+let clockInVal = existingAtt ? existingAtt.clock_in : null;
       let clockOutVal = existingAtt ? existingAtt.clock_out : null;
 
-      // ★修正: iOS/Safariでエラーが出ないよう、文字列の分割で日付の差分を計算する
-      if ((type === '退勤' || type === '直帰') && existingAtt && targetWorkDate) {
-        if (targetWorkDate !== workDate) {
-          // "YYYY-MM-DD" から "DD" (日) の部分だけを数値として取り出す
-          const inDay = parseInt(targetWorkDate.split('-')[2], 10);
-          const outDay = parseInt(workDate.split('-')[2], 10);
-          
-          let diffDays = outDay - inDay;
-          // もし月を跨いでマイナスになった場合は、とりあえず1日跨ぎ(24h)として扱う
-          if (diffDays < 0) diffDays = 1; 
-          
-          if (diffDays > 0) {
-            hours += (diffDays * 24);
-          }
-        }
-      }
-      
+      // ★修正: DB側で時間が切り捨てられるため、ここでは+24時間の計算は行わない
       const timeVal = `${String(hours).padStart(2, '0')}:${minutes}:00`;
 
       if (type === '出勤' || type === '直行') {
@@ -471,18 +455,25 @@ const submitAttendance = async (type, bodyText) => {
 
       let memoParts = [];
       if (existingMemo.includes('管理者修正')) memoParts.push('管理者修正');
-      
-      // ★ 土日判定を削除。既存メモに「休日出勤」がある場合（管理画面で付与された等）のみ維持する
-      if (existingMemo.includes('休日出勤')) {
-        memoParts.push('休日出勤');
+      if (existingMemo.includes('休日出勤')) memoParts.push('休日出勤');
+
+      // ★修正: 翌日フラグは、余計な置換処理の影響を受けないよう別の変数で持っておく
+      let isNextDay = false;
+      if ((type === '退勤' || type === '直帰') && existingAtt && targetWorkDate && targetWorkDate !== workDate) {
+        isNextDay = true;
+      }
+      // もともと付いていた場合も維持する
+      if (existingMemo.includes('【翌日】')) {
+        isNextDay = true;
       }
 
       if (inLoc) memoParts.push(`[IN_LOC:${inLoc}]`);
       if (outLoc) memoParts.push(`[OUT_LOC:${outLoc}]`);
 
+      // 既存のメモから不要なタグを掃除
       let cleanExistingMemo = existingMemo
         .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
-        .replace(/管理者修正|休日出勤/g, '')
+        .replace(/管理者修正|休日出勤|【翌日】/g, '')
         .trim();
 
       if (type === '直行' || type === '直帰') {
@@ -492,11 +483,14 @@ const submitAttendance = async (type, bodyText) => {
         memoParts.push(cleanExistingMemo);
       }
 
+      // ★修正: 最後に合体させる時だけ【翌日】フラグを足す
+      if (isNextDay) memoParts.push('【翌日】');
+
       const payload = {
         id: existingAtt ? existingAtt.id : null,
         employee_id: Number(empId),
         shop_id: currentShopId, 
-        work_date: targetWorkDate, // ★ workDate から targetWorkDate に変更
+        work_date: targetWorkDate, 
         clock_in: clockInVal,
         clock_out: clockOutVal,
         memo: memoParts.join('\n').trim(),

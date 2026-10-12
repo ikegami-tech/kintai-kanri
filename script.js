@@ -3657,12 +3657,18 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
 
   if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
     const parts = cleanMemo.split('直帰');
-    directInText = parts[0].replace(/直行|管理者修正|休日出勤/g, '').trim();
+    directInText = parts[0].replace(/直行|管理者修正|休日出勤|【翌日】/g, '').trim();
     directOutText = parts[1] ? parts[1].trim() : '';
   } else if (cleanMemo.includes('直行')) {
-    directInText = cleanMemo.replace(/直行|管理者修正|休日出勤/g, '').trim();
+    directInText = cleanMemo.replace(/直行|管理者修正|休日出勤|【翌日】/g, '').trim();
   } else if (cleanMemo.includes('直帰')) {
-    directOutText = cleanMemo.replace(/直帰|管理者修正|休日出勤/g, '').trim();
+    directOutText = cleanMemo.replace(/直帰|管理者修正|休日出勤|【翌日】/g, '').trim();
+  } else {
+    // 直行・直帰がない普通のメモを残す場合
+    let otherMemo = cleanMemo.replace(/管理者修正|休日出勤|【翌日】/g, '').trim();
+    if (otherMemo && actionType !== '直行' && actionType !== '直帰') {
+       finalMemoParts.push(otherMemo);
+    }
   }
 
   if (actionType === '直行') directInText = mailBodyText || '';
@@ -3675,10 +3681,22 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
     finalMemoParts.push('直帰\n' + directOutText);
   }
 
+  // ★修正: 保存する最終的なペイロードにだけ【翌日】フラグを追加する
+  let isNextDay = false;
+  if ((actionType === '退勤' || actionType === '直帰') && att && att.work_date && att.work_date !== dateVal) {
+    isNextDay = true;
+  }
+  if (existingMemo.includes('【翌日】')) {
+    isNextDay = true;
+  }
+  if (isNextDay) {
+    finalMemoParts.push('【翌日】');
+  }
+
   const payload = {
     id: att ? att.id : null,
     employee_id: tcSelectedEmp.id,
-    work_date: targetWorkDate, // ★修正: dateVal から targetWorkDate に変更し、前日の日付で上書き保存する
+    work_date: targetWorkDate, 
     clock_in: clockIn,
     clock_out: clockOut,
     memo: finalMemoParts.join('\n').trim(),
