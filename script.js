@@ -1826,7 +1826,8 @@ async function renderMatrixTable() {
             ? '' 
             : `onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')"`;
 
-          return `<div style="padding:4px 0; position:relative; ${borderStyle}" ${blockOnClick}>${timeText}${memoHtml}</div>`;
+          // ★修正: pointer-events: auto; を追加し、セルがクリック不可でもアイコンのホバー(吹き出し)は反応するようにする
+          return `<div style="padding:4px 0; position:relative; pointer-events: auto; ${borderStyle}" ${blockOnClick}>${timeText}${memoHtml}</div>`;
         }).join('');
       }
 
