@@ -1522,11 +1522,15 @@ async function renderDashboard() {
     console.error('ダッシュボード用データ取得エラー:', error);
   }
 
-  // ★ 1日の複数の打刻履歴を配列で保持するように変更
+  // ★修正: 1日の打刻履歴、および「未退勤（日跨ぎ）」のデータも含めて保持する
   const todayAttendanceMap = {};
-  attendancesData.filter(a => a.work_date === todayKey).forEach(a => {
-    if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
-    todayAttendanceMap[a.employee_id].push(a);
+  attendancesData.forEach(a => {
+    const isActive = a.clock_in && (!a.clock_out || a.clock_out.trim() === '' || a.clock_out === '--:--');
+    // 今日のデータ、または未退勤のデータであれば追加する
+    if (a.work_date === todayKey || isActive) {
+      if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
+      todayAttendanceMap[a.employee_id].push(a);
+    }
   });
 
   const notStarted = [];
@@ -3195,8 +3199,21 @@ async function loadTcEmpList() {
     const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (res.ok) {
       const data = await res.json();
-      data.filter(a => a.work_date === todayKey).forEach(a => {
-        tcTodayAttendances[a.employee_id] = a;
+      
+      // ★修正：今日のデータ、または「過去の未退勤」データを優先してセットする
+      currentEmployeeList.forEach(emp => {
+        const empAtts = data.filter(a => a.employee_id === emp.id);
+        // 未退勤（出勤はしているが、退勤が空）のデータを探す
+        const activeAtt = empAtts.find(a => a.clock_in && (!a.clock_out || a.clock_out.trim() === '' || a.clock_out === '--:--'));
+        
+        if (activeAtt) {
+          tcTodayAttendances[emp.id] = activeAtt;
+        } else {
+          const todayAtt = empAtts.find(a => a.work_date === todayKey);
+          if (todayAtt) {
+            tcTodayAttendances[emp.id] = todayAtt;
+          }
+        }
       });
     }
   } catch (e) {
