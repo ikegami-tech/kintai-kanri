@@ -12,6 +12,7 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Keyboard,
+  AppState, // ★追加: アプリのバックグラウンド状態を検知する機能
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -42,6 +43,54 @@ export default function TimeClockScreen({ route, navigation }) {
   const [tplEditMode, setTplEditMode] = useState('edit'); 
   const [tplNameInput, setTplNameInput] = useState('');
   const [tplBodyInput, setTplBodyInput] = useState('');
+
+  // ★追加: 事前に取得したGPS座標を入れておくステート
+  const [currentCoords, setCurrentCoords] = useState(null);
+
+  // ★追加: アプリ起動時、または別アプリ等から戻ってきた時に自動でGPSを取得する
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLocation = async () => {
+      try {
+        const enabled = await Location.hasServicesEnabledAsync();
+        if (!enabled) return;
+
+        let permission = await Location.getForegroundPermissionsAsync();
+        if (permission.status !== 'granted' && permission.canAskAgain) {
+          permission = await Location.requestForegroundPermissionsAsync();
+        }
+        if (permission.status !== 'granted') return;
+
+        // 画面が開かれたタイミングで裏で位置情報を取得しておく
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeout: 5000, // 5秒でタイムアウト
+        });
+        
+        if (location && location.coords && isMounted) {
+          setCurrentCoords(`${location.coords.latitude},${location.coords.longitude}`);
+        }
+      } catch (error) {
+        console.warn('GPS事前取得エラー:', error);
+      }
+    };
+
+    // 画面を開いた時の初回取得
+    fetchLocation();
+
+    // バックグラウンドからアプリに戻ってきた時の検知
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        fetchLocation(); // アクティブになった瞬間に再度最新のGPSを取得する
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
+  }, []);
 
   // リアルタイム時計
   useEffect(() => {
@@ -353,8 +402,12 @@ const submitAttendance = async (type, bodyText) => {
         console.warn('店舗ID取得エラー:', e);
       }
 
-      // 位置情報を取得
-      const coords = await getGpsCoords();
+      // ★修正: 事前に自動取得しておいたGPS(currentCoords)を優先して使う。
+      // 万が一間に合わなかった場合だけ、その場で取得する。
+      let coords = currentCoords;
+      if (!coords) {
+        coords = await getGpsCoords();
+      }
 
       // ★修正：位置情報が取得できなかった場合は、一切の打刻通信を行わずに処理を強制終了する
       if (!coords || typeof coords !== 'string' || coords.trim() === '') {
@@ -515,9 +568,8 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         setIsWorking(false);
       }
 
-      Alert.alert('打刻完了', `『${empName}』様の【${type}】を完了しました。`, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      // ★修正: 打刻完了アラートを廃止し、そのままホーム画面に戻る
+      navigation.goBack();
 
     } catch (error) {
       console.error('打刻エラー:', error);
