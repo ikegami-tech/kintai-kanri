@@ -586,9 +586,26 @@ function openCellMenu(event, empName, dateStr) {
     <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
     <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
   `;
-  menu.style.left = `${event.pageX}px`;
-  menu.style.top = `${event.pageY}px`;
+
+  // ★修正: 画面下端で見切れないよう表示位置を自動補正する
   menu.classList.remove('hidden');
+  const menuHeight = menu.offsetHeight || 160;
+  const menuWidth = menu.offsetWidth || 180;
+  
+  let leftPos = event.pageX;
+  let topPos = event.pageY;
+
+  // 画面下端からはみ出る場合は上方向に表示
+  if (event.clientY + menuHeight > window.innerHeight) {
+    topPos = event.pageY - menuHeight;
+  }
+  // 画面右端からはみ出る場合は左方向にずらす
+  if (event.clientX + menuWidth > window.innerWidth) {
+    leftPos = event.pageX - menuWidth;
+  }
+
+  menu.style.left = `${leftPos}px`;
+  menu.style.top = `${topPos}px`;
 }
 
 function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo) {
@@ -615,9 +632,26 @@ function openEditMenu(event, empName, dateStr, recordId, clockIn, clockOut, memo
     <div class="popover-item" onclick="handleCellAction('編集')">✏️ 編集</div>
     <div class="popover-item" onclick="handleCellAction('従業員メモ')">📝 従業員メモ</div>
   `;
-  menu.style.left = `${event.pageX}px`;
-  menu.style.top = `${event.pageY}px`;
+
+  // ★修正: 画面下端で見切れないよう表示位置を自動補正する
   menu.classList.remove('hidden');
+  const menuHeight = menu.offsetHeight || 130;
+  const menuWidth = menu.offsetWidth || 180;
+  
+  let leftPos = event.pageX;
+  let topPos = event.pageY;
+
+  // 画面下端からはみ出る場合は上方向に表示
+  if (event.clientY + menuHeight > window.innerHeight) {
+    topPos = event.pageY - menuHeight;
+  }
+  // 画面右端からはみ出る場合は左方向にずらす
+  if (event.clientX + menuWidth > window.innerWidth) {
+    leftPos = event.pageX - menuWidth;
+  }
+
+  menu.style.left = `${leftPos}px`;
+  menu.style.top = `${topPos}px`;
 }
 
 function toggleExtraTimeRow(mode, type) {
