@@ -3222,7 +3222,8 @@ function renderTcEmpList() {
       const retireDateObj = new Date(cleanDate);
       if (!isNaN(retireDateObj)) {
         retireDateObj.setHours(0, 0, 0, 0);
-        if (today >= retireDateObj) {
+        // ★修正: 「>=」を「>」に変更。退職日当日は打刻可能にし、退職日を過ぎた翌日以降から非表示にする
+        if (today > retireDateObj) {
           return false;
         }
       }

@@ -106,10 +106,25 @@ export default function EmployeeSelectScreen({ navigation }) {
       });
       const data = await response.json();
       if (Array.isArray(data)) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         // 利用停止中のユーザー、および「社長」「次長」を除外してセット
         const activeEmps = data.filter((e) => {
-          if (e.status === '利用停止') return false;
+          if (e.status === '利用停止' || e.status === '削除') return false;
           
+          // ★追加: 退職日が設定されていて、かつ「退職日を過ぎている（翌日以降）」場合は非表示にする
+          if (e.retire_date && e.retire_date !== '-') {
+            const cleanDate = String(e.retire_date).replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+            const rDate = new Date(cleanDate);
+            if (!isNaN(rDate)) {
+              rDate.setHours(0, 0, 0, 0);
+              if (today > rDate) {
+                return false;
+              }
+            }
+          }
+
           const dept = e.department || e.office || '';
           if (dept === '社長' || dept === '次長') return false;
           
