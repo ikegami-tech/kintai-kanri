@@ -3593,15 +3593,25 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   let clockIn = att ? att.clock_in : null;
   let clockOut = att ? att.clock_out : null;
 
-  // ★修正: 出勤日(att.work_date)と本日(dateVal)の文字列が違っていれば、前日出勤とみなして+24時間する
-  // ※Web打刻では att.work_date に出勤日の日付が入っているため、それを退勤日として維持する
-  let targetWorkDate = dateVal;
-  
+  // ★修正: iOS/Safariでエラーが出ないよう、文字列の分割で日付の差分を計算する
+  let targetWorkDate = dateVal; // 保存する日付のベース
+
   if (actionType === '退勤' || actionType === '直帰') {
     if (att && att.work_date) {
-      targetWorkDate = att.work_date;
+      targetWorkDate = att.work_date; // 出勤した日の日付を引き継ぐ
+      
       if (att.work_date !== dateVal) {
-        hours += 24;
+        // "YYYY-MM-DD" から "DD" (日) の部分だけを数値として取り出す
+        const inDay = parseInt(att.work_date.split('-')[2], 10);
+        const outDay = parseInt(dateVal.split('-')[2], 10);
+        
+        let diffDays = outDay - inDay;
+        // もし月を跨いでマイナスになった場合は、とりあえず1日跨ぎ(24h)として扱う
+        if (diffDays < 0) diffDays = 1; 
+        
+        if (diffDays > 0) {
+          hours += (diffDays * 24);
+        }
       }
     }
   }
