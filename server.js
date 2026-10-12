@@ -287,11 +287,11 @@ app.post('/api/auth/login', (req, res) => {
 
       delete user.password;
       
-      // ★追加: ユーザー情報からトークン（通行証）を生成する（有効期限は24時間）
+      // ★修正: アプリでずっとログイン状態を維持するため、有効期限を10年(実質無期限)に延長
       const token = jwt.sign(
         { id: user.id, role: user.role, shop_id: user.shop_id },
         JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '3650d' } // 3650d = 約10年
       );
 
       res.json({ message: 'ログイン成功', user: user, token: token }); // ★ token も一緒に返す
