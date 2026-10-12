@@ -2503,6 +2503,9 @@ function filterByName(nameStr) {
   renderEmployees();
 }
 
+// ★追加: アラートが複数回連続で出るのを防ぐためのフラグ
+let hasSessionAlertShown = false;
+
 async function fetchEmployeesAPI(initialFilter, nameFilter) {
   let result = [];
   try {
@@ -2517,11 +2520,14 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
 
     // ★追加: 401(認証エラー・期限切れ)の場合は強制ログアウトさせる
     if (response.status === 401) {
-      alert('ログインの有効期限が切れました。再度ログインしてください。');
-      localStorage.removeItem('loggedInUser');
-      localStorage.removeItem('authToken');
-      location.hash = ''; 
-      location.reload(); // 画面を更新してログイン画面へ戻す
+      if (!hasSessionAlertShown) {
+        hasSessionAlertShown = true;
+        alert('ログインの有効期限が切れました。再度ログインしてください。');
+        localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('authToken');
+        location.hash = ''; 
+        location.reload(); // 画面を更新してログイン画面へ戻す
+      }
       return [];
     }
 
@@ -2667,6 +2673,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       const user = JSON.parse(loggedInUserStr);
       applyUserPermissions(user);
     } catch (e) {}
+  } else {
+    // ★追加: ログインしていない場合はAPI通信などの描画処理を行わず、ログイン画面を表示して終了する（無限ループ防止）
+    if (!location.hash.includes('password-setup') && !location.hash.includes('password-request')) {
+      document.getElementById('app-view').classList.add('hidden');
+      document.getElementById('login-view').classList.remove('hidden');
+    }
+    return;
   }
 
   const hourSelectIds = [
