@@ -244,9 +244,9 @@
         </div>
 
         <!-- ページ: 月表示 (マトリクス表) -->
-        <div id="page-monthly" class="page-content hidden">
-          <div class="monthly-container">
-            <div class="monthly-header-bar">
+        <div id="page-monthly" class="page-content hidden" style="display: flex; flex-direction: column; height: calc(100vh - 55px); overflow: hidden;">
+          <div class="monthly-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0;">
+            <div class="monthly-header-bar" style="flex-shrink: 0;">
               <div class="monthly-actions-left"></div>
               <div class="month-selector">
                 <span class="current-month-title" id="matrix-month-title">2026年 09月度</span>
@@ -262,7 +262,7 @@
               </div>
             </div>
 
-            <div class="matrix-scroll-wrapper">
+            <div class="matrix-scroll-wrapper" style="flex: 1; overflow-y: auto;">
               <table class="monthly-matrix-table">
                 <thead id="matrix-thead"></thead>
                 <tbody id="matrix-tbody"></tbody>

@@ -2444,7 +2444,11 @@ td:hover .memo-icon::before {
 
 /* 2行目（1日〜31日の日付部分）の固定位置 */
 .monthly-matrix-table thead tr:nth-child(2) th {
-  /* 1行目の「〇月」の高さ分だけ下にずらして固定します。
-     この数値を微調整して、日付行が隠れないようにしてください */
-  top: 31px; 
+  top: 27px; /* 高さを調整 */
+}
+
+/* 一番左の列（従業員名・計）の角を綺麗に固定する追加処理 */
+.monthly-matrix-table thead th:first-child,
+.monthly-matrix-table thead th:last-child {
+  z-index: 20 !important;
 }
