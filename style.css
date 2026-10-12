@@ -2428,3 +2428,23 @@ td:hover .memo-icon::before {
   border-color: var(--toho-blue);
   color: var(--toho-blue);
 }
+/* ==========================================
+   月表示マトリクス表のヘッダーを上部に固定（スティッキーヘッダー）
+========================================== */
+.monthly-matrix-table thead th {
+  position: sticky;
+  background-color: #f8fafc; /* スクロール時に下のデータが透けないように背景色を設定 */
+  z-index: 10; /* 他の要素より手前に表示する */
+}
+
+/* 1行目（「従業員名」「〇月」「計」）の固定位置 */
+.monthly-matrix-table thead tr:nth-child(1) th {
+  top: 0;
+}
+
+/* 2行目（1日〜31日の日付部分）の固定位置 */
+.monthly-matrix-table thead tr:nth-child(2) th {
+  /* 1行目の「〇月」の高さ分だけ下にずらして固定します。
+     この数値を微調整して、日付行が隠れないようにしてください */
+  top: 31px; 
+}
