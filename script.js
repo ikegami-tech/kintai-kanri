@@ -3212,20 +3212,24 @@ function renderTcEmpList() {
 
   let list = currentEmployeeList.length > 0 ? currentEmployeeList : [];
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // ★修正: タイムゾーンのズレを防ぐため、今日の日付を YYYY-MM-DD 形式の文字列で取得する
+  const todayDate = new Date();
+  const yyyy = todayDate.getFullYear();
+  const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(todayDate.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
 
   list = list.filter(emp => {
     // 退職者の除外
     if (emp.retireDate && emp.retireDate !== '-') {
-      const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
-      const retireDateObj = new Date(cleanDate);
-      if (!isNaN(retireDateObj)) {
-        retireDateObj.setHours(0, 0, 0, 0);
-        // ★修正: 「>=」を「>」に変更。退職日当日は打刻可能にし、退職日を過ぎた翌日以降から非表示にする
-        if (today > retireDateObj) {
-          return false;
-        }
+      const cleanRetireDate = String(emp.retireDate)
+        .replace(/[年月]/g, '-')
+        .replace(/日/g, '')
+        .replace(/\//g, '-');
+      
+      // 文字列同士での比較 (例: "2026-10-12" > "2026-10-11" であれば除外)
+      if (todayStr > cleanRetireDate) {
+        return false;
       }
     }
 

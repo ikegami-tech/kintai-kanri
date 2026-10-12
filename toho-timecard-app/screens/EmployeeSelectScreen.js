@@ -106,22 +106,28 @@ export default function EmployeeSelectScreen({ navigation }) {
       });
       const data = await response.json();
       if (Array.isArray(data)) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // ★修正: タイムゾーンのズレを防ぐため、今日の日付を YYYY-MM-DD 形式の文字列で取得する
+        const todayDate = new Date();
+        const yyyy = todayDate.getFullYear();
+        const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(todayDate.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
 
         // 利用停止中のユーザー、および「社長」「次長」を除外してセット
         const activeEmps = data.filter((e) => {
           if (e.status === '利用停止' || e.status === '削除') return false;
           
-          // ★追加: 退職日が設定されていて、かつ「退職日を過ぎている（翌日以降）」場合は非表示にする
+          // ★修正: 退職日が設定されていて、かつ「今日(todayStr)」が「退職日」よりも大きい（過ぎている）場合は非表示にする
           if (e.retire_date && e.retire_date !== '-') {
-            const cleanDate = String(e.retire_date).replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
-            const rDate = new Date(cleanDate);
-            if (!isNaN(rDate)) {
-              rDate.setHours(0, 0, 0, 0);
-              if (today > rDate) {
-                return false;
-              }
+            // 例: "2026/10/11" や "2026年10月11日" を "2026-10-11" に変換する
+            const cleanRetireDate = String(e.retire_date)
+              .replace(/[年月]/g, '-')
+              .replace(/日/g, '')
+              .replace(/\//g, '-');
+            
+            // 文字列同士での比較 (例: "2026-10-12" > "2026-10-11" であれば除外)
+            if (todayStr > cleanRetireDate) {
+              return false;
             }
           }
 
