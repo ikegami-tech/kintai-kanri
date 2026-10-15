@@ -243,7 +243,8 @@ const getGpsCoords = async () => {
     if (!schedule) return currentBody;
     let newBody = currentBody;
     const timeText = schedule.start_time || '';
-    const contentText = schedule.title ? `${schedule.title} (${schedule.schedule_type || ''})`.trim() : '';
+    // ★修正: (schedule_type) の結合を削除し、純粋なタイトルのみにする
+    const contentText = schedule.title || '';
 
     if (type === '直行') {
       if (timeText) newBody = newBody.replace(/(業務開始時間\s*[:：])([^\n]*)/g, `$1 ${timeText}`);

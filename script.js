@@ -3445,7 +3445,8 @@ function onSelectTcSchedule(selectedId) {
 
   let body = bodyEl.value;
   const timeText = schedule.start_time || '';
-  const contentText = schedule.title ? `${schedule.title} (${schedule.schedule_type || ''})`.trim() : '';
+  // ★修正: (schedule_type) の結合を削除し、純粋なタイトルのみにする
+  const contentText = schedule.title || '';
 
   if (currentTcActionType === '直行') {
     if (timeText) body = body.replace(/(業務開始時間\s*[:：])([^\n]*)/g, `$1 ${timeText}`);
