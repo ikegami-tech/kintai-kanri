@@ -44,6 +44,10 @@ export default function TimeClockScreen({ route, navigation }) {
   const [tplNameInput, setTplNameInput] = useState('');
   const [tplBodyInput, setTplBodyInput] = useState('');
 
+  // ★追加: 本日のTOHO SSスケジュール用ステート
+  const [dailySchedules, setDailySchedules] = useState([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState(null);
+
   // ★追加: 事前に取得したGPS座標を入れておくステート
   const [currentCoords, setCurrentCoords] = useState(null);
 
@@ -219,6 +223,46 @@ const getGpsCoords = async () => {
     }
   };
 
+  // ★追加: 本日のTOHO SSスケジュールを取得する関数
+  const fetchDailySchedules = async (targetEmpId) => {
+    try {
+      const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/daily-schedules?employee_id=${targetEmpId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDailySchedules(data);
+        return data;
+      }
+    } catch (error) {
+      console.warn('本日のスケジュール取得エラー:', error);
+    }
+    return [];
+  };
+
+  // ★追加: 選択した予定をメール本文の項目に自動反映する関数
+  const applyScheduleToMailBody = (schedule, currentBody, type) => {
+    if (!schedule) return currentBody;
+    let newBody = currentBody;
+    const timeText = schedule.start_time || '';
+    const contentText = schedule.title ? `${schedule.title} (${schedule.schedule_type || ''})`.trim() : '';
+
+    if (type === '直行') {
+      if (timeText) newBody = newBody.replace(/(業務開始時間\s*[:：])([^\n]*)/g, `$1 ${timeText}`);
+      if (contentText) newBody = newBody.replace(/(業務内容\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
+    } else if (type === '直帰') {
+      const endTimeText = schedule.end_time || schedule.start_time || '';
+      if (endTimeText) newBody = newBody.replace(/(業務終了時間\s*[:：])([^\n]*)/g, `$1 ${endTimeText}`);
+      if (contentText) newBody = newBody.replace(/(業務相手\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
+    }
+    return newBody;
+  };
+
+  // ★追加: スケジュール選択ハンドラー
+  const handleSelectSchedule = (sch) => {
+    setSelectedScheduleId(sch ? sch.id : null);
+    if (!sch) return;
+    setMailBody((prev) => applyScheduleToMailBody(sch, prev, actionType));
+  };
+
   const loadTemplatesAndSetBody = async (type, hhmm) => {
     const footer = '\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。';
     const defaultTemplateBody = type === '直行'
@@ -363,6 +407,10 @@ const getGpsCoords = async () => {
 
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     setMailSubject(`${type} ${lastName}`);
+
+    // ★追加: モーダルを開く前に当日のスケジュールを取得・初期化
+    setSelectedScheduleId(null);
+    await fetchDailySchedules(empId);
 
     await loadTemplatesAndSetBody(type, hhmm);
     setModalMode('mail');
@@ -688,6 +736,30 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                             value={mailSubject}
                             onChangeText={setMailSubject}
                           />
+
+                          {/* ★追加: TOHO SS 本日の予定選択チップ */}
+                          {dailySchedules.length > 0 && (
+                            <View style={styles.scheduleSection}>
+                              <Text style={styles.scheduleSectionTitle}>📅 本日の予定から反映 (TOHO SS):</Text>
+                              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scheduleChipList}>
+                                {dailySchedules.map((sch) => {
+                                  const isSelected = selectedScheduleId === sch.id;
+                                  const timeBadge = sch.start_time ? `[${sch.start_time}] ` : '';
+                                  return (
+                                    <TouchableOpacity
+                                      key={String(sch.id)}
+                                      style={[styles.scheduleChip, isSelected && styles.scheduleChipActive]}
+                                      onPress={() => handleSelectSchedule(sch)}
+                                    >
+                                      <Text style={[styles.scheduleChipText, isSelected && styles.scheduleChipTextActive]} numberOfLines={1}>
+                                        {timeBadge}{sch.title || '無題の予定'}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </ScrollView>
+                            </View>
+                          )}
 
                           <Text style={styles.inputLabel}>メール本文（必要に応じて調整してください）</Text>
                           <TextInput
@@ -1044,5 +1116,45 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  /* ★追加: TOHO SS スケジュール選択エリアスタイル */
+  scheduleSection: {
+    backgroundColor: '#eef6fc',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#cde4f7',
+  },
+  scheduleSectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#005bb5',
+    marginBottom: 6,
+  },
+  scheduleChipList: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scheduleChip: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#b8d6f0',
+  },
+  scheduleChipActive: {
+    backgroundColor: COLORS.primary || '#0073ea',
+    borderColor: COLORS.primary || '#0073ea',
+  },
+  scheduleChipText: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: 'bold',
+  },
+  scheduleChipTextActive: {
+    color: '#ffffff',
   },
 });

@@ -1015,6 +1015,20 @@
             <td><input type="text" id="tc-mail-subject" class="form-input"></td>
           </tr>
           <tr>
+            <tr>
+            <th>件名</th>
+            <td><input type="text" id="tc-mail-subject" class="form-input"></td>
+          </tr>
+          <!-- ★追加: 本日の予定選択プルダウン -->
+          <tr>
+            <th>本日の予定</th>
+            <td>
+              <select id="tc-schedule-select" class="form-select" style="width: 100%; font-size: 13px;" onchange="onSelectTcSchedule(this.value)">
+                <option value="">-- スケジュールを選択して本文に反映 --</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
             <th style="vertical-align: top; padding-top: 15px;">メール本文</th>
             <td>
               <textarea id="tc-mail-body" class="form-input" rows="6" style="resize: vertical; font-size: 13px; line-height: 1.5;"></textarea>

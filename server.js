@@ -302,6 +302,44 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ==========================================
+// TOHO SS スケジュール取得API (DailySchedules)
+// ==========================================
+app.get('/api/daily-schedules', (req, res) => {
+  const { employee_id, date: targetDate } = req.query;
+  if (!employee_id) {
+    return res.status(400).json({ error: 'employee_id は必須です' });
+  }
+
+  // 日本時間(JST)で本日の日付を算出 (YYYY-MM-DD)
+  const jstNow = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000));
+  const defaultDate = jstNow.toISOString().split('T')[0];
+  const queryDate = targetDate || defaultDate;
+
+  const sql = `
+    SELECT 
+      id, 
+      target_date, 
+      employee_id, 
+      employee_name, 
+      TIME_FORMAT(start_time, '%H:%i') AS start_time, 
+      TIME_FORMAT(end_time, '%H:%i') AS end_time, 
+      schedule_type, 
+      title 
+    FROM DailySchedules
+    WHERE employee_id = ? AND target_date = ?
+    ORDER BY start_time ASC, id ASC
+  `;
+
+  db.query(sql, [employee_id, queryDate], (err, results) => {
+    if (err) {
+      console.error('DailySchedules 取得エラー:', err);
+      return res.status(500).json({ error: 'スケジュールデータの取得に失敗しました' });
+    }
+    res.json(results);
+  });
+});
+
+// ==========================================
 // メールテンプレートAPI
 // ==========================================
 app.get('/api/mail-templates', (req, res) => {

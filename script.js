@@ -3433,6 +3433,30 @@ async function executeWebTimeclock(actionType) {
 
 let tcUserTemplates = [];
 let tcActiveTemplateId = null;
+let tcDailySchedules = []; // ★追加: スケジュール保持用
+
+// ★追加: プルダウン選択時に本文へ自動反映する関数
+function onSelectTcSchedule(selectedId) {
+  const schedule = tcDailySchedules.find(s => String(s.id) === String(selectedId));
+  if (!schedule) return;
+
+  const bodyEl = document.getElementById('tc-mail-body');
+  if (!bodyEl) return;
+
+  let body = bodyEl.value;
+  const timeText = schedule.start_time || '';
+  const contentText = schedule.title ? `${schedule.title} (${schedule.schedule_type || ''})`.trim() : '';
+
+  if (currentTcActionType === '直行') {
+    if (timeText) body = body.replace(/(業務開始時間\s*[:：])([^\n]*)/g, `$1 ${timeText}`);
+    if (contentText) body = body.replace(/(業務内容\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
+  } else if (currentTcActionType === '直帰') {
+    const endTimeText = schedule.end_time || schedule.start_time || '';
+    if (endTimeText) body = body.replace(/(業務終了時間\s*[:：])([^\n]*)/g, `$1 ${endTimeText}`);
+    if (contentText) body = body.replace(/(業務相手\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
+  }
+  bodyEl.value = body;
+}
 
 async function openTcMailModal(actionType) {
   const modal = document.getElementById('modal-tc-mail');
@@ -3446,6 +3470,24 @@ async function openTcMailModal(actionType) {
   const mailToInput = document.getElementById('tc-mail-to');
   if (mailToInput) mailToInput.value = 'kintai@toho-next.com';
   document.getElementById('tc-mail-subject').value = `${actionType} ${lastName}`;
+
+  // ★追加: 当日のスケジュールを取得してプルダウンを構築
+  const scheduleSelect = document.getElementById('tc-schedule-select');
+  if (scheduleSelect) {
+    scheduleSelect.innerHTML = '<option value="">-- スケジュールを選択して本文に反映 --</option>';
+    try {
+      const schRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/daily-schedules?employee_id=${tcSelectedEmp.id}`);
+      if (schRes.ok) {
+        tcDailySchedules = await schRes.json();
+        tcDailySchedules.forEach(s => {
+          const timeBadge = s.start_time ? `[${s.start_time}] ` : '';
+          scheduleSelect.innerHTML += `<option value="${s.id}">${timeBadge}${s.title || '無題'}</option>`;
+        });
+      }
+    } catch (err) {
+      console.warn('スケジュール読み込みエラー:', err);
+    }
+  }
 
   await loadTcUserTemplates(tcSelectedEmp.id, actionType);
 
