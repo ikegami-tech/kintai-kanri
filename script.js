@@ -2727,23 +2727,7 @@ async function renderEmployees() {
 // 6. 初期化
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadShopListFromDB();
-
-  const loggedInUserStr = localStorage.getItem('loggedInUser');
-  if (loggedInUserStr) {
-    try {
-      const user = JSON.parse(loggedInUserStr);
-      applyUserPermissions(user);
-    } catch (e) {}
-  } else {
-    // ★追加: ログインしていない場合はAPI通信などの描画処理を行わず、ログイン画面を表示して終了する（無限ループ防止）
-    if (!location.hash.includes('password-setup') && !location.hash.includes('password-request')) {
-      document.getElementById('app-view').classList.add('hidden');
-      document.getElementById('login-view').classList.remove('hidden');
-    }
-    return;
-  }
-
+  // ★修正：ログイン判定で弾かれる前に、プルダウンの選択肢（時間・分）を確実に生成しておく
   const hourSelectIds = [
     'create-start-h', 'create-end-h', 'edit-start-h', 'edit-end-h',
     'create-late-start-h', 'create-late-end-h', 'edit-late-start-h', 'edit-late-end-h',
@@ -2781,6 +2765,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selectEl = document.getElementById(id);
     if (selectEl) selectEl.innerHTML = minutesHtml;
   });
+
+  await loadShopListFromDB();
+
+  const loggedInUserStr = localStorage.getItem('loggedInUser');
+  if (loggedInUserStr) {
+    try {
+      const user = JSON.parse(loggedInUserStr);
+      applyUserPermissions(user);
+    } catch (e) {}
+  } else {
+    // ★追加: ログインしていない場合はAPI通信などの描画処理を行わず、ログイン画面を表示して終了する（無限ループ防止）
+    if (!location.hash.includes('password-setup') && !location.hash.includes('password-request')) {
+      document.getElementById('app-view').classList.add('hidden');
+      document.getElementById('login-view').classList.remove('hidden');
+    }
+    return;
+  }
 
   renderDashboard();
   await renderEmployees();
