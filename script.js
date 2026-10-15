@@ -3445,15 +3445,26 @@ function onSelectTcSchedule(selectedId) {
 
   let body = bodyEl.value;
   const timeText = schedule.start_time || '';
-  // ★修正: (schedule_type) の結合を削除し、純粋なタイトルのみにする
-  const contentText = schedule.title || '';
+  
+  // ★修正: タイトルから「@〇〇」の部分を場所として抽出し、本文から分離する
+  let rawTitle = schedule.title || '';
+  let contentText = rawTitle;
+  let locationText = '';
+
+  const atIndex = rawTitle.lastIndexOf('@');
+  if (atIndex !== -1) {
+    locationText = rawTitle.substring(atIndex + 1).trim();
+    contentText = rawTitle.substring(0, atIndex).trim();
+  }
 
   if (currentTcActionType === '直行') {
     if (timeText) body = body.replace(/(業務開始時間\s*[:：])([^\n]*)/g, `$1 ${timeText}`);
+    if (locationText) body = body.replace(/(開始場所\s*[:：])([^\n]*)/g, `$1 ${locationText}`);
     if (contentText) body = body.replace(/(業務内容\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
   } else if (currentTcActionType === '直帰') {
     const endTimeText = schedule.end_time || schedule.start_time || '';
     if (endTimeText) body = body.replace(/(業務終了時間\s*[:：])([^\n]*)/g, `$1 ${endTimeText}`);
+    if (locationText) body = body.replace(/(終了場所\s*[:：])([^\n]*)/g, `$1 ${locationText}`);
     if (contentText) body = body.replace(/(業務相手\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
   }
   bodyEl.value = body;
