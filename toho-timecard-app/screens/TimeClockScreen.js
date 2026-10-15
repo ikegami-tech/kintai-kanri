@@ -47,6 +47,7 @@ export default function TimeClockScreen({ route, navigation }) {
   // ★追加: 本日のTOHO SSスケジュール用ステート
   const [dailySchedules, setDailySchedules] = useState([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState(null);
+  const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
 
   // ★追加: 事前に取得したGPS座標を入れておくステート
   const [currentCoords, setCurrentCoords] = useState(null);
@@ -411,6 +412,7 @@ const getGpsCoords = async () => {
 
     // ★追加: モーダルを開く前に当日のスケジュールを取得・初期化
     setSelectedScheduleId(null);
+    setScheduleDropdownOpen(false);
     await fetchDailySchedules(empId);
 
     await loadTemplatesAndSetBody(type, hhmm);
@@ -738,27 +740,48 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                             onChangeText={setMailSubject}
                           />
 
-                          {/* ★追加: TOHO SS 本日の予定選択チップ */}
+                          {/* ★TOHO SS 本日の予定選択プルダウン */}
                           {dailySchedules.length > 0 && (
                             <View style={styles.scheduleSection}>
-                              <Text style={styles.scheduleSectionTitle}>📅 本日の予定から反映 (TOHO SS):</Text>
-                              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scheduleChipList}>
-                                {dailySchedules.map((sch) => {
-                                  const isSelected = selectedScheduleId === sch.id;
-                                  const timeBadge = sch.start_time ? `[${sch.start_time}] ` : '';
-                                  return (
-                                    <TouchableOpacity
-                                      key={String(sch.id)}
-                                      style={[styles.scheduleChip, isSelected && styles.scheduleChipActive]}
-                                      onPress={() => handleSelectSchedule(sch)}
-                                    >
-                                      <Text style={[styles.scheduleChipText, isSelected && styles.scheduleChipTextActive]} numberOfLines={1}>
-                                        {timeBadge}{sch.title || '無題の予定'}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                              </ScrollView>
+                              <Text style={styles.scheduleSectionTitle}>📅 本日の予定 (TOHO SS):</Text>
+                              <TouchableOpacity
+                                style={styles.dropdownHeader}
+                                onPress={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
+                                activeOpacity={0.7}
+                              >
+                                <Text style={styles.dropdownHeaderText} numberOfLines={1}>
+                                  {(() => {
+                                    const selected = dailySchedules.find(s => s.id === selectedScheduleId);
+                                    if (!selected) return '-- スケジュールを選択してください --';
+                                    const badge = selected.start_time ? `[${selected.start_time}] ` : '';
+                                    return `${badge}${selected.title || '無題'}`;
+                                  })()}
+                                </Text>
+                                <Text style={styles.dropdownArrow}>{scheduleDropdownOpen ? '▲' : '▼'}</Text>
+                              </TouchableOpacity>
+
+                              {scheduleDropdownOpen && (
+                                <View style={styles.dropdownList}>
+                                  {dailySchedules.map((sch) => {
+                                    const isSelected = selectedScheduleId === sch.id;
+                                    const timeBadge = sch.start_time ? `[${sch.start_time}] ` : '';
+                                    return (
+                                      <TouchableOpacity
+                                        key={String(sch.id)}
+                                        style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                                        onPress={() => {
+                                          handleSelectSchedule(sch);
+                                          setScheduleDropdownOpen(false);
+                                        }}
+                                      >
+                                        <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
+                                          {timeBadge}{sch.title || '無題の予定'}
+                                        </Text>
+                                      </TouchableOpacity>
+                                    );
+                                  })}
+                                </View>
+                              )}
                             </View>
                           )}
 
@@ -1118,44 +1141,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  /* ★追加: TOHO SS スケジュール選択エリアスタイル */
+  /* ★TOHO SS スケジュール プルダウンスタイル */
   scheduleSection: {
-    backgroundColor: '#eef6fc',
-    borderRadius: 8,
-    padding: 10,
     marginTop: 10,
     marginBottom: 6,
-    borderWidth: 1,
-    borderColor: '#cde4f7',
   },
   scheduleSectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#005bb5',
+    color: '#334155',
     marginBottom: 6,
   },
-  scheduleChipList: {
+  dropdownHeader: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  scheduleChip: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#b8d6f0',
+    borderColor: COLORS.border || '#cbd5e1',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  scheduleChipActive: {
-    backgroundColor: COLORS.primary || '#0073ea',
-    borderColor: COLORS.primary || '#0073ea',
+  dropdownHeaderText: {
+    fontSize: 13,
+    color: '#1e293b',
+    flex: 1,
   },
-  scheduleChipText: {
+  dropdownArrow: {
     fontSize: 12,
-    color: '#334155',
-    fontWeight: 'bold',
+    color: '#64748b',
+    marginLeft: 8,
   },
-  scheduleChipTextActive: {
-    color: '#ffffff',
+  dropdownList: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: COLORS.border || '#cbd5e1',
+    borderTopWidth: 0,
+    borderRadius: 6,
+    marginTop: -2,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#eef6fc',
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: '#334155',
+  },
+  dropdownItemTextActive: {
+    color: COLORS.primary || '#0073ea',
+    fontWeight: 'bold',
   },
 });
