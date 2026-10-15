@@ -2452,3 +2452,11 @@ td:hover .memo-icon::before {
 .monthly-matrix-table thead th:last-child {
   z-index: 20 !important;
 }
+
+/* ==========================================
+   吹き出しがスティッキーヘッダーの下に隠れないようにする修正
+========================================== */
+.monthly-matrix-table td div:hover {
+  /* ヘッダーの z-index: 10 よりも大きい数値を指定して手前に持ってくる */
+  z-index: 20 !important;
+}
