@@ -104,6 +104,16 @@ export default function EmployeeSelectScreen({ navigation }) {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // ★追加: 認証エラー(401)の場合は自動ログアウト処理をしてログイン画面へ戻す
+      if (response.status === 401) {
+        Alert.alert('セッション切れ', 'ログインの有効期限が切れました。再度ログインしてください。');
+        await AsyncStorage.removeItem('@auth_token');
+        await AsyncStorage.removeItem('@logged_in_user');
+        navigation.replace('Login');
+        return;
+      }
+
       const data = await response.json();
       if (Array.isArray(data)) {
         // ★修正: タイムゾーンのズレを防ぐため、今日の日付を YYYY-MM-DD 形式の文字列で取得する
