@@ -9,6 +9,7 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  useWindowDimensions,
   Alert,
   Modal,
   TouchableWithoutFeedback,
@@ -81,6 +82,10 @@ const SmaregiFaceIcon = ({ isWorking }) => {
 };
 
 export default function EmployeeSelectScreen({ navigation }) {
+  const { width: currentWidth } = useWindowDimensions();
+  const currentCardWidth = (currentWidth - 10) / 4;
+  const isTablet = currentWidth >= 600;
+
   const [employees, setEmployees] = useState([]);
 
   // ★追加: スクリーンセーバー（待機画面）用のステートとRef
@@ -347,7 +352,11 @@ export default function EmployeeSelectScreen({ navigation }) {
 
     return (
       <TouchableOpacity
-        style={[styles.cardItem, isWorking ? styles.cardWorking : styles.cardOff]}
+        style={[
+          styles.cardItem,
+          { width: currentCardWidth, height: isTablet ? 110 : 96 },
+          isWorking ? styles.cardWorking : styles.cardOff,
+        ]}
         activeOpacity={0.8}
         onPress={() => navigation.navigate('TimeClock', { empId: item.id, empName: item.name })}
       >
@@ -358,8 +367,10 @@ export default function EmployeeSelectScreen({ navigation }) {
         ) : (
           <View style={styles.timeBadgePlaceholder} />
         )}
-        <SmaregiFaceIcon isWorking={isWorking} />
-        <Text style={[styles.empNameText, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
+        <View style={{ transform: [{ scale: isTablet ? 1.4 : 1 }], marginVertical: isTablet ? 4 : 0 }}>
+          <SmaregiFaceIcon isWorking={isWorking} />
+        </View>
+        <Text style={[styles.empNameText, isTablet && { fontSize: 13 }, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -391,6 +402,7 @@ export default function EmployeeSelectScreen({ navigation }) {
       ) : (
         <FlatList
           data={filteredEmployees}
+          extraData={currentWidth}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderEmployeeItem}
           numColumns={4}
