@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,7 +10,11 @@ import {
   RefreshControl,
   Dimensions,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
+  PanResponder,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'; // ★修正: useIsFocusedを追加
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,6 +82,34 @@ const SmaregiFaceIcon = ({ isWorking }) => {
 
 export default function EmployeeSelectScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
+
+  // ★追加: スクリーンセーバー（待機画面）用のステートとRef
+  const [isIdle, setIsIdle] = useState(false);
+  const idleTimer = useRef(null);
+  
+  const IDLE_TIMEOUT = 5 * 60 * 1000; // 5分で時計画面を表示
+
+  const resetIdleTimer = () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    if (isIdle) setIsIdle(false);
+    idleTimer.current = setTimeout(() => {
+      setIsIdle(true);
+    }, IDLE_TIMEOUT);
+  };
+
+  // 画面のどこをタッチしてもタイマーをリセットする監視役
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => {
+        resetIdleTimer();
+        return false;
+      },
+      onMoveShouldSetPanResponderCapture: () => {
+        resetIdleTimer();
+        return false;
+      },
+    })
+  ).current;
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,8 +123,12 @@ export default function EmployeeSelectScreen({ navigation }) {
   const [currentShopId, setCurrentShopId] = useState('shop_01');
 
   useEffect(() => {
+    resetIdleTimer(); // 画面が開いたらタイマー開始
     const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
   }, []);
 
   const fetchEmployees = async (shopId) => {
@@ -331,7 +367,7 @@ export default function EmployeeSelectScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
       <View style={styles.headerClockBar}>
         <View style={styles.headerDateBox}>
           <Text style={styles.headerDateText}>
@@ -388,6 +424,26 @@ export default function EmployeeSelectScreen({ navigation }) {
           })}
         </ScrollView>
       </View>
+
+      {/* ★追加: 5分放置時のスクリーンセーバー（時計画面） */}
+      <Modal visible={isIdle} animationType="fade" transparent={false}>
+        <TouchableWithoutFeedback onPress={resetIdleTimer}>
+          <View style={styles.idleScreen}>
+            <View style={styles.idleContent}>
+              <Ionicons name="time-outline" size={140} color="#ffffff" style={styles.idleIcon} />
+              <View style={styles.idleTextContainer}>
+                <Text style={styles.idleDate}>
+                  {dateStr} {dayStr}
+                </Text>
+                <View style={styles.idleTimeRow}>
+                  <Text style={styles.idleTime}>{hhmmStr}</Text>
+                  <Text style={styles.idleSeconds}>{ssStr}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -429,4 +485,47 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: '#ffffff' },
   tabCount: { fontSize: 9.5, color: '#64748b', marginTop: 1 },
   tabCountActive: { color: '#ffffff' },
+  /* ★追加: スクリーンセーバースタイル（TOHOカラー版） */
+  idleScreen: {
+    flex: 1,
+    backgroundColor: COLORS.primary || '#005bb5', // TOHOカラーの背景
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  idleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  idleIcon: {
+    marginRight: 40,
+    opacity: 0.9,
+  },
+  idleTextContainer: {
+    justifyContent: 'center',
+  },
+  idleDate: {
+    color: '#ffffff',
+    fontSize: 40,
+    fontWeight: '300',
+    marginBottom: -10,
+    letterSpacing: 2,
+    opacity: 0.9,
+  },
+  idleTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  idleTime: {
+    color: '#ffffff',
+    fontSize: 140,
+    fontWeight: '200',
+    letterSpacing: 2,
+  },
+  idleSeconds: {
+    color: '#ffffff',
+    fontSize: 50,
+    fontWeight: '200',
+    marginLeft: 8,
+    opacity: 0.9,
+  },
 });
