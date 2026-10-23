@@ -322,7 +322,7 @@ export default function EmployeeSelectScreen({ navigation }) {
     return e.kana && currentTabObj.regex.test(e.kana.trim());
   });
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNames = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
   const dateStr = `${String(time.getMonth() + 1).padStart(2, '0')}/${String(time.getDate()).padStart(2, '0')}`;
   const dayStr = dayNames[time.getDay()];
   const hhmmStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
@@ -451,7 +451,7 @@ export default function EmployeeSelectScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#eaf1f8' },
   headerClockBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#d6e2ee' },
-  headerDateBox: { width: 80 },
+  headerDateBox: { minWidth: 110 },
   headerDateText: { fontSize: 16, fontWeight: 'bold', color: '#334155' },
   headerDayText: { fontSize: 12, color: '#64748b', marginLeft: 3 },
   clockBox: { flexDirection: 'row', alignItems: 'baseline' },
@@ -478,8 +478,19 @@ const styles = StyleSheet.create({
   emptyBox: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 14, color: '#666666' },
   bottomTabBar: { backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingVertical: 6 },
-  tabScroll: { paddingHorizontal: 6 },
-  tabBtn: { alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8, borderRadius: 5, backgroundColor: '#f1f5f9', marginHorizontal: 3, minWidth: 52, borderWidth: 1, borderColor: '#cbd5e1' },
+  tabScroll: { paddingHorizontal: 6, flexGrow: 1, flexDirection: 'row' },
+  tabBtn: {
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: screenWidth >= 600 ? 2 : 8,
+    borderRadius: 5,
+    backgroundColor: '#f1f5f9',
+    marginHorizontal: screenWidth >= 600 ? 2 : 3,
+    minWidth: screenWidth >= 600 ? 0 : 52,
+    flex: screenWidth >= 600 ? 1 : 0,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
   tabBtnActive: { backgroundColor: COLORS.primary || '#0073ea', borderColor: COLORS.primary || '#0073ea' },
   tabLabel: { fontSize: 11, fontWeight: 'bold', color: '#475569' },
   tabLabelActive: { color: '#ffffff' },
