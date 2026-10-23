@@ -973,12 +973,10 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     letterSpacing: 2,
   },
-  /* スマレジ風 下部4等分ボタン（レスポンシブ対応） */
+  /* スマレジ風 下部4等分ボタン */
   actionGridSquare: {
     flexDirection: 'row',
     width: '100%',
-    // スマホは従来の高さ、iPadは横幅の1/4の高さを指定して正方形にする
-    height: screenWidth >= 600 ? screenWidth / 4 : 80,
     backgroundColor: COLORS.primary || '#0073ea',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.4)',
@@ -1001,8 +999,7 @@ const styles = StyleSheet.create({
   },
   btnLabelSquare: {
     color: '#ffffff',
-    // iPadの場合は文字を大きくする
-    fontSize: screenWidth >= 600 ? 32 : 16,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   loadingOverlay: {
