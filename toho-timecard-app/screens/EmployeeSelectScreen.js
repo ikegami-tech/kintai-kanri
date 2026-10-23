@@ -83,8 +83,9 @@ const SmaregiFaceIcon = ({ isWorking }) => {
 
 export default function EmployeeSelectScreen({ navigation }) {
   const { width: currentWidth } = useWindowDimensions();
-  const currentCardWidth = (currentWidth - 10) / 4;
   const isTablet = currentWidth >= 600;
+  // スマホは4等分、タブレット(iPad)は5等分に計算
+  const currentCardWidth = isTablet ? (currentWidth - 12) / 5 : (currentWidth - 10) / 4;
 
   const [employees, setEmployees] = useState([]);
 
@@ -356,8 +357,8 @@ export default function EmployeeSelectScreen({ navigation }) {
           styles.cardItem,
           {
             width: currentCardWidth,
-            height: isTablet ? Math.round(currentCardWidth * 0.56) : 96,
-            paddingVertical: isTablet ? 4 : 4,
+            height: isTablet ? currentCardWidth : 96, // ★高さを横幅と同じにして正方形（1:1）にする
+            paddingVertical: isTablet ? 10 : 4, // 上下の余白を少し広げる
           },
           isWorking ? styles.cardWorking : styles.cardOff,
         ]}
@@ -365,16 +366,19 @@ export default function EmployeeSelectScreen({ navigation }) {
         onPress={() => navigation.navigate('TimeClock', { empId: item.id, empName: item.name })}
       >
         {isWorking ? (
-          <View style={[styles.timeBadge, isTablet && { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }]}>
-            <Text style={[styles.timeBadgeText, isTablet && { fontSize: 11 }]}>○ {clockInTime}</Text>
+          <View style={[styles.timeBadge, isTablet && { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }]}>
+            <Text style={[styles.timeBadgeText, isTablet && { fontSize: 12 }]}>○ {clockInTime}</Text>
           </View>
         ) : (
           <View style={styles.timeBadgePlaceholder} />
         )}
-        <View style={{ transform: [{ scale: isTablet ? 1.95 : 1 }], marginVertical: isTablet ? 1 : 0 }}>
+        
+        {/* ★正方形の中でアイコンが綺麗に中央に配置されるよう flex: 1 を追加し、さらに拡大 */}
+        <View style={[{ transform: [{ scale: isTablet ? 2.5 : 1 }] }, isTablet && { flex: 1, justifyContent: 'center' }]}>
           <SmaregiFaceIcon isWorking={isWorking} />
         </View>
-        <Text style={[styles.empNameText, isTablet && { fontSize: 13, fontWeight: 'bold' }, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
+
+        <Text style={[styles.empNameText, isTablet && { fontSize: 14, fontWeight: 'bold', marginBottom: 2 }, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -405,11 +409,12 @@ export default function EmployeeSelectScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
+          key={isTablet ? 'cols-5' : 'cols-4'} // ★表示崩れを防ぐための必須設定
           data={filteredEmployees}
           extraData={currentWidth}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderEmployeeItem}
-          numColumns={4}
+          numColumns={isTablet ? 5 : 4}
           contentContainerStyle={styles.gridContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary || '#0073ea']} />
