@@ -11,7 +11,8 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Keyboard,
-  AppState, // ★追加: アプリのバックグラウンド状態を検知する機能
+  AppState,
+  useWindowDimensions, // ★追加: 画面サイズ取得用
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,9 @@ import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
 
 export default function TimeClockScreen({ route, navigation }) {
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 600;
+
   const empId = route.params?.empId;
   const empName = route.params?.empName || '未選択';
 
@@ -665,14 +669,14 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
       </View>
 
       {/* 下部：スマレジ風 4等分フラットボタン（グレーアウト制御を追加） */}
-      <View style={styles.actionGridSquare}>
+      <View style={[styles.actionGridSquare, { height: isTablet ? width / 4 : 80 }]}>
         <TouchableOpacity 
           style={[styles.actionBtnSquare, (isWorking || statusLoading) && styles.btnDisabled]} 
           activeOpacity={0.7} 
           onPress={() => handleSimpleClock('出勤')}
           disabled={isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, (isWorking || statusLoading) && styles.btnLabelDisabled]}>出勤</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (isWorking || statusLoading) && styles.btnLabelDisabled]}>出勤</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
@@ -683,7 +687,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
           onPress={() => handleSimpleClock('退勤')}
           disabled={!isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>退勤</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>退勤</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
@@ -694,7 +698,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
           onPress={() => handleDirectClock('直行')}
           disabled={isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, (isWorking || statusLoading) && styles.btnLabelDisabled]}>直行</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (isWorking || statusLoading) && styles.btnLabelDisabled]}>直行</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
@@ -705,7 +709,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
           onPress={() => handleDirectClock('直帰')}
           disabled={!isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>直帰</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>直帰</Text>
         </TouchableOpacity>
       </View>
 
@@ -969,11 +973,12 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     letterSpacing: 2,
   },
-  /* スマレジ風 下部4等分ボタン */
+  /* スマレジ風 下部4等分ボタン（レスポンシブ対応） */
   actionGridSquare: {
     flexDirection: 'row',
     width: '100%',
-    height: 80,
+    // スマホは従来の高さ、iPadは横幅の1/4の高さを指定して正方形にする
+    height: screenWidth >= 600 ? screenWidth / 4 : 80,
     backgroundColor: COLORS.primary || '#0073ea',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.4)',
@@ -996,7 +1001,8 @@ const styles = StyleSheet.create({
   },
   btnLabelSquare: {
     color: '#ffffff',
-    fontSize: 16,
+    // iPadの場合は文字を大きくする
+    fontSize: screenWidth >= 600 ? 32 : 16,
     fontWeight: 'bold',
   },
   loadingOverlay: {
