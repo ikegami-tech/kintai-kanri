@@ -354,23 +354,27 @@ export default function EmployeeSelectScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.cardItem,
-          { width: currentCardWidth, height: isTablet ? 110 : 96 },
+          {
+            width: currentCardWidth,
+            height: isTablet ? Math.round(currentCardWidth * 0.56) : 96,
+            paddingVertical: isTablet ? 4 : 4,
+          },
           isWorking ? styles.cardWorking : styles.cardOff,
         ]}
         activeOpacity={0.8}
         onPress={() => navigation.navigate('TimeClock', { empId: item.id, empName: item.name })}
       >
         {isWorking ? (
-          <View style={styles.timeBadge}>
-            <Text style={styles.timeBadgeText}>○ {clockInTime}</Text>
+          <View style={[styles.timeBadge, isTablet && { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }]}>
+            <Text style={[styles.timeBadgeText, isTablet && { fontSize: 11 }]}>○ {clockInTime}</Text>
           </View>
         ) : (
           <View style={styles.timeBadgePlaceholder} />
         )}
-        <View style={{ transform: [{ scale: isTablet ? 1.4 : 1 }], marginVertical: isTablet ? 4 : 0 }}>
+        <View style={{ transform: [{ scale: isTablet ? 1.95 : 1 }], marginVertical: isTablet ? 1 : 0 }}>
           <SmaregiFaceIcon isWorking={isWorking} />
         </View>
-        <Text style={[styles.empNameText, isTablet && { fontSize: 13 }, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
+        <Text style={[styles.empNameText, isTablet && { fontSize: 13, fontWeight: 'bold' }, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
           {item.name}
         </Text>
       </TouchableOpacity>
