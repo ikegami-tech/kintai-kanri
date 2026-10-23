@@ -40,7 +40,7 @@ const INITIAL_TABS = [
 ];
 
 const SmaregiFaceIcon = ({ isWorking }) => {
-  const color = isWorking ? '#ffffff' : '#788d9e';
+  const color = isWorking ? '#ffffff' : '#ffffff'; // 出勤・退勤ともに白線
   return (
     <View style={{ position: 'relative', width: 42, height: 42, justifyContent: 'center', alignItems: 'center' }}>
       <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: color, justifyContent: 'center', alignItems: 'center' }}>
@@ -83,8 +83,8 @@ const SmaregiFaceIcon = ({ isWorking }) => {
 
 export default function EmployeeSelectScreen({ navigation }) {
   const { width: currentWidth } = useWindowDimensions();
-  const currentCardWidth = (currentWidth - 10) / 4;
   const isTablet = currentWidth >= 600;
+  const currentCardWidth = isTablet ? (currentWidth - 12) / 5 : (currentWidth - 10) / 4;
 
   const [employees, setEmployees] = useState([]);
 
@@ -371,7 +371,7 @@ export default function EmployeeSelectScreen({ navigation }) {
         ) : (
           <View style={styles.timeBadgePlaceholder} />
         )}
-        <View style={{ transform: [{ scale: isTablet ? 1.95 : 1 }], marginVertical: isTablet ? 1 : 0 }}>
+        <View style={{ transform: [{ scale: isTablet ? 2.2 : 1 }], marginVertical: isTablet ? 6 : 0 }}>
           <SmaregiFaceIcon isWorking={isWorking} />
         </View>
         <Text style={[styles.empNameText, isTablet && { fontSize: 13, fontWeight: 'bold' }, isWorking && styles.empNameWorkingText]} numberOfLines={2}>
@@ -409,7 +409,8 @@ export default function EmployeeSelectScreen({ navigation }) {
           extraData={currentWidth}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderEmployeeItem}
-          numColumns={4}
+          key={isTablet ? 'tablet-5' : 'mobile-4'}
+          numColumns={isTablet ? 5 : 4}
           contentContainerStyle={styles.gridContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary || '#0073ea']} />
