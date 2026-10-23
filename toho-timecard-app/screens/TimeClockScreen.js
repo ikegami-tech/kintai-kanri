@@ -669,14 +669,14 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
       </View>
 
       {/* 下部：スマレジ風 4等分フラットボタン（グレーアウト制御を追加） */}
-      <View style={[styles.actionGridSquare, { height: isTablet ? width / 4 : 80 }]}>
+      <View style={[styles.actionGridSquare, { height: isTablet ? width / 5.5 : 80 }]}>
         <TouchableOpacity 
           style={[styles.actionBtnSquare, (isWorking || statusLoading) && styles.btnDisabled]} 
           activeOpacity={0.7} 
           onPress={() => handleSimpleClock('出勤')}
           disabled={isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (isWorking || statusLoading) && styles.btnLabelDisabled]}>出勤</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 26 }, (isWorking || statusLoading) && styles.btnLabelDisabled]}>出勤</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
@@ -687,7 +687,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
           onPress={() => handleSimpleClock('退勤')}
           disabled={!isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>退勤</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 26 }, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>退勤</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
@@ -698,7 +698,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
           onPress={() => handleDirectClock('直行')}
           disabled={isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (isWorking || statusLoading) && styles.btnLabelDisabled]}>直行</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 26 }, (isWorking || statusLoading) && styles.btnLabelDisabled]}>直行</Text>
         </TouchableOpacity>
         
         <View style={styles.btnDivider} />
@@ -709,7 +709,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
           onPress={() => handleDirectClock('直帰')}
           disabled={!isWorking || statusLoading}
         >
-          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 32 }, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>直帰</Text>
+          <Text style={[styles.btnLabelSquare, isTablet && { fontSize: 26 }, (!isWorking || statusLoading) && styles.btnLabelDisabled]}>直帰</Text>
         </TouchableOpacity>
       </View>
 
