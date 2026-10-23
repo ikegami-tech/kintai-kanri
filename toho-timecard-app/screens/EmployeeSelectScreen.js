@@ -87,7 +87,7 @@ export default function EmployeeSelectScreen({ navigation }) {
   const [isIdle, setIsIdle] = useState(false);
   const idleTimer = useRef(null);
   
-  const IDLE_TIMEOUT = 5 * 60 * 1000; // 5分で時計画面を表示
+  const IDLE_TIMEOUT = 5 * 60 * 5000; // 5分で時計画面を表示
 
   const resetIdleTimer = () => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
