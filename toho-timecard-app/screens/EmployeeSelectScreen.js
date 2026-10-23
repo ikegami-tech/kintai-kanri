@@ -430,7 +430,7 @@ export default function EmployeeSelectScreen({ navigation }) {
         <TouchableWithoutFeedback onPress={resetIdleTimer}>
           <View style={styles.idleScreen}>
             <View style={styles.idleContent}>
-              <Ionicons name="time-outline" size={140} color="#ffffff" style={styles.idleIcon} />
+              <Ionicons name="time-outline" size={screenWidth >= 600 ? 140 : 80} color="#ffffff" style={styles.idleIcon} />
               <View style={styles.idleTextContainer}>
                 <Text style={styles.idleDate}>
                   {dateStr} {dayStr}
@@ -485,31 +485,36 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: '#ffffff' },
   tabCount: { fontSize: 9.5, color: '#64748b', marginTop: 1 },
   tabCountActive: { color: '#ffffff' },
-  /* ★追加: スクリーンセーバースタイル（TOHOカラー版） */
+  /* ★追加: スクリーンセーバースタイル（TOHOカラー版・スマホ/タブレット自動調整） */
   idleScreen: {
     flex: 1,
     backgroundColor: COLORS.primary || '#005bb5', // TOHOカラーの背景
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   idleContent: {
-    flexDirection: 'row',
+    flexDirection: screenWidth >= 600 ? 'row' : 'column',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   idleIcon: {
-    marginRight: 40,
+    marginRight: screenWidth >= 600 ? 40 : 0,
+    marginBottom: screenWidth >= 600 ? 0 : 16,
     opacity: 0.9,
   },
   idleTextContainer: {
     justifyContent: 'center',
+    alignItems: screenWidth >= 600 ? 'flex-start' : 'center',
   },
   idleDate: {
     color: '#ffffff',
-    fontSize: 40,
+    fontSize: screenWidth >= 600 ? 40 : 22,
     fontWeight: '300',
-    marginBottom: -10,
-    letterSpacing: 2,
+    marginBottom: screenWidth >= 600 ? -10 : 4,
+    letterSpacing: screenWidth >= 600 ? 2 : 1,
     opacity: 0.9,
+    textAlign: screenWidth >= 600 ? 'left' : 'center',
   },
   idleTimeRow: {
     flexDirection: 'row',
@@ -517,15 +522,15 @@ const styles = StyleSheet.create({
   },
   idleTime: {
     color: '#ffffff',
-    fontSize: 140,
+    fontSize: screenWidth >= 600 ? 140 : 68,
     fontWeight: '200',
-    letterSpacing: 2,
+    letterSpacing: screenWidth >= 600 ? 2 : 1,
   },
   idleSeconds: {
     color: '#ffffff',
-    fontSize: 50,
+    fontSize: screenWidth >= 600 ? 50 : 26,
     fontWeight: '200',
-    marginLeft: 8,
+    marginLeft: screenWidth >= 600 ? 8 : 6,
     opacity: 0.9,
   },
 });
