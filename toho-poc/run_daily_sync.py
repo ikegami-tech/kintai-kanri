@@ -46,7 +46,16 @@ def fetch_toho_data():
     fetched_users = []
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        # ★変更: 画面ロック中やバックグラウンドでも確実に動くよう、引数を強化
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--window-size=1920,1080"
+            ]
+        )
         
         # ★変更: Basic認証の突破設定を追加
         context = browser.new_context(

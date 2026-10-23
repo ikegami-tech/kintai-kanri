@@ -2,13 +2,13 @@
   "expo": {
     "name": "勤怠管理",
     "slug": "toho-timecard-app",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tohonext.timecard",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
