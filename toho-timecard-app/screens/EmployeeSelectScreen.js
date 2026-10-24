@@ -82,10 +82,14 @@ const SmaregiFaceIcon = ({ isWorking }) => {
 };
 
 export default function EmployeeSelectScreen({ navigation }) {
-  const { width: currentWidth } = useWindowDimensions();
-  const isTablet = currentWidth >= 600;
-  // スマホは4等分、タブレット(iPad)は5等分に計算
-  const currentCardWidth = isTablet ? (currentWidth - 12) / 5 : (currentWidth - 10) / 4;
+  const { width: currentWidth, height: currentHeight } = useWindowDimensions();
+  // ★横向き判定
+  const isLandscape = currentWidth > currentHeight;
+  const isTablet = currentWidth >= 600 || currentHeight >= 600;
+
+  // ★横向き時は左側バー（幅72px）の分を引いた幅でカードを均等割り
+  const availableWidth = isLandscape ? currentWidth - 72 : currentWidth;
+  const currentCardWidth = isTablet ? (availableWidth - 12) / 5 : (availableWidth - 10) / 4;
 
   const [employees, setEmployees] = useState([]);
 
@@ -403,47 +407,81 @@ export default function EmployeeSelectScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={COLORS.primary || '#0073ea'} />
-        </View>
-      ) : (
-        <FlatList
-          key={isTablet ? 'cols-5' : 'cols-4'} // ★表示崩れを防ぐための必須設定
-          data={filteredEmployees}
-          extraData={currentWidth}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={renderEmployeeItem}
-          numColumns={isTablet ? 5 : 4}
-          contentContainerStyle={styles.gridContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary || '#0073ea']} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>該当する従業員がいません</Text>
-            </View>
-          }
-        />
-      )}
+      {/* メインエリア：横向き時は左右横並び、縦向き時は上下並び */}
+      <View style={isLandscape ? styles.bodyLandscape : styles.bodyPortrait}>
+        {/* ★横向きの時は左側に五十音バーを配置 */}
+        {isLandscape && (
+          <View style={styles.leftTabBar}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.tabScrollVertical}
+            >
+              {INITIAL_TABS.map((tab) => {
+                const count = getCountForTab(tab);
+                const isActive = selectedTab === tab.label;
+                return (
+                  <TouchableOpacity
+                    key={tab.label}
+                    style={[styles.tabBtnVertical, isActive && styles.tabBtnActive]}
+                    onPress={() => setSelectedTab(tab.label)}
+                  >
+                    <Text style={[styles.tabLabelVertical, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+                    <Text style={[styles.tabCountVertical, isActive && styles.tabCountActive]}>({count})</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
-      <View style={styles.bottomTabBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {INITIAL_TABS.map((tab) => {
-            const count = getCountForTab(tab);
-            const isActive = selectedTab === tab.label;
-            return (
-              <TouchableOpacity
-                key={tab.label}
-                style={[styles.tabBtn, isActive && styles.tabBtnActive]}
-                onPress={() => setSelectedTab(tab.label)}
-              >
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
-                <Text style={[styles.tabCount, isActive && styles.tabCountActive]}>({count}人)</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {/* 従業員グリッド */}
+        <View style={styles.gridWrapper}>
+          {loading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={COLORS.primary || '#0073ea'} />
+            </View>
+          ) : (
+            <FlatList
+              key={isTablet ? (isLandscape ? 'cols-5-land' : 'cols-5-port') : 'cols-4'}
+              data={filteredEmployees}
+              extraData={currentWidth}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderEmployeeItem}
+              numColumns={isTablet ? 5 : 4}
+              contentContainerStyle={styles.gridContainer}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary || '#0073ea']} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyText}>該当する従業員がいません</Text>
+                </View>
+              }
+            />
+          )}
+        </View>
+
+        {/* ★縦向きの時は従来通り下部に配置 */}
+        {!isLandscape && (
+          <View style={styles.bottomTabBar}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+              {INITIAL_TABS.map((tab) => {
+                const count = getCountForTab(tab);
+                const isActive = selectedTab === tab.label;
+                return (
+                  <TouchableOpacity
+                    key={tab.label}
+                    style={[styles.tabBtn, isActive && styles.tabBtnActive]}
+                    onPress={() => setSelectedTab(tab.label)}
+                  >
+                    <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+                    <Text style={[styles.tabCount, isActive && styles.tabCountActive]}>({count}人)</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {/* ★追加: 5分放置時のスクリーンセーバー（時計画面） */}
@@ -498,6 +536,37 @@ const styles = StyleSheet.create({
   empNameWorkingText: { color: '#ffffff' },
   emptyBox: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 14, color: '#666666' },
+  /* ★追加: 横向き・縦向きのコンテナスタイル */
+  bodyLandscape: { flex: 1, flexDirection: 'row' },
+  bodyPortrait: { flex: 1, flexDirection: 'column' },
+  gridWrapper: { flex: 1 },
+  /* ★追加: 左側五十音バースタイル */
+  leftTabBar: {
+    width: 72,
+    backgroundColor: '#ffffff',
+    borderRightWidth: 1,
+    borderRightColor: '#cbd5e1',
+    paddingVertical: 4,
+  },
+  tabScrollVertical: {
+    paddingVertical: 4,
+    alignItems: 'center',
+    flexGrow: 1,
+    justifyContent: 'space-between',
+  },
+  tabBtnVertical: {
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#f1f5f9',
+    marginVertical: 2,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  tabLabelVertical: { fontSize: 13, fontWeight: 'bold', color: '#475569' },
+  tabCountVertical: { fontSize: 9.5, color: '#64748b', marginTop: 1 },
   bottomTabBar: { backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingVertical: 6 },
   tabScroll: { paddingHorizontal: 6, flexGrow: 1, flexDirection: 'row' },
   tabBtn: {
