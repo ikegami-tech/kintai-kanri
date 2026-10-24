@@ -1875,7 +1875,9 @@ async function renderMatrixTable() {
               tooltipParts.push(directTags.join('・'));
             }
             if (otherMemo) {
-              tooltipParts.push(otherMemo);
+              // ★修正: 吹き出しに表示する時だけ、有給・遅刻・欠勤・早退の時間を隠す
+              let displayMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
+              tooltipParts.push(displayMemo);
             }
 
             const pureMemo = tooltipParts.join('\n').trim();
@@ -2071,6 +2073,9 @@ async function renderDailyTable() {
         }
 
         let otherMemo = cleanMemo.trim();
+        // ★修正: 吹き出しに表示する時だけ、有給・遅刻・欠勤・早退の時間を隠す
+        otherMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
+
         let tooltipParts = [];
         if (directTags.length > 0) tooltipParts.push(directTags.join('・'));
         if (otherMemo) tooltipParts.push(otherMemo);
