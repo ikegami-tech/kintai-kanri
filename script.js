@@ -1937,7 +1937,8 @@ async function renderMatrixTable() {
     if (summary && summary.days > 0) {
       // ★修正: スマレジと同じ10進数（小数点第2位）で表示する
       const totalHours = (summary.workMins / 60).toFixed(2);
-      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}<br>${summary.days}日</td></tr>`;
+      // ★修正: 「時間」という文字を復活させました
+      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
     }
