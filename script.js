@@ -898,8 +898,14 @@ async function submitRecordCreate() {
       const sm = document.getElementById(`create-${type}-start-m`)?.value || '--';
       const eh = document.getElementById(`create-${type}-end-h`)?.value || '--';
       const em = document.getElementById(`create-${type}-end-m`)?.value || '--';
-      if (sh !== '--' && sm !== '--' && eh !== '--' && em !== '--') {
-        memoParts.push(`【${labelMap[type]}】${sh}:${sm}〜${eh}:${em}`);
+      
+      // ★修正: 「午前休」と「午後休」のみ時間を付け、それ以外(有給・遅刻・早退・欠勤)は文字のみ
+      if (type === 'paid-am' || type === 'paid-pm') {
+        if (sh !== '--' && sm !== '--' && eh !== '--' && em !== '--') {
+          memoParts.push(`【${labelMap[type]}】${sh}:${sm}〜${eh}:${em}`);
+        } else {
+          memoParts.push(`【${labelMap[type]}】`);
+        }
       } else {
         memoParts.push(`【${labelMap[type]}】`);
       }
@@ -1006,8 +1012,14 @@ async function submitRecordEdit() {
       const sm = document.getElementById(`edit-${type}-start-m`)?.value || '--';
       const eh = document.getElementById(`edit-${type}-end-h`)?.value || '--';
       const em = document.getElementById(`edit-${type}-end-m`)?.value || '--';
-      if (sh !== '--' && sm !== '--' && eh !== '--' && em !== '--') {
-        memoParts.push(`【${labelMap[type]}】${sh}:${sm}〜${eh}:${em}`);
+      
+      // ★修正: 「午前休」と「午後休」のみ時間を付け、それ以外(有給・遅刻・早退・欠勤)は文字のみ
+      if (type === 'paid-am' || type === 'paid-pm') {
+        if (sh !== '--' && sm !== '--' && eh !== '--' && em !== '--') {
+          memoParts.push(`【${labelMap[type]}】${sh}:${sm}〜${eh}:${em}`);
+        } else {
+          memoParts.push(`【${labelMap[type]}】`);
+        }
       } else {
         memoParts.push(`【${labelMap[type]}】`);
       }
