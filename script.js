@@ -1682,56 +1682,35 @@ async function renderMatrixTable() {
       summaryMap[att.employee_id] = { days: 0, workMins: 0, countedDates: [] };
     }
 
-    // ★修正: 退勤忘れ(出勤のみ)の場合や、有給・半休を出勤日数にカウントする
-    let addDay = 0;
-    if (att.clock_in) {
-      addDay = 1;
-    } else if (att.memo) {
-      if (att.memo.includes('【有給】')) {
-        addDay = 1;
-      } else if (att.memo.includes('【午前休】') || att.memo.includes('【午後休】')) {
-        addDay = 0.5;
-      }
-    }
-
-    if (addDay > 0 && !summaryMap[att.employee_id].countedDates.includes(dateStr)) {
-      summaryMap[att.employee_id].days += addDay;
+    // ★労基法準拠: 実出勤日のみカウント（有給・欠勤等の打刻なし日は除外）
+    if (att.clock_in && !summaryMap[att.employee_id].countedDates.includes(dateStr)) {
+      summaryMap[att.employee_id].days += 1;
       summaryMap[att.employee_id].countedDates.push(dateStr);
     }
 
-    // ★修正: スマレジ基準の実働時間計算（6時間以上の滞在で休憩1時間を自動マイナス）
-    let actualStart = 0;
-    let actualEnd = 0;
-    let timeFound = false;
-
+    // ★労基法準拠: 実労働時間のみを集計（有休などのみなし時間は労働時間から除外）
     if (att.clock_in && att.clock_out) {
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
-      actualStart = inH * 60 + inM;
-      actualEnd = outH * 60 + outM;
-      if (actualEnd < actualStart && outH < 12) actualEnd += 24 * 60; // 日跨ぎ対応
-      timeFound = true;
-    } else if (att.memo) {
-      const match = att.memo.match(/【(?:遅刻|欠勤|早退|有給|午前休|午後休)】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
-      if (match) {
-        actualStart = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-        actualEnd = parseInt(match[3], 10) * 60 + parseInt(match[4], 10);
-        if (actualEnd < actualStart && parseInt(match[3], 10) < 12) actualEnd += 24 * 60;
-        timeFound = true;
-      } else if (att.memo.includes('【有給】') || att.memo.includes('【欠勤】')) {
-        // 有給などはスマレジに合わせて「所定労働時間（8時間＝480分）」として扱う
-        actualStart = 0; actualEnd = 480; timeFound = true; 
-      } else if (att.memo.includes('【午前休】') || att.memo.includes('【午後休】')) {
-        actualStart = 0; actualEnd = 240; timeFound = true;
-      }
-    }
+      let actualStart = inH * 60 + inM;
+      let actualEnd = outH * 60 + outM;
+      if (actualEnd < actualStart && outH < 12) actualEnd += 24 * 60; // 翌日跨ぎ対応
 
-    if (timeFound) {
       let stayMinutes = actualEnd - actualStart;
       if (stayMinutes < 0) stayMinutes = 0;
-      
-      // ★修正: 休憩時間の自動マイナスを削除し、純粋な時間をそのまま加算する
-      summaryMap[att.employee_id].workMins += stayMinutes;
+
+      // 法定休憩の控除（労働基準法第34条: 6時間超〜8時間以下は45分 / 8時間超は60分）
+      let breakMins = 0;
+      if (stayMinutes > 480) {
+        breakMins = 60;
+      } else if (stayMinutes > 360) {
+        breakMins = 45;
+      }
+
+      let netWorkMins = stayMinutes - breakMins;
+      if (netWorkMins < 0) netWorkMins = 0;
+
+      summaryMap[att.employee_id].workMins += netWorkMins;
     }
     
     if (!attendanceMap[att.employee_id]) attendanceMap[att.employee_id] = {};
@@ -1930,9 +1909,7 @@ async function renderMatrixTable() {
     
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
-      // ★修正: スマレジと同じ10進数（小数点第2位）で表示する
       const totalHours = (summary.workMins / 60).toFixed(2);
-      // ★修正: 「時間」という文字を復活させました
       tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
@@ -2334,16 +2311,10 @@ async function fetchOvertimeData(year, month, selectedDept) {
         }
       }
 
-      // ★修正: 退勤忘れ(出勤のみ)の場合も出勤日数としてカウントする
+      // ★労基法準拠: 実打刻（出勤）がある日のみを出勤日数としてカウント
       let addDay = 0;
       if (att.clock_in) {
         addDay = 1;
-      } else if (att.memo) {
-        if (att.memo.includes('【有給】')) {
-          addDay = 1;
-        } else if (att.memo.includes('【午前休】') || att.memo.includes('【午後休】')) {
-          addDay = 0.5;
-        }
       }
 
       const isHolidaySetting = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
@@ -2366,7 +2337,6 @@ async function fetchOvertimeData(year, month, selectedDept) {
       // 労働時間・残業時間の計算 (打刻がない場合はここで抜ける)
       if (!att.clock_in || !att.clock_out) return;
 
-      // ★修正: 10進数計算用の正確な分数を算出する（秒は切り捨て済み）
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       
@@ -2377,8 +2347,16 @@ async function fetchOvertimeData(year, month, selectedDept) {
       let stayMinutes = outMinutes - inMinutes;
       if (stayMinutes < 0) stayMinutes = 0;
 
-      // ★修正: 休憩時間のマイナス処理を削除
-      let workMinutes = stayMinutes;
+      // 法定休憩の控除（6時間超〜8時間以下: 45分 / 8時間超: 60分）
+      let breakMins = 0;
+      if (stayMinutes > 480) {
+        breakMins = 60;
+      } else if (stayMinutes > 360) {
+        breakMins = 45;
+      }
+
+      let workMinutes = stayMinutes - breakMins;
+      if (workMinutes < 0) workMinutes = 0;
 
       totalWorkMins += workMinutes;
 
