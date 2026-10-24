@@ -1939,7 +1939,8 @@ async function renderMatrixTable() {
       const decimalHours = summary.workMins / 60;
       // .25, .50, .75 のように表示を整える
       const totalHours = (Math.floor(decimalHours * 4) / 4).toFixed(2); 
-      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}<br>${summary.days}日</td></tr>`;
+      // ★修正: 「時間」の単位を復活させました
+      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
     }
