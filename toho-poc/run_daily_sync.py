@@ -9,9 +9,12 @@ import pymysql
 from playwright.sync_api import sync_playwright
 
 # ==================== 設定情報 ====================
-TOHO_USER_ID = "ikegami"
-TOHO_PASSWORD = "31415926"
-TOHO_SECRET_KEY = "YYNGPV7XOBDPJXHIXNXKDCXVVL7FTSA3EFOFWCMDLKXWG722V73SNLFMBN6CFC6NOARQE3E75PK7CW3O4CUF7XUQH4HNXBGJEQQCC3Y"
+# 全社共通の認証情報（指定がない店舗で使われます）
+COMMON_LOGIN_ID = "admin"
+COMMON_LOGIN_PASS = "00thnxadmin2309"
+COMMON_TOTP_SECRET = "YYNGPV7XOBDPJXHIXNXKDCXVVL7FTSA3EFOFWCMDLKXWG722V73SNLFMBN6CFC6NOARQE3E75PK7CW3O4CUF7XUQH4HNXBGJEQQCC3Y"
+COMMON_BASIC_USER = "sec_user_9k8x2p1"
+COMMON_BASIC_PASS = "k9#mP4$vR7!zL2@qW8Xn"
 
 DB_CONFIG = {
     'host': 'apb.cha6sci863bs.ap-northeast-1.rds.amazonaws.com',
@@ -22,6 +25,46 @@ DB_CONFIG = {
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }
+
+# ★取得対象の個社リスト（全31店舗）
+TARGET_SHOPS = [
+    {
+        "name": "NEXT", 
+        "path": "next",
+        "login_id": "ikegami",
+        "login_pass": "31415926"
+    },
+    {"name": "国分寺", "path": "kokubunji"},
+    {"name": "立川", "path": "tachikawa"},
+    {"name": "大田東京", "path": "otatokyo"},
+    {"name": "品川", "path": "shinagawa"},
+    {"name": "練馬", "path": "nerima"},
+    {"name": "城東", "path": "joto"},
+    {"name": "武蔵野", "path": "musashino"},
+    {"name": "町田", "path": "machida"},
+    {"name": "溝の口", "path": "mizonokuchi"},
+    {"name": "横浜", "path": "yokohama"},
+    {"name": "湘南", "path": "shonan"},
+    {"name": "川口", "path": "kawaguchi"},
+    {"name": "浦和", "path": "urawa"},
+    {"name": "新都心", "path": "shintoshin"},
+    {"name": "船橋", "path": "funabashi"},
+    {"name": "新小岩", "path": "shinkoiwa"},
+    {"name": "杉並", "path": "suginami"},
+    {"name": "世田谷", "path": "setagaya"},
+    {"name": "横浜西口", "path": "yokohamawest"},
+    {"name": "松戸", "path": "matsudo"},
+    {"name": "調布", "path": "chofu"},
+    {"name": "王子", "path": "oji"},
+    {"name": "横浜戸塚", "path": "yokohamatotsuka"},
+    {"name": "逗子・葉山リゾート", "path": "zushihayama"},
+    {"name": "東京", "path": "tokyo"},
+    {"name": "新横浜", "path": "shinyokohama"},
+    {"name": "江坂", "path": "esaka"},
+    {"name": "名古屋城東", "path": "nagoyajoto"},
+    {"name": "名古屋中央", "path": "nagoyacenter"},
+    {"name": "柏", "path": "kashiwa"},
+]
 
 NAME_ALIASES = {
     "佐藤": "佐藤学",
@@ -40,13 +83,19 @@ def clean_name(name_str):
     normalized = unicodedata.normalize('NFKC', str(name_str))
     return "".join(normalized.split())
 
-def fetch_toho_data():
-    totp = pyotp.TOTP(TOHO_SECRET_KEY)
+def fetch_toho_data(shop):
+    shop_name = shop["name"]
+    shop_path = shop["path"]
+    
+    login_id = shop.get("login_id", COMMON_LOGIN_ID)
+    login_pass = shop.get("login_pass", COMMON_LOGIN_PASS)
+    totp_secret = shop.get("totp_secret", COMMON_TOTP_SECRET)
+
+    totp = pyotp.TOTP(totp_secret)
     fetched_schedules = []
     fetched_users = []
 
     with sync_playwright() as playwright:
-        # ★変更: 画面ロック中やバックグラウンドでも確実に動くよう、引数を強化
         browser = playwright.chromium.launch(
             headless=True,
             args=[
@@ -57,11 +106,10 @@ def fetch_toho_data():
             ]
         )
         
-        # ★変更: Basic認証の突破設定を追加
         context = browser.new_context(
             http_credentials={
-                "username": "sec_user_9k8x2p1",       # ← ここに実際のIDを入力
-                "password": "k9#mP4$vR7!zL2@qW8Xn"  # ← ここに実際のパスワードを入力
+                "username": COMMON_BASIC_USER,
+                "password": COMMON_BASIC_PASS
             }
         )
         page = context.new_page()
@@ -85,18 +133,19 @@ def fetch_toho_data():
 
         page.on("response", handle_response)
 
-        print("[Step 1] TOHO SSにアクセス中...")
-        page.goto("https://toho-ss.jp/es/login/next")
+        target_url = f"https://toho-ss.jp/es/login/{shop_path}"
+        print(f"[Step 1] {shop_name} ({target_url}) にアクセス中...")
+        page.goto(target_url)
 
-        print("[Step 2] 認証情報を入力してログイン...")
-        page.locator('input[type="text"], input[name*="user"], input[name*="login"]').first.fill(TOHO_USER_ID)
-        page.locator('input[type="password"]').fill(TOHO_PASSWORD)
+        print(f"[Step 2] アカウント ({login_id}) でログイン...")
+        page.locator('input[type="text"], input[name*="user"], input[name*="login"]').first.fill(login_id)
+        page.locator('input[type="password"]').fill(login_pass)
         page.click('button[type="submit"], input[type="submit"], .btn')
 
         page.wait_for_url("**/estate/users/mfa**", timeout=15000)
         page.wait_for_timeout(1000)
 
-        print("[Step 3] TOTP認証を選択中...")
+        print("[Step 3] TOTP認証を処理中...")
         totp_select = page.locator('div:has-text("アプリ認証")').locator('text="選択"').first
         if totp_select.is_visible():
             totp_select.click()
@@ -121,20 +170,15 @@ def fetch_toho_data():
         page.wait_for_url("**/estate/home**", timeout=20000)
         page.wait_for_timeout(2000)
 
-        print("[Step 5] スケジュールデータをロード中（API応答待機）...")
+        print(f"[Step 5] {shop_name} のスケジュールデータをロード中...")
         try:
-            # 「全員」ボタンを押下
             page.get_by_text("全員", exact=True).click()
-            
-            # 【追加】get-schedule APIのレスポンスが返ってくるまで明示的に待つ
             with page.expect_response(lambda response: "calendar-api/get-schedule" in response.url, timeout=15000):
                 pass 
-                
         except Exception as e:
             print(f"API待機中にタイムアウトまたはエラーが発生: {e}")
             pass
 
-        # 念のための最終待機
         page.wait_for_timeout(3000)
 
         context.close()
@@ -146,10 +190,10 @@ def sync_to_db(schedules, users, target_date_str=None):
     if not target_date_str:
         target_date_str = date.today().strftime('%Y-%m-%d')
 
-    print(f"\n[Step 6] データベースへの同期を開始します（対象日: {target_date_str}）")
+    print(f"[Step 6] データベースへの同期を開始します（対象日: {target_date_str}）")
 
     if not schedules:
-        print("⚠️ スケジュールデータが取得できなかったため、同期を中止します。")
+        print("⚠️ スケジュールデータが取得できなかったため、同期をスキップします。")
         return
 
     toho_user_map = {str(u.get("id")): u.get("title", "") for u in users if u.get("id")}
@@ -215,18 +259,15 @@ def sync_to_db(schedules, users, target_date_str=None):
                     end_time = "" if row.get("allDay") == "true" else end_raw[11:16]
                     schedule_type = row.get("kind", "")
                     
-                    # ★修正: 場所(place)の取得とタイトル合成
                     title = row.get("title", "").strip()
                     place = row.get("place", "").strip()
 
-                    # titleが空の場合は種別名で補完
                     if not title:
                         if schedule_type == "estate_consulting":
                             title = "損害保険"
                         else:
                             title = schedule_type
 
-                    # place が存在し、タイトル内にまだ含まれていない場合は「タイトル @場所」の形式に合成
                     if place and f"@{place}" not in title:
                         title = f"{title} @{place}".strip()
 
@@ -244,19 +285,22 @@ def sync_to_db(schedules, users, target_date_str=None):
                     success_count += 1
 
         connection.commit()
-        print(f"==================================================")
-        print(f"🎉 同期完了: {success_count} 件のスケジュールをDBへ登録・更新しました")
+        print(f"🎉 {success_count} 件のスケジュールをDBへ登録・更新しました")
         if skipped_names:
             print(f"⚠️ スキップされた氏名: {set(skipped_names)}")
-        else:
-            print("✅ スキップ件数: 0 件（全件一致）")
-        print(f"==================================================")
 
     finally:
         connection.close()
 
 if __name__ == "__main__":
-    print("=== TOHO SS スケジュール自動同期バッチ開始 ===")
-    schedules, users = fetch_toho_data()
-    print(f"取得データ件数: スケジュール {len(schedules)} 件 / ユーザー {len(users)} 件")
-    sync_to_db(schedules, users)
+    print("=== 全社SS スケジュール自動同期バッチ開始 ===")
+    
+    for shop in TARGET_SHOPS:
+        print(f"\n{'='*50}")
+        schedules, users = fetch_toho_data(shop)
+        print(f"取得データ: スケジュール {len(schedules)} 件 / ユーザー {len(users)} 件")
+        
+        sync_to_db(schedules, users)
+        
+    print(f"\n{'='*50}")
+    print("=== 全店舗のスケジュール同期が完了しました ===")
