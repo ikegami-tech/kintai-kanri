@@ -1822,6 +1822,20 @@ async function renderMatrixTable() {
 
           let inText = formatDisplayTime(att.clock_in, false);
           let outText = formatDisplayTime(att.clock_out, true);
+
+          // ★追加: 午前休・午後休がある場合、セル表示を全体の時間帯（09:00〜18:00）に補正
+          if (att.memo) {
+            const amMatch = att.memo.match(/【午前休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+            const pmMatch = att.memo.match(/【午後休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+            if (amMatch) {
+              inText = amMatch[1]; // 午前休の開始時刻（09:00）を出勤時刻として表示
+              if (!outText) outText = '18:00';
+            }
+            if (pmMatch) {
+              outText = pmMatch[2]; // 午後休の終了時刻（18:00）を退勤時刻として表示
+              if (!inText) inText = '09:00';
+            }
+          }
           
           let timeText = '';
           if (inText || outText) {
@@ -2026,13 +2040,32 @@ async function renderDailyTable() {
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       };
 
+      let displayIn = att && att.clock_in ? formatInTime(att.clock_in) : '';
+      let displayOut = att && att.clock_out ? formatOutTime(att.clock_out, att.memo) : '';
+
+      // ★追加: 午前休・午後休がある場合、日表示も全体の時間帯（09:00〜18:00）に補正
+      if (att && att.memo) {
+        const amMatch = att.memo.match(/【午前休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        const pmMatch = att.memo.match(/【午後休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        if (amMatch) {
+          displayIn = amMatch[1];
+          if (!displayOut) displayOut = '18:00';
+        }
+        if (pmMatch) {
+          displayOut = pmMatch[2];
+          if (!displayIn) displayIn = '09:00';
+        }
+      }
+
       // ★ 透明なダミー文字を入れて、高さを潰さずに見えなくする
       let timeStr = '<span style="visibility: hidden;">-</span>'; 
-      if (att && att.clock_in) {
-        if (att.clock_out) {
-          timeStr = `${formatInTime(att.clock_in)} ～ ${formatOutTime(att.clock_out, att.memo)}`;
+      if (displayIn || displayOut) {
+        if (displayIn && displayOut) {
+          timeStr = `${displayIn} ～ ${displayOut}`;
+        } else if (displayIn) {
+          timeStr = `${displayIn} ～`;
         } else {
-          timeStr = `${formatInTime(att.clock_in)} ～`;
+          timeStr = `～ ${displayOut}`;
         }
       } else if (att && att.memo) {
         let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
