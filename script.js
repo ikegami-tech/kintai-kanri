@@ -1730,12 +1730,7 @@ async function renderMatrixTable() {
       let stayMinutes = actualEnd - actualStart;
       if (stayMinutes < 0) stayMinutes = 0;
       
-      // スマレジの基本ルール: 滞在時間が6時間(360分)を超える場合は1時間(60分)の休憩を自動マイナス
-      // ※有給などで元から8時間(480分)でセットした場合はそのまま加算する
-      if (stayMinutes > 360 && actualStart !== 0) {
-        stayMinutes -= 60;
-      }
-      
+      // ★修正: 休憩時間の自動マイナスを削除し、純粋な時間をそのまま加算する
       summaryMap[att.employee_id].workMins += stayMinutes;
     }
     
@@ -2371,7 +2366,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
       // 労働時間・残業時間の計算 (打刻がない場合はここで抜ける)
       if (!att.clock_in || !att.clock_out) return;
 
-      // ★修正: スマレジと同じように、10進数計算用の正確な分数を算出する（休憩1hマイナス）
+      // ★修正: 10進数計算用の正確な分数を算出する（秒は切り捨て済み）
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       
@@ -2382,10 +2377,8 @@ async function fetchOvertimeData(year, month, selectedDept) {
       let stayMinutes = outMinutes - inMinutes;
       if (stayMinutes < 0) stayMinutes = 0;
 
+      // ★修正: 休憩時間のマイナス処理を削除
       let workMinutes = stayMinutes;
-      if (stayMinutes > 360) {
-        workMinutes -= 60;
-      }
 
       totalWorkMins += workMinutes;
 
