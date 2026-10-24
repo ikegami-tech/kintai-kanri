@@ -199,8 +199,8 @@ app.post('/api/attendances', (req, res) => {
   };
 
   if (id) {
-    const sql = `UPDATE attendances SET clock_in = ?, clock_out = ?, memo = ? WHERE id = ?`;
-    db.query(sql, [clock_in || null, clock_out || null, memo || null, id], async (err) => {
+    const sql = `UPDATE attendances SET work_date = ?, clock_in = ?, clock_out = ?, memo = ? WHERE id = ?`;
+    db.query(sql, [work_date, clock_in || null, clock_out || null, memo || null, id], async (err) => {
       if (err) return res.status(500).json({ error: err.message });
       await sendTcEmail();
       res.json({ message: '更新しました' });
