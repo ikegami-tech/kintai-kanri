@@ -1682,13 +1682,24 @@ async function renderMatrixTable() {
       summaryMap[att.employee_id] = { days: 0, workMins: 0, countedDates: [] };
     }
 
+    // ★修正: 打刻がない場合でも有給(1日)・半休(0.5日)を出勤日数にカウントする
+    let addDay = 0;
     if (att.clock_in && att.clock_out) {
-      // 同じ日付がまだカウントされていなければ日数を＋1し、記録配列に追加する
-      if (!summaryMap[att.employee_id].countedDates.includes(dateStr)) {
-        summaryMap[att.employee_id].days++;
-        summaryMap[att.employee_id].countedDates.push(dateStr);
+      addDay = 1;
+    } else if (att.memo) {
+      if (att.memo.includes('【有給】')) {
+        addDay = 1;
+      } else if (att.memo.includes('【午前休】') || att.memo.includes('【午後休】')) {
+        addDay = 0.5;
       }
-      
+    }
+
+    if (addDay > 0 && !summaryMap[att.employee_id].countedDates.includes(dateStr)) {
+      summaryMap[att.employee_id].days += addDay;
+      summaryMap[att.employee_id].countedDates.push(dateStr);
+    }
+
+    if (att.clock_in && att.clock_out) {
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       let inMinutes = inH * 60 + inM;
@@ -2303,26 +2314,37 @@ async function fetchOvertimeData(year, month, selectedDept) {
         }
       }
 
-      // 以下は既存の実労働時間・残業時間の集計
-      if (!att.clock_in || !att.clock_out) return;
-
-      const dateObj = new Date(att.work_date.replace(/-/g, '/'));
-      // ★ 土日判定を削除し、休日設定マスタまたは手動メモの「休日出勤」のみを参照する
-      const isHolidaySetting = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
-      const isHoliday = isHolidaySetting || (att.memo && att.memo.includes('休日出勤'));
-      
-      // 同じ日付でまだカウントしていない場合のみ出勤日数を+1
-      if (isHoliday) {
-        if (!countedWeekendDates.includes(att.work_date)) {
-          weekendDays++;
-          countedWeekendDates.push(att.work_date);
-        }
-      } else {
-        if (!countedWeekdayDates.includes(att.work_date)) {
-          weekdayDays++;
-          countedWeekdayDates.push(att.work_date);
+      // ★修正: 出退勤時間がなくても、有給(1日)・半休(0.5日)の場合は出勤日数としてカウントする
+      let addDay = 0;
+      if (att.clock_in && att.clock_out) {
+        addDay = 1;
+      } else if (att.memo) {
+        if (att.memo.includes('【有給】')) {
+          addDay = 1;
+        } else if (att.memo.includes('【午前休】') || att.memo.includes('【午後休】')) {
+          addDay = 0.5;
         }
       }
+
+      const isHolidaySetting = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+      const isHoliday = isHolidaySetting || (att.memo && att.memo.includes('休日出勤'));
+
+      if (addDay > 0) {
+        if (isHoliday) {
+          if (!countedWeekendDates.includes(att.work_date)) {
+            weekendDays += addDay;
+            countedWeekendDates.push(att.work_date);
+          }
+        } else {
+          if (!countedWeekdayDates.includes(att.work_date)) {
+            weekdayDays += addDay;
+            countedWeekdayDates.push(att.work_date);
+          }
+        }
+      }
+
+      // 労働時間・残業時間の計算 (打刻がない場合はここで抜ける)
+      if (!att.clock_in || !att.clock_out) return;
 
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
