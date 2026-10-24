@@ -1699,21 +1699,38 @@ async function renderMatrixTable() {
       summaryMap[att.employee_id].countedDates.push(dateStr);
     }
 
+    // ★修正: 休憩マイナスや早出カットをせず、純粋な合計滞在時間（退勤 - 出勤）を加算する
+    let actualStart = 0;
+    let actualEnd = 0;
+    let timeFound = false;
+
     if (att.clock_in && att.clock_out) {
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
-      let inMinutes = inH * 60 + inM;
-      if (inMinutes < 540) inMinutes = 540;
-      let outMinutes = outH * 60 + outM;
-      if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60;
-      let stayMinutes = outMinutes - inMinutes;
-      if (stayMinutes < 0) stayMinutes = 0;
-      let workMinutes = stayMinutes;
-      if (stayMinutes > 360) {
-        workMinutes = stayMinutes - 60;
-        if (workMinutes < 360) workMinutes = 360;
+      actualStart = inH * 60 + inM;
+      actualEnd = outH * 60 + outM;
+      if (actualEnd < actualStart && outH < 12) actualEnd += 24 * 60; // 日跨ぎ対応
+      timeFound = true;
+    } else if (att.memo) {
+      const match = att.memo.match(/【(?:遅刻|欠勤|早退|有給|午前休|午後休)】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+      if (match) {
+        actualStart = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+        actualEnd = parseInt(match[3], 10) * 60 + parseInt(match[4], 10);
+        if (actualEnd < actualStart && parseInt(match[3], 10) < 12) actualEnd += 24 * 60;
+        timeFound = true;
+      } else if (att.memo.includes('【有給】') || att.memo.includes('【欠勤】')) {
+        actualStart = 9 * 60; actualEnd = 18 * 60; timeFound = true; // 時間がない場合は9時間(09:00〜18:00)とする
+      } else if (att.memo.includes('【午前休】')) {
+        actualStart = 9 * 60; actualEnd = 14 * 60; timeFound = true;
+      } else if (att.memo.includes('【午後休】')) {
+        actualStart = 13 * 60; actualEnd = 18 * 60; timeFound = true;
       }
-      summaryMap[att.employee_id].workMins += workMinutes;
+    }
+
+    if (timeFound) {
+      let stayMinutes = actualEnd - actualStart;
+      if (stayMinutes < 0) stayMinutes = 0;
+      summaryMap[att.employee_id].workMins += stayMinutes;
     }
     
     if (!attendanceMap[att.employee_id]) attendanceMap[att.employee_id] = {};
@@ -1912,7 +1929,7 @@ async function renderMatrixTable() {
     
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
-      const totalHours = (Math.ceil(summary.workMins / 6) / 10).toFixed(1);
+      const totalHours = (summary.workMins / 60).toFixed(2); // ★修正: 小数点第2位まで表示
       tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
