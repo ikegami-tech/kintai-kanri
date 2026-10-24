@@ -1682,9 +1682,9 @@ async function renderMatrixTable() {
       summaryMap[att.employee_id] = { days: 0, workMins: 0, countedDates: [] };
     }
 
-    // ★修正: 打刻がない場合でも有給(1日)・半休(0.5日)を出勤日数にカウントする
+    // ★修正: 退勤忘れ(出勤のみ)の場合や、有給・半休を出勤日数にカウントする
     let addDay = 0;
-    if (att.clock_in && att.clock_out) {
+    if (att.clock_in) {
       addDay = 1;
     } else if (att.memo) {
       if (att.memo.includes('【有給】')) {
@@ -1935,12 +1935,9 @@ async function renderMatrixTable() {
     
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
-      // 15分(0.25時間)単位で丸めるスマレジ風の表示処理
-      const decimalHours = summary.workMins / 60;
-      // .25, .50, .75 のように表示を整える
-      const totalHours = (Math.floor(decimalHours * 4) / 4).toFixed(2); 
-      // ★修正: 「時間」の単位を復活させました
-      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
+      // ★修正: スマレジと同じ10進数（小数点第2位）で表示する
+      const totalHours = (summary.workMins / 60).toFixed(2);
+      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
     }
@@ -2341,9 +2338,9 @@ async function fetchOvertimeData(year, month, selectedDept) {
         }
       }
 
-      // ★修正: 出退勤時間がなくても、有給(1日)・半休(0.5日)の場合は出勤日数としてカウントする
+      // ★修正: 退勤忘れ(出勤のみ)の場合も出勤日数としてカウントする
       let addDay = 0;
-      if (att.clock_in && att.clock_out) {
+      if (att.clock_in) {
         addDay = 1;
       } else if (att.memo) {
         if (att.memo.includes('【有給】')) {
@@ -2373,12 +2370,11 @@ async function fetchOvertimeData(year, month, selectedDept) {
       // 労働時間・残業時間の計算 (打刻がない場合はここで抜ける)
       if (!att.clock_in || !att.clock_out) return;
 
+      // ★修正: スマレジと同じように、10進数計算用の正確な分数を算出する（休憩1hマイナス）
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       
       let inMinutes = inH * 60 + inM;
-      if (inMinutes < 540) inMinutes = 540;
-
       let outMinutes = outH * 60 + outM;
       if (outMinutes < inMinutes && outH < 12) outMinutes += 24 * 60;
       
@@ -2387,8 +2383,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
 
       let workMinutes = stayMinutes;
       if (stayMinutes > 360) {
-        workMinutes = stayMinutes - 60;
-        if (workMinutes < 360) workMinutes = 360;
+        workMinutes -= 60;
       }
 
       totalWorkMins += workMinutes;
