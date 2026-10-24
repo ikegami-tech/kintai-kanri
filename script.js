@@ -1699,7 +1699,7 @@ async function renderMatrixTable() {
       summaryMap[att.employee_id].countedDates.push(dateStr);
     }
 
-    // ★修正: 休憩マイナスや早出カットをせず、純粋な合計滞在時間（退勤 - 出勤）を加算する
+    // ★修正: スマレジ基準の実働時間計算（6時間以上の滞在で休憩1時間を自動マイナス）
     let actualStart = 0;
     let actualEnd = 0;
     let timeFound = false;
@@ -1719,17 +1719,23 @@ async function renderMatrixTable() {
         if (actualEnd < actualStart && parseInt(match[3], 10) < 12) actualEnd += 24 * 60;
         timeFound = true;
       } else if (att.memo.includes('【有給】') || att.memo.includes('【欠勤】')) {
-        actualStart = 9 * 60; actualEnd = 18 * 60; timeFound = true; // 時間がない場合は9時間(09:00〜18:00)とする
-      } else if (att.memo.includes('【午前休】')) {
-        actualStart = 9 * 60; actualEnd = 14 * 60; timeFound = true;
-      } else if (att.memo.includes('【午後休】')) {
-        actualStart = 13 * 60; actualEnd = 18 * 60; timeFound = true;
+        // 有給などはスマレジに合わせて「所定労働時間（8時間＝480分）」として扱う
+        actualStart = 0; actualEnd = 480; timeFound = true; 
+      } else if (att.memo.includes('【午前休】') || att.memo.includes('【午後休】')) {
+        actualStart = 0; actualEnd = 240; timeFound = true;
       }
     }
 
     if (timeFound) {
       let stayMinutes = actualEnd - actualStart;
       if (stayMinutes < 0) stayMinutes = 0;
+      
+      // スマレジの基本ルール: 滞在時間が6時間(360分)を超える場合は1時間(60分)の休憩を自動マイナス
+      // ※有給などで元から8時間(480分)でセットした場合はそのまま加算する
+      if (stayMinutes > 360 && actualStart !== 0) {
+        stayMinutes -= 60;
+      }
+      
       summaryMap[att.employee_id].workMins += stayMinutes;
     }
     
@@ -1929,8 +1935,11 @@ async function renderMatrixTable() {
     
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
-      const totalHours = (summary.workMins / 60).toFixed(2); // ★修正: 小数点第2位まで表示
-      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
+      // 15分(0.25時間)単位で丸めるスマレジ風の表示処理
+      const decimalHours = summary.workMins / 60;
+      // .25, .50, .75 のように表示を整える
+      const totalHours = (Math.floor(decimalHours * 4) / 4).toFixed(2); 
+      tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
     }
