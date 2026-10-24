@@ -1561,6 +1561,8 @@ async function renderDashboard() {
     empList = await fetchEmployeesAPI('ALL', '');
     currentEmployeeList = empList;
   }
+  // ★追加: 労基法対象外のためダッシュボードの出勤管理からも除外
+  empList = empList.filter(emp => emp.office !== '社長' && emp.office !== '次長');
 
   let attendancesData = [];
   try {
@@ -1752,6 +1754,11 @@ async function renderMatrixTable() {
 
   // ★削除した月（退職月）の「翌月以降」であれば、マトリクス表から自動的に非表示（除外）にする
   const empList = rawEmpList.filter(emp => {
+    // ★追加: 労基法対象外のため「社長」「次長」は月表示から除外
+    if (emp.office === '社長' || emp.office === '次長') {
+      return false;
+    }
+
     if (emp.status === '削除' || (emp.retireDate && emp.retireDate !== '-')) {
       if (emp.retireDate && emp.retireDate !== '-') {
         const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
@@ -1970,7 +1977,9 @@ async function renderDailyTable() {
 
   const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
 
-  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+  let rawEmpListForDaily = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+  // ★追加: 労基法対象外のため「社長」「次長」を日表示から除外
+  const empList = rawEmpListForDaily.filter(emp => emp.office !== '社長' && emp.office !== '次長');
 
   let attendancesData = [];
   try {
@@ -2258,9 +2267,10 @@ async function fetchOvertimeData(year, month, selectedDept) {
     console.error('残業集計用データ取得エラー:', error);
   }
 
-  let filteredEmps = empList;
+  // ★追加: 労基法対象外のため「社長」「次長」を集計表から除外
+  let filteredEmps = empList.filter(emp => emp.office !== '社長' && emp.office !== '次長');
   if (selectedDept !== 'ALL') {
-    filteredEmps = empList.filter(emp => emp.office === selectedDept);
+    filteredEmps = filteredEmps.filter(emp => emp.office === selectedDept);
   }
 
   return filteredEmps.map(emp => {
