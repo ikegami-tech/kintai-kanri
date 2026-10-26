@@ -1930,7 +1930,7 @@ async function renderMatrixTable() {
     
     const summary = summaryMap[emp.id];
     if (summary && summary.days > 0) {
-      const totalHours = (summary.workMins / 60).toFixed(2);
+      const totalHours = (summary.workMins / 60).toFixed(1);
       tbodyHtml += `<td class="col-sum" style="font-size: 11px; line-height: 1.6; padding: 4px 8px; white-space: nowrap; text-align: center;">${totalHours}時間<br>${summary.days}日</td></tr>`;
     } else {
       tbodyHtml += `<td class="col-sum" style="white-space: nowrap; padding: 4px 8px; text-align: center;">-</td></tr>`;
