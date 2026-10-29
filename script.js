@@ -662,17 +662,72 @@ function toggleExtraTimeRow(mode, type) {
     else row.classList.add('hidden');
   }
   
-  // 代休系チェック時は「代休取得日」入力枠も連動させる
-  if (type.includes('comp')) {
-    const am = document.getElementById(`${mode}-check-comp-am`)?.checked;
-    const pm = document.getElementById(`${mode}-check-comp-pm`)?.checked;
-    const full = document.getElementById(`${mode}-check-comp-full`)?.checked;
-    const dateRow = document.getElementById(`${mode}-row-comp-date`);
-    if (dateRow) {
-      if (am || pm || full) dateRow.classList.remove('hidden');
-      else dateRow.classList.add('hidden');
-    }
+  // ★修正: それぞれのチェックボックスに対応した日付入力枠を独立して表示する
+  if (type === 'comp-am') {
+    const dateRow = document.getElementById(`${mode}-row-comp-am-date`);
+    if (dateRow) checkbox.checked ? dateRow.classList.remove('hidden') : dateRow.classList.add('hidden');
   }
+  if (type === 'comp-pm') {
+    const dateRow = document.getElementById(`${mode}-row-comp-pm-date`);
+    if (dateRow) checkbox.checked ? dateRow.classList.remove('hidden') : dateRow.classList.add('hidden');
+  }
+  if (type === 'comp-full') {
+    const dateRow = document.getElementById(`${mode}-row-comp-full-date`);
+    if (dateRow) checkbox.checked ? dateRow.classList.remove('hidden') : dateRow.classList.add('hidden');
+  }
+}
+
+// ★修正: 時間枠を受け取れるように関数をアップデート（すでに末尾に貼り付け済みの関数の先頭部分を上書き）
+async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shopId, timeRangeStr = '') {
+  if (!compDateInput || compDateInput.trim() === '') return;
+  const [leaveY, leaveM, leaveD] = leaveDateVal.split('-');
+  const leaveShortDate = `${parseInt(leaveM, 10)}/${parseInt(leaveD, 10)}`;
+  
+  let compY = leaveY;
+  let compM, compD;
+  const parts = compDateInput.trim().split('/');
+  if (parts.length === 2) {
+    compM = String(parts[0]).padStart(2, '0');
+    compD = String(parts[1]).padStart(2, '0');
+  } else if (parts.length === 3) {
+    compY = parts[0];
+    compM = String(parts[1]).padStart(2, '0');
+    compD = String(parts[2]).padStart(2, '0');
+  } else {
+    return;
+  }
+  const targetDateVal = `${compY}-${compM}-${compD}`;
+  
+  try {
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) return;
+    const allData = await res.json();
+    const targetRecord = allData.find(a => a.employee_id === empId && a.work_date === targetDateVal);
+
+    // ★修正: 時間（timeRangeStr）があれば一緒に結合する
+    const appendText = `【代休日】 ${leaveShortDate} ${timeRangeStr}`.trim();
+    let newMemo = '';
+    let recordId = null, clockIn = null, clockOut = null;
+
+    if (targetRecord) {
+      recordId = targetRecord.id;
+      clockIn = targetRecord.clock_in;
+      clockOut = targetRecord.clock_out;
+      newMemo = targetRecord.memo || '';
+      if (!newMemo.includes(appendText)) {
+        newMemo = newMemo ? newMemo + '\n' + appendText : appendText;
+      } else return;
+    } else {
+      newMemo = appendText;
+    }
+
+    await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: recordId, employee_id: empId, work_date: targetDateVal, clock_in: clockIn, clock_out: clockOut, memo: newMemo, shop_id: shopId })
+    });
+  } catch (error) { console.error('代休日同期エラー:', error); }
 }
 
 function handleCellAction(actionType) {
@@ -886,7 +941,6 @@ async function submitRecordCreate() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
 
-  // ★追加: キャッシュにない場合は最新データを再取得して探す安全装置
   if (!emp) {
     currentEmployeeList = await fetchEmployeesAPI('ALL', '');
     emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
@@ -921,12 +975,10 @@ async function submitRecordCreate() {
   const cbPaidAm = document.getElementById('create-check-paid-am');
   const cbPaidPm = document.getElementById('create-check-paid-pm');
   const cbPaidFull = document.getElementById('create-check-paid-full');
-  // ★追加: 代休系のチェックボックスも取得する
   const cbCompAm = document.getElementById('create-check-comp-am');
   const cbCompPm = document.getElementById('create-check-comp-pm');
   const cbCompFull = document.getElementById('create-check-comp-full');
 
-  // ★修正: 代休系のチェックが入っている場合もエラーを出さずに通すように条件を追加
   if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbEarly && cbEarly.checked) && !(cbPaidAm && cbPaidAm.checked) && !(cbPaidPm && cbPaidPm.checked) && !(cbPaidFull && cbPaidFull.checked) && !(cbCompAm && cbCompAm.checked) && !(cbCompPm && cbCompPm.checked) && !(cbCompFull && cbCompFull.checked)) {
     alert('出勤時間を指定するか、遅刻・欠勤・早退・有給・代休のいずれかを選択してください。');
     return;
@@ -934,15 +986,13 @@ async function submitRecordCreate() {
 
   const cbIn = document.getElementById('create-check-direct-in');
   const cbOut = document.getElementById('create-check-direct-out');
-  const cbTrainDelay = document.getElementById('create-check-train-delay'); // ★追加
+  const cbTrainDelay = document.getElementById('create-check-train-delay');
   let directMemoList = [];
   if (cbIn && cbIn.checked) directMemoList.push('直行');
   if (cbOut && cbOut.checked) directMemoList.push('直帰');
 
   let memoParts = ['管理者修正'];
-  if (cbTrainDelay && cbTrainDelay.checked) {
-    memoParts.push('【電車遅延】'); // ★追加
-  }
+  if (cbTrainDelay && cbTrainDelay.checked) memoParts.push('【電車遅延】');
   if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
     memoParts.push('休日出勤');
   }
@@ -966,12 +1016,16 @@ async function submitRecordCreate() {
     }
   });
 
-  const compDateEl = document.getElementById('create-comp-date');
-  if (compDateEl && compDateEl.value.trim() !== '') {
-    if (!memoParts.includes(`【代休取得日】${compDateEl.value.trim()}`)) {
-      memoParts.push(`【代休取得日】${compDateEl.value.trim()}`);
+  // ★修正: 3つの取得日を個別に判定し、メモへ保存
+  ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+    const el = document.getElementById(`create-${type}-date`);
+    if (el && el.value.trim() !== '') {
+      let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
+      if (!memoParts.includes(`【${label}】${el.value.trim()}`)) {
+        memoParts.push(`【${label}】${el.value.trim()}`);
+      }
     }
-  }
+  });
 
   const payload = {
     employee_id: emp.id,
@@ -979,7 +1033,7 @@ async function submitRecordCreate() {
     clock_in: clockIn,
     clock_out: clockOut,
     memo: memoParts.join('\n'),
-    shop_id: currentSelectedShopId // ここを追加
+    shop_id: currentSelectedShopId
   };
 
   try {
@@ -991,10 +1045,23 @@ async function submitRecordCreate() {
 
     if (!response.ok) throw new Error('保存に失敗しました');
 
-    // ★追加: 取得日が入力されていた場合、その日のデータにも【代休日】を自動保存する
-    if (compDateEl && compDateEl.value.trim() !== '') {
-      await syncCompensatoryDateMemo(emp.id, compDateEl.value.trim(), dateVal, currentSelectedShopId);
-    }
+    // ★修正: 3つの代休取得日それぞれに対して自動同期（時間付き）を実行する
+    const syncPromises = [];
+    ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+      const cb = document.getElementById(`create-check-${type}`);
+      const dateEl = document.getElementById(`create-${type}-date`);
+      if (cb && cb.checked && dateEl && dateEl.value.trim() !== '') {
+        const sh = document.getElementById(`create-${type}-start-h`)?.value || '--';
+        const sm = document.getElementById(`create-${type}-start-m`)?.value || '--';
+        const eh = document.getElementById(`create-${type}-end-h`)?.value || '--';
+        const em = document.getElementById(`create-${type}-end-m`)?.value || '--';
+        const timeRange = (sh !== '--' && eh !== '--') ? `【${sh}:${sm}〜${eh}:${em}】` : '';
+        syncPromises.push(
+          syncCompensatoryDateMemo(emp.id, dateEl.value.trim(), dateVal, currentSelectedShopId, timeRange)
+        );
+      }
+    });
+    await Promise.all(syncPromises);
 
     showToast('実績を新規作成しました');
     closeRecordModal('modal-record-create');
@@ -1089,7 +1156,6 @@ async function submitRecordEdit() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
   let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
 
-  // ★追加: キャッシュにない場合は最新データを再取得して探す安全装置
   if (!emp) {
     currentEmployeeList = await fetchEmployeesAPI('ALL', '');
     emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
@@ -1123,7 +1189,6 @@ async function submitRecordEdit() {
 
   let memoParts = ['管理者修正'];
   
-  // ★追加: 編集画面で手動で24時間以上を選んだ場合、または元々フラグがある場合は引き継ぐ
   if (endH !== '--' && parseInt(endH, 10) >= 24) {
     memoParts.push('【翌日】');
   } else if (existingMemo.includes('【翌日】') && (endH === '--' || parseInt(endH, 10) < 24)) {
@@ -1147,11 +1212,13 @@ async function submitRecordEdit() {
     .replace(/【午前休】.*/g, '')
     .replace(/【午後休】.*/g, '')
     .replace(/【有給】.*/g, '')
-    .replace(/【午前代休】.*/g, '') // ★追加: 編集時に増殖しないよう消去
-    .replace(/【午後代休】.*/g, '') // ★追加
-    .replace(/【代休】.*/g, '') // ★追加
-    .replace(/【代休取得日】.*/g, '') // ★追加
-    .replace(/【代休日】.*/g, '') // ★追加
+    .replace(/【午前代休】.*/g, '') 
+    .replace(/【午後代休】.*/g, '') 
+    .replace(/【代休】.*/g, '') 
+    .replace(/【代休取得日】.*/g, '') 
+    .replace(/【午前代休取得日】.*/g, '') 
+    .replace(/【午後代休取得日】.*/g, '') 
+    .replace(/【代休日】.*/g, '') 
     .replace(/【電車遅延】/g, '')
     .replace(/休日出勤/g, '')
     .replace(/管理者修正/g, '')
@@ -1160,7 +1227,7 @@ async function submitRecordEdit() {
 
   const cbTrainDelayEdit = document.getElementById('edit-check-train-delay');
   if (cbTrainDelayEdit && cbTrainDelayEdit.checked) {
-    memoParts.push('【電車遅延】'); // ★追加
+    memoParts.push('【電車遅延】'); 
   }
 
   if (cleanMemo) memoParts.push(cleanMemo);
@@ -1181,12 +1248,16 @@ async function submitRecordEdit() {
     }
   });
 
-  const compDateEl = document.getElementById('edit-comp-date');
-  if (compDateEl && compDateEl.value.trim() !== '') {
-    if (!memoParts.includes(`【代休取得日】${compDateEl.value.trim()}`)) {
-      memoParts.push(`【代休取得日】${compDateEl.value.trim()}`);
+  // ★修正: 3つの取得日を個別に判定し、メモへ保存
+  ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+    const el = document.getElementById(`edit-${type}-date`);
+    if (el && el.value.trim() !== '') {
+      let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
+      if (!memoParts.includes(`【${label}】${el.value.trim()}`)) {
+        memoParts.push(`【${label}】${el.value.trim()}`);
+      }
     }
-  }
+  });
 
   const finalMemo = memoParts.join('\n').replace(/\n{2,}/g, '\n');
 
@@ -1197,7 +1268,7 @@ async function submitRecordEdit() {
     clock_in: clockIn,
     clock_out: clockOut,
     memo: finalMemo,
-    shop_id: currentSelectedShopId // ここを追加
+    shop_id: currentSelectedShopId
   };
 
   try {
@@ -1209,10 +1280,23 @@ async function submitRecordEdit() {
 
     if (!response.ok) throw new Error('更新に失敗しました');
 
-    // ★追加: 取得日が入力されていた場合、その日のデータにも【代休日】を自動保存する
-    if (compDateEl && compDateEl.value.trim() !== '') {
-      await syncCompensatoryDateMemo(emp.id, compDateEl.value.trim(), dateVal, currentSelectedShopId);
-    }
+    // ★修正: 3つの代休取得日それぞれに対して自動同期（時間付き）を実行する
+    const syncPromises = [];
+    ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+      const cb = document.getElementById(`edit-check-${type}`);
+      const dateEl = document.getElementById(`edit-${type}-date`);
+      if (cb && cb.checked && dateEl && dateEl.value.trim() !== '') {
+        const sh = document.getElementById(`edit-${type}-start-h`)?.value || '--';
+        const sm = document.getElementById(`edit-${type}-start-m`)?.value || '--';
+        const eh = document.getElementById(`edit-${type}-end-h`)?.value || '--';
+        const em = document.getElementById(`edit-${type}-end-m`)?.value || '--';
+        const timeRange = (sh !== '--' && eh !== '--') ? `【${sh}:${sm}〜${eh}:${em}】` : '';
+        syncPromises.push(
+          syncCompensatoryDateMemo(emp.id, dateEl.value.trim(), dateVal, currentSelectedShopId, timeRange)
+        );
+      }
+    });
+    await Promise.all(syncPromises);
 
     showToast('実績を更新しました');
     closeRecordModal('modal-record-edit');
