@@ -2504,6 +2504,16 @@ async function renderOvertimeTable() {
   });
 
   document.getElementById('overtime-tbody').innerHTML = sortedData.map(emp => {
+    // ★労基法（36協定・過労死ライン）に基づく残業時間のアラート色分け
+    let otStyle = '';
+    if (emp.overtimeHours >= 80) {
+      // 80時間以上・100時間以上: 虹色（レインボーグラデーション）
+      otStyle = 'font-weight: 800; background: linear-gradient(90deg, #e74c3c, #e67e22, #f1c40f, #2ecc71, #3498db, #9b59b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;';
+    } else if (emp.overtimeHours >= 45) {
+      // 45時間以上: 警告の赤色（太字）
+      otStyle = 'color: #e74c3c; font-weight: bold;';
+    }
+
     if (tableType === 'overtime') {
       return `
         <tr>
@@ -2513,7 +2523,7 @@ async function renderOvertimeTable() {
           <td>${emp.weekdayDays}日</td>
           <td>${emp.weekendDays}日</td>
           <td>${emp.totalHours.toFixed(1)}時間</td>
-          <td>${emp.overtimeHours.toFixed(1)}時間</td>
+          <td><span style="${otStyle}">${emp.overtimeHours.toFixed(1)}時間</span></td>
         </tr>
       `;
     } else {
