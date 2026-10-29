@@ -1003,7 +1003,6 @@ async function submitRecordCreate() {
     memoParts.push(directMemoList.join('・'));
   }
 
-  // ★修正: 独立して処理されるよう組み直し
   const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
   
   ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
@@ -1025,6 +1024,7 @@ async function submitRecordCreate() {
   ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`create-check-${type}`);
     const el = document.getElementById(`create-${type}-date`);
+    // チェックが入っている場合のみ日付を保存する
     if (cb && cb.checked && el && el.value.trim() !== '') {
       let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
       if (!memoParts.includes(`【${label}】${el.value.trim()}`)) {
@@ -1156,6 +1156,7 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
   }
 }
 
+
 // 【API通信実装】実績の編集更新処理
 async function submitRecordEdit() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
@@ -1237,7 +1238,6 @@ async function submitRecordEdit() {
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
-  // ★修正: 独立して処理されるよう組み直し
   const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
   
   ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
@@ -1259,6 +1259,7 @@ async function submitRecordEdit() {
   ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`edit-check-${type}`);
     const el = document.getElementById(`edit-${type}-date`);
+    // チェックが入っている場合のみ日付を保存する
     if (cb && cb.checked && el && el.value.trim() !== '') {
       let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
       if (!memoParts.includes(`【${label}】${el.value.trim()}`)) {
@@ -1280,6 +1281,22 @@ async function submitRecordEdit() {
   };
 
   try {
+    // ★追加: 更新前に、古い代休取得日の同期を一旦解除（お掃除）しておく
+    const oldCompDates = [];
+    const amMatch = existingMemo.match(/【午前代休取得日】([^\n]+)/);
+    if (amMatch) oldCompDates.push(amMatch[1].trim());
+    const pmMatch = existingMemo.match(/【午後代休取得日】([^\n]+)/);
+    if (pmMatch) oldCompDates.push(pmMatch[1].trim());
+    const fullMatch = existingMemo.match(/【代休取得日】([^\n]+)/);
+    if (fullMatch) oldCompDates.push(fullMatch[1].trim());
+
+    if (oldCompDates.length > 0) {
+      const removePromises = oldCompDates.map(cDate => 
+        removeCompensatoryDateMemo(emp.id, cDate, dateVal, currentSelectedShopId)
+      );
+      await Promise.all(removePromises);
+    }
+
     const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1316,10 +1333,39 @@ async function submitRecordEdit() {
   }
 }
 
+// 【API通信実装】実績の削除処理
 async function submitRecordDelete() {
   if (!currentRecordId) {
     alert('削除対象のデータIDが見つかりません。');
     return;
+  }
+
+  // ★追加: 削除を実行する前に、現在紐付いている代休取得日の同期を解除する
+  const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  if (!emp) {
+    currentEmployeeList = await fetchEmployeesAPI('ALL', '');
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  }
+  
+  if (emp && currentCellElement) {
+    const rawMemo = currentCellElement.dataset.rawMemo || '';
+    const dateVal = document.getElementById('edit-date').value.replace(/\//g, '-');
+    
+    const compDates = [];
+    const amMatch = rawMemo.match(/【午前代休取得日】([^\n]+)/);
+    if (amMatch) compDates.push(amMatch[1].trim());
+    const pmMatch = rawMemo.match(/【午後代休取得日】([^\n]+)/);
+    if (pmMatch) compDates.push(pmMatch[1].trim());
+    const fullMatch = rawMemo.match(/【代休取得日】([^\n]+)/);
+    if (fullMatch) compDates.push(fullMatch[1].trim());
+
+    if (compDates.length > 0) {
+      const removePromises = compDates.map(cDate => 
+        removeCompensatoryDateMemo(emp.id, cDate, dateVal, currentSelectedShopId)
+      );
+      await Promise.all(removePromises);
+    }
   }
 
   try {
@@ -4297,4 +4343,56 @@ async function deleteShop(id, name) {
   } catch (error) {
     alert(error.message);
   }
+}
+// ★追加: レコード削除時・変更時に、対象日のメモから「【代休日】〇/〇」を自動削除する関数
+async function removeCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shopId) {
+  if (!compDateInput || compDateInput.trim() === '') return;
+  const [leaveY, leaveM, leaveD] = leaveDateVal.split('-');
+  const leaveShortDate = `${parseInt(leaveM, 10)}/${parseInt(leaveD, 10)}`;
+
+  let compY = leaveY;
+  let compM, compD;
+  const parts = compDateInput.trim().split('/');
+  if (parts.length === 2) {
+    compM = String(parts[0]).padStart(2, '0');
+    compD = String(parts[1]).padStart(2, '0');
+  } else if (parts.length === 3) {
+    compY = parts[0];
+    compM = String(parts[1]).padStart(2, '0');
+    compD = String(parts[2]).padStart(2, '0');
+  } else {
+    return; 
+  }
+  const targetDateVal = `${compY}-${compM}-${compD}`;
+
+  try {
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) return;
+    const allData = await res.json();
+    const targetRecord = allData.find(a => a.employee_id === empId && a.work_date === targetDateVal);
+
+    if (targetRecord && targetRecord.memo) {
+      // 「【代休日】 10/24...」を含んでいる行を狙って削除する
+      const regex = new RegExp(`【代休日】\\s*${leaveShortDate}.*`, 'g');
+      let newMemo = targetRecord.memo.replace(regex, '').replace(/\n{2,}/g, '\n').trim();
+
+      // メモに変更があった場合（消すものがあった場合）のみ、上書き保存を実行
+      if (newMemo !== targetRecord.memo.trim()) {
+        await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: targetRecord.id,
+            employee_id: empId,
+            work_date: targetDateVal,
+            clock_in: targetRecord.clock_in,
+            clock_out: targetRecord.clock_out,
+            memo: newMemo,
+            shop_id: shopId
+          })
+        });
+      }
+    }
+  } catch (error) { console.error('代休日同期解除エラー:', error); }
 }
