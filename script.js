@@ -687,20 +687,33 @@ function handleCellAction(actionType) {
     document.getElementById('create-end-h').value = '--';
     document.getElementById('create-end-m').value = '--';
     
-    ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
+    // ★修正: 代休系の項目を追加し、自動で時間がセットされるように設定
+    ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
       const cb = document.getElementById(`create-check-${type}`);
       if (cb) { cb.checked = false; toggleExtraTimeRow('create', type); }
       
       let defSH = '--', defSM = '--', defEH = '--', defEM = '--';
-      if (type === 'paid-am') { defSH = '09'; defSM = '00'; defEH = '14'; defEM = '00'; }
-      if (type === 'paid-pm') { defSH = '13'; defSM = '00'; defEH = '18'; defEM = '00'; }
-      if (type === 'paid-full') { defSH = '09'; defSM = '00'; defEH = '18'; defEM = '00'; }
+      if (type === 'paid-am' || type === 'comp-am') { defSH = '09'; defSM = '00'; defEH = '14'; defEM = '00'; }
+      if (type === 'paid-pm' || type === 'comp-pm') { defSH = '13'; defSM = '00'; defEH = '18'; defEM = '00'; }
+      if (type === 'paid-full' || type === 'comp-full') { defSH = '09'; defSM = '00'; defEH = '18'; defEM = '00'; }
 
-      document.getElementById(`create-${type}-start-h`).value = defSH;
-      document.getElementById(`create-${type}-start-m`).value = defSM;
-      document.getElementById(`create-${type}-end-h`).value = defEH;
-      document.getElementById(`create-${type}-end-m`).value = defEM;
+      const startH = document.getElementById(`create-${type}-start-h`);
+      const startM = document.getElementById(`create-${type}-start-m`);
+      const endH = document.getElementById(`create-${type}-end-h`);
+      const endM = document.getElementById(`create-${type}-end-m`);
+      
+      if (startH) startH.value = defSH;
+      if (startM) startM.value = defSM;
+      if (endH) endH.value = defEH;
+      if (endM) endM.value = defEM;
     });
+    
+    // ★追加: 新規作成時、代休取得日入力欄もリセットする
+    const compDateEl = document.getElementById('create-comp-date');
+    if (compDateEl) {
+      compDateEl.value = '';
+      document.getElementById('create-row-comp-date').classList.add('hidden');
+    }
 
     const cbIn = document.getElementById('create-check-direct-in');
     const cbOut = document.getElementById('create-check-direct-out');
@@ -771,25 +784,28 @@ function handleCellAction(actionType) {
       }
     }
 
-    const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
-    ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
+    // ★修正: 代休系の項目を追加し、既存メモから時間を読み込む設定
+    const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
+    
+    ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
       const cb = document.getElementById(`edit-check-${type}`);
       let sh = '--', sm = '--', eh = '--', em = '--';
       let checked = false;
       const regex = new RegExp(`【${labelMap[type]}】(\\d{2}):(\\d{2})〜(\\d{2}):(\\d{2})`);
       const match = rawMemo.match(regex);
+      
       if (match) {
         checked = true;
         sh = match[1]; sm = match[2]; eh = match[3]; em = match[4];
       } else if (rawMemo.includes(`【${labelMap[type]}】`)) {
         checked = true;
-        if (type === 'paid-am') { sh = '09'; sm = '00'; eh = '14'; em = '00'; }
-        if (type === 'paid-pm') { sh = '13'; sm = '00'; eh = '18'; em = '00'; }
-        if (type === 'paid-full') { sh = '09'; sm = '00'; eh = '18'; em = '00'; }
+        if (type === 'paid-am' || type === 'comp-am') { sh = '09'; sm = '00'; eh = '14'; em = '00'; }
+        if (type === 'paid-pm' || type === 'comp-pm') { sh = '13'; sm = '00'; eh = '18'; em = '00'; }
+        if (type === 'paid-full' || type === 'comp-full') { sh = '09'; sm = '00'; eh = '18'; em = '00'; }
       } else {
-        if (type === 'paid-am') { sh = '09'; sm = '00'; eh = '14'; em = '00'; }
-        if (type === 'paid-pm') { sh = '13'; sm = '00'; eh = '18'; em = '00'; }
-        if (type === 'paid-full') { sh = '09'; sm = '00'; eh = '18'; em = '00'; }
+        if (type === 'paid-am' || type === 'comp-am') { sh = '09'; sm = '00'; eh = '14'; em = '00'; }
+        if (type === 'paid-pm' || type === 'comp-pm') { sh = '13'; sm = '00'; eh = '18'; em = '00'; }
+        if (type === 'paid-full' || type === 'comp-full') { sh = '09'; sm = '00'; eh = '18'; em = '00'; }
       }
       
       if (cb) { cb.checked = checked; toggleExtraTimeRow('edit', type); }
@@ -797,11 +813,23 @@ function handleCellAction(actionType) {
       const elSm = document.getElementById(`edit-${type}-start-m`);
       const elEh = document.getElementById(`edit-${type}-end-h`);
       const elEm = document.getElementById(`edit-${type}-end-m`);
+      
       if (elSh) elSh.value = sh;
       if (elSm) elSm.value = sm;
       if (elEh) elEh.value = eh;
       if (elEm) elEm.value = em;
     });
+
+    // ★追加: 既存のメモから「代休取得日（例：10/25）」を読み込んでセットする
+    const compDateEl = document.getElementById('edit-comp-date');
+    if (compDateEl) {
+      const dateMatch = rawMemo.match(/【代休日】([^\n]+)/);
+      if (dateMatch) {
+        compDateEl.value = dateMatch[1].trim();
+      } else {
+        compDateEl.value = '';
+      }
+    }
 
     document.getElementById('modal-record-edit').classList.remove('hidden');
     
@@ -910,8 +938,9 @@ async function submitRecordCreate() {
     memoParts.push(directMemoList.join('・'));
   }
 
-  const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
-  ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
+  // ★修正: 代休系の文字を自動でメモに追記
+  const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
+  ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`create-check-${type}`);
     if (cb && cb.checked) {
       const sh = document.getElementById(`create-${type}-start-h`)?.value || '--';
@@ -925,6 +954,14 @@ async function submitRecordCreate() {
       }
     }
   });
+
+  // ★追加: 代休取得日が存在すれば一番下に追記
+  const compDateEl = document.getElementById('create-comp-date');
+  if (compDateEl && compDateEl.value.trim() !== '') {
+    if (!memoParts.includes(`【代休日】${compDateEl.value.trim()}`)) {
+      memoParts.push(`【代休日】${compDateEl.value.trim()}`);
+    }
+  }
 
   const payload = {
     employee_id: emp.id,
@@ -1024,8 +1061,9 @@ async function submitRecordEdit() {
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
-  const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給' };
-  ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full'].forEach(type => {
+  // ★修正: 代休系の文字を自動でメモに追記
+  const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
+  ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`edit-check-${type}`);
     if (cb && cb.checked) {
       const sh = document.getElementById(`edit-${type}-start-h`)?.value || '--';
@@ -1039,6 +1077,14 @@ async function submitRecordEdit() {
       }
     }
   });
+
+  // ★追加: 代休取得日が存在すれば一番下に追記
+  const compDateEl = document.getElementById('edit-comp-date');
+  if (compDateEl && compDateEl.value.trim() !== '') {
+    if (!memoParts.includes(`【代休日】${compDateEl.value.trim()}`)) {
+      memoParts.push(`【代休日】${compDateEl.value.trim()}`);
+    }
+  }
 
   const finalMemo = memoParts.join('\n').replace(/\n{2,}/g, '\n');
 
