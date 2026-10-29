@@ -662,7 +662,6 @@ function toggleExtraTimeRow(mode, type) {
     else row.classList.add('hidden');
   }
   
-  // ★修正: それぞれのチェックボックスに対応した日付入力枠を独立して表示する
   if (type === 'comp-am') {
     const dateRow = document.getElementById(`${mode}-row-comp-am-date`);
     if (dateRow) checkbox.checked ? dateRow.classList.remove('hidden') : dateRow.classList.add('hidden');
@@ -763,12 +762,13 @@ function handleCellAction(actionType) {
       if (endM) endM.value = defEM;
     });
     
-    // ★追加: 新規作成時、代休取得日入力欄もリセットする
-    const compDateEl = document.getElementById('create-comp-date');
-    if (compDateEl) {
-      compDateEl.value = '';
-      document.getElementById('create-row-comp-date').classList.add('hidden');
-    }
+    // ★修正: 3つの代休取得日入力欄を個別にリセットする
+    ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+      const el = document.getElementById(`create-${type}-date`);
+      if (el) el.value = '';
+      const row = document.getElementById(`create-row-${type}-date`);
+      if (row) row.classList.add('hidden');
+    });
 
     const cbIn = document.getElementById('create-check-direct-in');
     const cbOut = document.getElementById('create-check-direct-out');
@@ -875,17 +875,20 @@ function handleCellAction(actionType) {
       if (elEm) elEm.value = em;
     });
 
-    // ★追加: 既存のメモから「代休取得日（例：10/25）」を読み込んでセットする
-    const compDateEl = document.getElementById('edit-comp-date');
-    if (compDateEl) {
-      // 過去に保存された「代休日」も拾えるように両方に対応
-      const dateMatch = rawMemo.match(/【(?:代休日|代休取得日)】([^\n]+)/);
-      if (dateMatch) {
-        compDateEl.value = dateMatch[1].trim();
-      } else {
-        compDateEl.value = '';
+    // ★修正: 既存メモから「午前代休取得日」等をそれぞれ個別に読み込む
+    ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+      const el = document.getElementById(`edit-${type}-date`);
+      if (el) {
+        let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
+        const regex = new RegExp(`【${label}】([^\\n]+)`);
+        const dateMatch = rawMemo.match(regex);
+        if (dateMatch) {
+          el.value = dateMatch[1].trim();
+        } else {
+          el.value = '';
+        }
       }
-    }
+    });
 
     document.getElementById('modal-record-edit').classList.remove('hidden');
     
@@ -1016,7 +1019,6 @@ async function submitRecordCreate() {
     }
   });
 
-  // ★修正: 3つの取得日を個別に判定し、メモへ保存
   ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const el = document.getElementById(`create-${type}-date`);
     if (el && el.value.trim() !== '') {
@@ -1045,7 +1047,6 @@ async function submitRecordCreate() {
 
     if (!response.ok) throw new Error('保存に失敗しました');
 
-    // ★修正: 3つの代休取得日それぞれに対して自動同期（時間付き）を実行する
     const syncPromises = [];
     ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
       const cb = document.getElementById(`create-check-${type}`);
@@ -1073,11 +1074,9 @@ async function submitRecordCreate() {
   }
 }
 
-// ★追加: 取得日（元々休日出勤した日）のメモに「【代休日】〇/〇」を自動同期して書き込む関数
-async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shopId) {
+// ★修正: 時間枠を受け取れるように関数をアップデート
+async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shopId, timeRangeStr = '') {
   if (!compDateInput || compDateInput.trim() === '') return;
-  
-  // 代休を使用した日の日付を「月/日」に変換（例: 2026-10-27 -> 10/27）
   const [leaveY, leaveM, leaveD] = leaveDateVal.split('-');
   const leaveShortDate = `${parseInt(leaveM, 10)}/${parseInt(leaveD, 10)}`;
 
@@ -1108,7 +1107,8 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
     // 対象日（取得日）の打刻レコードを探す
     const targetRecord = allData.find(a => a.employee_id === empId && a.work_date === targetDateVal);
 
-    const appendText = `【代休日】 ${leaveShortDate}`;
+    // ★修正: 時間（timeRangeStr）があれば一緒に結合する
+    const appendText = `【代休日】 ${leaveShortDate} ${timeRangeStr}`.trim();
     let newMemo = '';
     let recordId = null;
     let clockIn = null;
@@ -1248,7 +1248,6 @@ async function submitRecordEdit() {
     }
   });
 
-  // ★修正: 3つの取得日を個別に判定し、メモへ保存
   ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const el = document.getElementById(`edit-${type}-date`);
     if (el && el.value.trim() !== '') {
@@ -1280,7 +1279,6 @@ async function submitRecordEdit() {
 
     if (!response.ok) throw new Error('更新に失敗しました');
 
-    // ★修正: 3つの代休取得日それぞれに対して自動同期（時間付き）を実行する
     const syncPromises = [];
     ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
       const cb = document.getElementById(`edit-check-${type}`);
