@@ -991,6 +991,11 @@ async function submitRecordCreate() {
 
     if (!response.ok) throw new Error('保存に失敗しました');
 
+    // ★追加: 取得日が入力されていた場合、その日のデータにも【代休日】を自動保存する
+    if (compDateEl && compDateEl.value.trim() !== '') {
+      await syncCompensatoryDateMemo(emp.id, compDateEl.value.trim(), dateVal, currentSelectedShopId);
+    }
+
     showToast('実績を新規作成しました');
     closeRecordModal('modal-record-create');
     await renderMatrixTable();
@@ -998,6 +1003,84 @@ async function submitRecordCreate() {
   } catch (error) {
     console.error('打刻作成エラー:', error);
     alert('保存に失敗しました。サーバーの状態を確認してください。');
+  }
+}
+
+// ★追加: 取得日（元々休日出勤した日）のメモに「【代休日】〇/〇」を自動同期して書き込む関数
+async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shopId) {
+  if (!compDateInput || compDateInput.trim() === '') return;
+  
+  // 代休を使用した日の日付を「月/日」に変換（例: 2026-10-27 -> 10/27）
+  const [leaveY, leaveM, leaveD] = leaveDateVal.split('-');
+  const leaveShortDate = `${parseInt(leaveM, 10)}/${parseInt(leaveD, 10)}`;
+
+  // 入力された取得日（例: 10/7）を YYYY-MM-DD に変換
+  let compY = leaveY;
+  let compM, compD;
+  const parts = compDateInput.trim().split('/');
+  if (parts.length === 2) {
+    compM = String(parts[0]).padStart(2, '0');
+    compD = String(parts[1]).padStart(2, '0');
+  } else if (parts.length === 3) {
+    compY = parts[0];
+    compM = String(parts[1]).padStart(2, '0');
+    compD = String(parts[2]).padStart(2, '0');
+  } else {
+    return; // 形式エラーの場合はスキップ
+  }
+  const targetDateVal = `${compY}-${compM}-${compD}`;
+
+  try {
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const allData = await res.json();
+    
+    // 対象日（取得日）の打刻レコードを探す
+    const targetRecord = allData.find(a => a.employee_id === empId && a.work_date === targetDateVal);
+
+    const appendText = `【代休日】 ${leaveShortDate}`;
+    let newMemo = '';
+    let recordId = null;
+    let clockIn = null;
+    let clockOut = null;
+
+    if (targetRecord) {
+      recordId = targetRecord.id;
+      clockIn = targetRecord.clock_in;
+      clockOut = targetRecord.clock_out;
+      newMemo = targetRecord.memo || '';
+      // すでに同じ文字が入っていなければ追記
+      if (!newMemo.includes(appendText)) {
+        newMemo = newMemo ? newMemo + '\n' + appendText : appendText;
+      } else {
+        return; // すでに登録済みの場合は何もしない
+      }
+    } else {
+      // レコード自体が存在しない場合は、メモだけで新規作成する
+      newMemo = appendText;
+    }
+
+    const payload = {
+      id: recordId,
+      employee_id: empId,
+      work_date: targetDateVal,
+      clock_in: clockIn,
+      clock_out: clockOut,
+      memo: newMemo,
+      shop_id: shopId
+    };
+
+    // 取得日のデータを上書き保存
+    await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    console.error('代休日同期エラー:', error);
   }
 }
 
@@ -1125,6 +1208,11 @@ async function submitRecordEdit() {
     });
 
     if (!response.ok) throw new Error('更新に失敗しました');
+
+    // ★追加: 取得日が入力されていた場合、その日のデータにも【代休日】を自動保存する
+    if (compDateEl && compDateEl.value.trim() !== '') {
+      await syncCompensatoryDateMemo(emp.id, compDateEl.value.trim(), dateVal, currentSelectedShopId);
+    }
 
     showToast('実績を更新しました');
     closeRecordModal('modal-record-edit');
