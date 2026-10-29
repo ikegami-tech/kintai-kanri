@@ -823,7 +823,8 @@ function handleCellAction(actionType) {
     // ★追加: 既存のメモから「代休取得日（例：10/25）」を読み込んでセットする
     const compDateEl = document.getElementById('edit-comp-date');
     if (compDateEl) {
-      const dateMatch = rawMemo.match(/【代休日】([^\n]+)/);
+      // 過去に保存された「代休日」も拾えるように両方に対応
+      const dateMatch = rawMemo.match(/【(?:代休日|代休取得日)】([^\n]+)/);
       if (dateMatch) {
         compDateEl.value = dateMatch[1].trim();
       } else {
