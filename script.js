@@ -920,9 +920,14 @@ async function submitRecordCreate() {
   const cbPaidAm = document.getElementById('create-check-paid-am');
   const cbPaidPm = document.getElementById('create-check-paid-pm');
   const cbPaidFull = document.getElementById('create-check-paid-full');
+  // ★追加: 代休系のチェックボックスも取得する
+  const cbCompAm = document.getElementById('create-check-comp-am');
+  const cbCompPm = document.getElementById('create-check-comp-pm');
+  const cbCompFull = document.getElementById('create-check-comp-full');
 
-  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbEarly && cbEarly.checked) && !(cbPaidAm && cbPaidAm.checked) && !(cbPaidPm && cbPaidPm.checked) && !(cbPaidFull && cbPaidFull.checked)) {
-    alert('出勤時間を指定するか、遅刻・欠勤・早退・有給のいずれかを選択してください。');
+  // ★修正: 代休系のチェックが入っている場合もエラーを出さずに通すように条件を追加
+  if (!clockIn && !(cbLate && cbLate.checked) && !(cbAbsence && cbAbsence.checked) && !(cbEarly && cbEarly.checked) && !(cbPaidAm && cbPaidAm.checked) && !(cbPaidPm && cbPaidPm.checked) && !(cbPaidFull && cbPaidFull.checked) && !(cbCompAm && cbCompAm.checked) && !(cbCompPm && cbCompPm.checked) && !(cbCompFull && cbCompFull.checked)) {
+    alert('出勤時間を指定するか、遅刻・欠勤・早退・有給・代休のいずれかを選択してください。');
     return;
   }
 
