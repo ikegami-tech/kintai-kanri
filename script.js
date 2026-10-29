@@ -938,7 +938,6 @@ async function submitRecordCreate() {
     memoParts.push(directMemoList.join('・'));
   }
 
-  // ★修正: 代休系の文字を自動でメモに追記
   const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
   ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`create-check-${type}`);
@@ -955,7 +954,6 @@ async function submitRecordCreate() {
     }
   });
 
-  // ★追加: 代休取得日が存在すれば一番下に追記
   const compDateEl = document.getElementById('create-comp-date');
   if (compDateEl && compDateEl.value.trim() !== '') {
     if (!memoParts.includes(`【代休日】${compDateEl.value.trim()}`)) {
@@ -1061,7 +1059,6 @@ async function submitRecordEdit() {
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
-  // ★修正: 代休系の文字を自動でメモに追記
   const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
   ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`edit-check-${type}`);
@@ -1078,7 +1075,6 @@ async function submitRecordEdit() {
     }
   });
 
-  // ★追加: 代休取得日が存在すれば一番下に追記
   const compDateEl = document.getElementById('edit-comp-date');
   if (compDateEl && compDateEl.value.trim() !== '') {
     if (!memoParts.includes(`【代休日】${compDateEl.value.trim()}`)) {
