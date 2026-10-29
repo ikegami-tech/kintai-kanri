@@ -968,8 +968,8 @@ async function submitRecordCreate() {
 
   const compDateEl = document.getElementById('create-comp-date');
   if (compDateEl && compDateEl.value.trim() !== '') {
-    if (!memoParts.includes(`【代休日】${compDateEl.value.trim()}`)) {
-      memoParts.push(`【代休日】${compDateEl.value.trim()}`);
+    if (!memoParts.includes(`【代休取得日】${compDateEl.value.trim()}`)) {
+      memoParts.push(`【代休取得日】${compDateEl.value.trim()}`);
     }
   }
 
@@ -1064,7 +1064,12 @@ async function submitRecordEdit() {
     .replace(/【午前休】.*/g, '')
     .replace(/【午後休】.*/g, '')
     .replace(/【有給】.*/g, '')
-    .replace(/【電車遅延】/g, '') // ★追加: 電車遅延を一旦消去する
+    .replace(/【午前代休】.*/g, '') // ★追加: 編集時に増殖しないよう消去
+    .replace(/【午後代休】.*/g, '') // ★追加
+    .replace(/【代休】.*/g, '') // ★追加
+    .replace(/【代休取得日】.*/g, '') // ★追加
+    .replace(/【代休日】.*/g, '') // ★追加
+    .replace(/【電車遅延】/g, '')
     .replace(/休日出勤/g, '')
     .replace(/管理者修正/g, '')
     .replace(/【翌日】/g, '')
@@ -1095,8 +1100,8 @@ async function submitRecordEdit() {
 
   const compDateEl = document.getElementById('edit-comp-date');
   if (compDateEl && compDateEl.value.trim() !== '') {
-    if (!memoParts.includes(`【代休日】${compDateEl.value.trim()}`)) {
-      memoParts.push(`【代休日】${compDateEl.value.trim()}`);
+    if (!memoParts.includes(`【代休取得日】${compDateEl.value.trim()}`)) {
+      memoParts.push(`【代休取得日】${compDateEl.value.trim()}`);
     }
   }
 
