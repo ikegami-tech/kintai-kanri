@@ -692,8 +692,10 @@ function handleCellAction(actionType) {
 
     const cbIn = document.getElementById('create-check-direct-in');
     const cbOut = document.getElementById('create-check-direct-out');
+    const cbTrain = document.getElementById('create-check-train-delay'); // ★追加
     if (cbIn) cbIn.checked = false;
     if (cbOut) cbOut.checked = false;
+    if (cbTrain) cbTrain.checked = false; // ★追加
 
     document.getElementById('modal-record-create').classList.remove('hidden');
     
@@ -728,8 +730,10 @@ function handleCellAction(actionType) {
 
     const cbIn = document.getElementById('edit-check-direct-in');
     const cbOut = document.getElementById('edit-check-direct-out');
+    const cbTrainEdit = document.getElementById('edit-check-train-delay'); // ★追加
     if (cbIn) cbIn.checked = rawMemo.includes('直行');
     if (cbOut) cbOut.checked = rawMemo.includes('直帰');
+    if (cbTrainEdit) cbTrainEdit.checked = rawMemo.includes('【電車遅延】'); // ★追加
     
     // 直行直帰のメール内容を抽出してセットする
     const mailBox = document.getElementById('edit-mail-box');
@@ -878,11 +882,15 @@ async function submitRecordCreate() {
 
   const cbIn = document.getElementById('create-check-direct-in');
   const cbOut = document.getElementById('create-check-direct-out');
+  const cbTrainDelay = document.getElementById('create-check-train-delay'); // ★追加
   let directMemoList = [];
   if (cbIn && cbIn.checked) directMemoList.push('直行');
   if (cbOut && cbOut.checked) directMemoList.push('直帰');
 
   let memoParts = ['管理者修正'];
+  if (cbTrainDelay && cbTrainDelay.checked) {
+    memoParts.push('【電車遅延】'); // ★追加
+  }
   if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
     memoParts.push('休日出勤');
   }
@@ -991,10 +999,16 @@ async function submitRecordEdit() {
     .replace(/【午前休】.*/g, '')
     .replace(/【午後休】.*/g, '')
     .replace(/【有給】.*/g, '')
+    .replace(/【電車遅延】/g, '') // ★追加: 電車遅延を一旦消去する
     .replace(/休日出勤/g, '')
     .replace(/管理者修正/g, '')
-    .replace(/【翌日】/g, '') // ★追加: ゴミとして残らないように消去
+    .replace(/【翌日】/g, '')
     .trim();
+
+  const cbTrainDelayEdit = document.getElementById('edit-check-train-delay');
+  if (cbTrainDelayEdit && cbTrainDelayEdit.checked) {
+    memoParts.push('【電車遅延】'); // ★追加
+  }
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
@@ -2327,17 +2341,20 @@ async function fetchOvertimeData(year, month, selectedDept) {
             const hasLate = att.memo.includes('【遅刻】');
             const hasAbsence = att.memo.includes('【欠勤】');
             const hasEarly = att.memo.includes('【早退】');
+            const hasTrainDelay = att.memo.includes('【電車遅延】'); // ★追加
 
             // 出勤側の遅刻・欠勤の計算（9時以降の出勤）
             if (actualStart > BASE_START) {
                 if (hasAbsence && hasLate) {
-                    // 欠勤と遅刻が同時の場合（例：14:05出勤なら 14時まで欠勤、14時〜14:05が遅刻）
                     const hourStart = Math.floor(actualStart / 60) * 60;
                     absenceMins += (hourStart - BASE_START);
-                    lateMins += (actualStart - hourStart);
+                    if (!hasTrainDelay) lateMins += (actualStart - hourStart); // ★電車遅延なら遅刻除外
                 } else if (hasAbsence) {
                     absenceMins += (actualStart - BASE_START);
                 } else if (hasLate) {
+                    if (!hasTrainDelay) lateMins += (actualStart - BASE_START); // ★電車遅延なら遅刻除外
+                } else if (!hasTrainDelay && !att.memo.includes('【有給】') && !att.memo.includes('【午前休】')) {
+                    // ★追加: 電車遅延・有給・午前休等の正当な理由がなく9:00を過ぎた場合は、自動で遅刻時間に加算
                     lateMins += (actualStart - BASE_START);
                 }
             }
