@@ -2108,26 +2108,29 @@ async function renderMatrixTable() {
           let inText = formatDisplayTime(att.clock_in, false);
           let outText = formatDisplayTime(att.clock_out, true);
 
-          // ★追加: 代休系がある場合もセル表示を全体の時間帯（09:00〜18:00）等に補正
+          // ★修正: 代休系の時間はセル表示から除外し、有給・午前休・午後休のみ時間表示する
           if (att.memo) {
-            const amMatch = att.memo.match(/【(?:午前休|午前代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-            const pmMatch = att.memo.match(/【(?:午後休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-            if (amMatch) {
-              inText = amMatch[1]; 
-              if (!outText) outText = '18:00';
-            }
-            if (pmMatch) {
-              outText = pmMatch[2]; 
-              if (!inText) inText = '09:00';
+            const amMatch = att.memo.match(/【午前休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+            const pmMatch = att.memo.match(/【午後休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+            
+            if (amMatch && pmMatch) {
+              inText = amMatch[1];
+              outText = pmMatch[2];
+            } else if (amMatch) {
+              inText = amMatch[1];
+              outText = amMatch[2];
+            } else if (pmMatch) {
+              inText = pmMatch[1];
+              outText = pmMatch[2];
             }
           }
           
           let timeText = '';
           if (inText || outText) {
-             timeText = `${inText}<br>${outText}`;
+             timeText = `${inText || '-'}<br>${outText || '-'}`;
           } else {
-             // 代休等の時間を抽出して表示する
-             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休|代休|午前代休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
+             // 遅刻・欠勤・有給・早退の時間を抽出して表示する（代休は除外）
+             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
              } else {
@@ -2329,17 +2332,20 @@ async function renderDailyTable() {
       let displayIn = att && att.clock_in ? formatInTime(att.clock_in) : '';
       let displayOut = att && att.clock_out ? formatOutTime(att.clock_out, att.memo) : '';
 
-      // ★追加: 代休系がある場合、日表示も全体の時間帯（09:00〜18:00）等に補正
+      // ★修正: 代休系の時間は表示から除外し、有給・午前休・午後休のみ時間表示する
       if (att && att.memo) {
-        const amMatch = att.memo.match(/【(?:午前休|午前代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-        const pmMatch = att.memo.match(/【(?:午後休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-        if (amMatch) {
+        const amMatch = att.memo.match(/【午前休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        const pmMatch = att.memo.match(/【午後休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        
+        if (amMatch && pmMatch) {
           displayIn = amMatch[1];
-          if (!displayOut) displayOut = '18:00';
-        }
-        if (pmMatch) {
           displayOut = pmMatch[2];
-          if (!displayIn) displayIn = '09:00';
+        } else if (amMatch) {
+          displayIn = amMatch[1];
+          displayOut = amMatch[2];
+        } else if (pmMatch) {
+          displayIn = pmMatch[1];
+          displayOut = pmMatch[2];
         }
       }
 
@@ -2353,7 +2359,7 @@ async function renderDailyTable() {
           timeStr = `～ ${displayOut}`;
         }
       } else if (att && att.memo) {
-        let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休|代休|午前代休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
         if (extMatch) {
           timeStr = `${extMatch[1]} ～ ${extMatch[2]}`;
         }
