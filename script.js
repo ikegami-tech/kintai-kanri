@@ -1003,7 +1003,9 @@ async function submitRecordCreate() {
     memoParts.push(directMemoList.join('・'));
   }
 
+  // ★修正: 独立して処理されるよう組み直し
   const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
+  
   ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`create-check-${type}`);
     if (cb && cb.checked) {
@@ -1019,9 +1021,11 @@ async function submitRecordCreate() {
     }
   });
 
+  // ★修正: 3つの取得日を個別に判定し、メモへ保存
   ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+    const cb = document.getElementById(`create-check-${type}`);
     const el = document.getElementById(`create-${type}-date`);
-    if (el && el.value.trim() !== '') {
+    if (cb && cb.checked && el && el.value.trim() !== '') {
       let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
       if (!memoParts.includes(`【${label}】${el.value.trim()}`)) {
         memoParts.push(`【${label}】${el.value.trim()}`);
@@ -1047,6 +1051,7 @@ async function submitRecordCreate() {
 
     if (!response.ok) throw new Error('保存に失敗しました');
 
+    // ★修正: 自動同期処理
     const syncPromises = [];
     ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
       const cb = document.getElementById(`create-check-${type}`);
@@ -1232,7 +1237,9 @@ async function submitRecordEdit() {
 
   if (cleanMemo) memoParts.push(cleanMemo);
 
+  // ★修正: 独立して処理されるよう組み直し
   const labelMap = { late: '遅刻', absence: '欠勤', early: '早退', 'paid-am': '午前休', 'paid-pm': '午後休', 'paid-full': '有給', 'comp-am': '午前代休', 'comp-pm': '午後代休', 'comp-full': '代休' };
+  
   ['late', 'absence', 'early', 'paid-am', 'paid-pm', 'paid-full', 'comp-am', 'comp-pm', 'comp-full'].forEach(type => {
     const cb = document.getElementById(`edit-check-${type}`);
     if (cb && cb.checked) {
@@ -1248,9 +1255,11 @@ async function submitRecordEdit() {
     }
   });
 
+  // ★修正: チェックが入っている場合のみ、取得日をメモへ保存
   ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
+    const cb = document.getElementById(`edit-check-${type}`);
     const el = document.getElementById(`edit-${type}-date`);
-    if (el && el.value.trim() !== '') {
+    if (cb && cb.checked && el && el.value.trim() !== '') {
       let label = type === 'comp-am' ? '午前代休取得日' : (type === 'comp-pm' ? '午後代休取得日' : '代休取得日');
       if (!memoParts.includes(`【${label}】${el.value.trim()}`)) {
         memoParts.push(`【${label}】${el.value.trim()}`);
@@ -1279,6 +1288,7 @@ async function submitRecordEdit() {
 
     if (!response.ok) throw new Error('更新に失敗しました');
 
+    // ★修正: 自動同期処理
     const syncPromises = [];
     ['comp-am', 'comp-pm', 'comp-full'].forEach(type => {
       const cb = document.getElementById(`edit-check-${type}`);
