@@ -1922,16 +1922,16 @@ async function renderMatrixTable() {
           let inText = formatDisplayTime(att.clock_in, false);
           let outText = formatDisplayTime(att.clock_out, true);
 
-          // ★追加: 午前休・午後休がある場合、セル表示を全体の時間帯（09:00〜18:00）に補正
+          // ★追加: 代休系がある場合もセル表示を全体の時間帯（09:00〜18:00）等に補正
           if (att.memo) {
-            const amMatch = att.memo.match(/【午前休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-            const pmMatch = att.memo.match(/【午後休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+            const amMatch = att.memo.match(/【(?:午前休|午前代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+            const pmMatch = att.memo.match(/【(?:午後休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
             if (amMatch) {
-              inText = amMatch[1]; // 午前休の開始時刻（09:00）を出勤時刻として表示
+              inText = amMatch[1]; 
               if (!outText) outText = '18:00';
             }
             if (pmMatch) {
-              outText = pmMatch[2]; // 午後休の終了時刻（18:00）を退勤時刻として表示
+              outText = pmMatch[2]; 
               if (!inText) inText = '09:00';
             }
           }
@@ -1940,12 +1940,11 @@ async function renderMatrixTable() {
           if (inText || outText) {
              timeText = `${inText}<br>${outText}`;
           } else {
-             // clock_inがない場合でも、メモから遅刻・欠勤・有給・午前休・午後休の時間を抽出して表示する
-             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
+             // 代休等の時間を抽出して表示する
+             let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休|代休|午前代休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
              } else {
-                 // ★ 透明なダミー文字を入れて、高さを潰さずに見えなくする
                  timeText = `<span style="visibility: hidden;">-<br>-</span>`; 
              }
           }
@@ -1984,8 +1983,8 @@ async function renderMatrixTable() {
               tooltipParts.push(directTags.join('・'));
             }
             if (otherMemo) {
-              // ★修正: 吹き出しに表示する時だけ、有給・遅刻・欠勤・早退の時間を隠す
-              let displayMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
+              // ★修正: 代休系の時間も吹き出しから隠す
+              let displayMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退|午前休|午後休|代休|午前代休|午後代休)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
               tooltipParts.push(displayMemo);
             }
 
@@ -2144,10 +2143,10 @@ async function renderDailyTable() {
       let displayIn = att && att.clock_in ? formatInTime(att.clock_in) : '';
       let displayOut = att && att.clock_out ? formatOutTime(att.clock_out, att.memo) : '';
 
-      // ★追加: 午前休・午後休がある場合、日表示も全体の時間帯（09:00〜18:00）に補正
+      // ★追加: 代休系がある場合、日表示も全体の時間帯（09:00〜18:00）等に補正
       if (att && att.memo) {
-        const amMatch = att.memo.match(/【午前休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
-        const pmMatch = att.memo.match(/【午後休】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        const amMatch = att.memo.match(/【(?:午前休|午前代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        const pmMatch = att.memo.match(/【(?:午後休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
         if (amMatch) {
           displayIn = amMatch[1];
           if (!displayOut) displayOut = '18:00';
@@ -2158,7 +2157,6 @@ async function renderDailyTable() {
         }
       }
 
-      // ★ 透明なダミー文字を入れて、高さを潰さずに見えなくする
       let timeStr = '<span style="visibility: hidden;">-</span>'; 
       if (displayIn || displayOut) {
         if (displayIn && displayOut) {
@@ -2169,7 +2167,7 @@ async function renderDailyTable() {
           timeStr = `～ ${displayOut}`;
         }
       } else if (att && att.memo) {
-        let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
+        let extMatch = att.memo.match(/【(?:遅刻|欠勤|有給|早退|午前休|午後休|代休|午前代休|午後代休)】(\d{2}:\d{2})〜(\d{2}:\d{2})/);
         if (extMatch) {
           timeStr = `${extMatch[1]} ～ ${extMatch[2]}`;
         }
@@ -2203,8 +2201,8 @@ async function renderDailyTable() {
         }
 
         let otherMemo = cleanMemo.trim();
-        // ★修正: 吹き出しに表示する時だけ、有給・遅刻・欠勤・早退の時間を隠す
-        otherMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
+        // ★修正: 代休系の時間も吹き出しから隠す
+        otherMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退|午前休|午後休|代休|午前代休|午後代休)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
 
         let tooltipParts = [];
         if (directTags.length > 0) tooltipParts.push(directTags.join('・'));
