@@ -883,7 +883,13 @@ function closeRecordModal(modalId) {
 // 【API通信実装】実績の新規登録処理
 async function submitRecordCreate() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+
+  // ★追加: キャッシュにない場合は最新データを再取得して探す安全装置
+  if (!emp) {
+    currentEmployeeList = await fetchEmployeesAPI('ALL', '');
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  }
 
   if (!emp) {
     alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
@@ -992,7 +998,13 @@ async function submitRecordCreate() {
 // 【API通信実装】実績の編集更新処理
 async function submitRecordEdit() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+
+  // ★追加: キャッシュにない場合は最新データを再取得して探す安全装置
+  if (!emp) {
+    currentEmployeeList = await fetchEmployeesAPI('ALL', '');
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  }
 
   if (!emp) {
     alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
@@ -1137,7 +1149,14 @@ async function submitRecordDelete() {
 
 async function submitRecordMemo() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  const emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  
+  // ★追加: キャッシュにない場合は最新データを再取得して探す安全装置
+  if (!emp) {
+    currentEmployeeList = await fetchEmployeesAPI('ALL', '');
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  }
+  
   if (!emp) return alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
 
   const dateVal = document.getElementById('memo-date').textContent.replace(/\//g, '-');
