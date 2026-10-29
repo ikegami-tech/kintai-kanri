@@ -661,6 +661,18 @@ function toggleExtraTimeRow(mode, type) {
     if (checkbox.checked) row.classList.remove('hidden');
     else row.classList.add('hidden');
   }
+  
+  // 代休系チェック時は「代休取得日」入力枠も連動させる
+  if (type.includes('comp')) {
+    const am = document.getElementById(`${mode}-check-comp-am`)?.checked;
+    const pm = document.getElementById(`${mode}-check-comp-pm`)?.checked;
+    const full = document.getElementById(`${mode}-check-comp-full`)?.checked;
+    const dateRow = document.getElementById(`${mode}-row-comp-date`);
+    if (dateRow) {
+      if (am || pm || full) dateRow.classList.remove('hidden');
+      else dateRow.classList.add('hidden');
+    }
+  }
 }
 
 function handleCellAction(actionType) {
@@ -2826,7 +2838,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-early-start-h', 'create-early-end-h', 'edit-early-start-h', 'edit-early-end-h',
     'create-paid-am-start-h', 'create-paid-am-end-h', 'edit-paid-am-start-h', 'edit-paid-am-end-h',
     'create-paid-pm-start-h', 'create-paid-pm-end-h', 'edit-paid-pm-start-h', 'edit-paid-pm-end-h',
-    'create-paid-full-start-h', 'create-paid-full-end-h', 'edit-paid-full-start-h', 'edit-paid-full-end-h'
+    'create-paid-full-start-h', 'create-paid-full-end-h', 'edit-paid-full-start-h', 'edit-paid-full-end-h',
+    'create-comp-am-start-h', 'create-comp-am-end-h', 'edit-comp-am-start-h', 'edit-comp-am-end-h',
+    'create-comp-pm-start-h', 'create-comp-pm-end-h', 'edit-comp-pm-start-h', 'edit-comp-pm-end-h',
+    'create-comp-full-start-h', 'create-comp-full-end-h', 'edit-comp-full-start-h', 'edit-comp-full-end-h'
   ];
   let hoursHtml = '<option value="--">--</option>';
   for (let h = 0; h <= 47; h++) { // ★ 24から47に変更（翌23時まで対応）
@@ -2845,7 +2860,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     'create-early-start-m', 'create-early-end-m', 'edit-early-start-m', 'edit-early-end-m',
     'create-paid-am-start-m', 'create-paid-am-end-m', 'edit-paid-am-start-m', 'edit-paid-am-end-m',
     'create-paid-pm-start-m', 'create-paid-pm-end-m', 'edit-paid-pm-start-m', 'edit-paid-pm-end-m',
-    'create-paid-full-start-m', 'create-paid-full-end-m', 'edit-paid-full-start-m', 'edit-paid-full-end-m'
+    'create-paid-full-start-m', 'create-paid-full-end-m', 'edit-paid-full-start-m', 'edit-paid-full-end-m',
+    'create-comp-am-start-m', 'create-comp-am-end-m', 'edit-comp-am-start-m', 'edit-comp-am-end-m',
+    'create-comp-pm-start-m', 'create-comp-pm-end-m', 'edit-comp-pm-start-m', 'edit-comp-pm-end-m',
+    'create-comp-full-start-m', 'create-comp-full-end-m', 'edit-comp-full-start-m', 'edit-comp-full-end-m'
   ];
   let minutesHtml = '<option value="--">--</option>';
   for (let m = 0; m < 60; m++) {

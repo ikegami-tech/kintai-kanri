@@ -482,11 +482,27 @@
                     <select class="form-select-sm" id="create-paid-pm-start-h"></select> : <select class="form-select-sm" id="create-paid-pm-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-pm-end-h"></select> : <select class="form-select-sm" id="create-paid-pm-end-m"></select>
                   </td>
                 </tr>
-                <tr id="create-row-paid-full" class="hidden">
-                  <th>有給</th>
+                <tr id="create-row-comp-am" class="hidden">
+                  <th>午前代休</th>
                   <td class="time-select-group">
-                    <select class="form-select-sm" id="create-paid-full-start-h"></select> : <select class="form-select-sm" id="create-paid-full-start-m"></select> 〜 <select class="form-select-sm" id="create-paid-full-end-h"></select> : <select class="form-select-sm" id="create-paid-full-end-m"></select>
+                    <select class="form-select-sm" id="create-comp-am-start-h"></select> : <select class="form-select-sm" id="create-comp-am-start-m"></select> 〜 <select class="form-select-sm" id="create-comp-am-end-h"></select> : <select class="form-select-sm" id="create-comp-am-end-m"></select>
                   </td>
+                </tr>
+                <tr id="create-row-comp-pm" class="hidden">
+                  <th>午後代休</th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-comp-pm-start-h"></select> : <select class="form-select-sm" id="create-comp-pm-start-m"></select> 〜 <select class="form-select-sm" id="create-comp-pm-end-h"></select> : <select class="form-select-sm" id="create-comp-pm-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-comp-full" class="hidden">
+                  <th>代休</th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="create-comp-full-start-h"></select> : <select class="form-select-sm" id="create-comp-full-start-m"></select> 〜 <select class="form-select-sm" id="create-comp-full-end-h"></select> : <select class="form-select-sm" id="create-comp-full-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="create-row-comp-date" class="hidden">
+                  <th>代休取得日</th>
+                  <td><input type="text" class="form-input" id="create-comp-date" style="width:150px;" placeholder="例) 10/25"></td>
                 </tr>
                 <tr>
                   <th>直行直帰</th>
@@ -504,10 +520,10 @@
                       <label style="margin-left:10px;"><input type="checkbox" id="create-check-absence" onchange="toggleExtraTimeRow('create', 'absence')"> 欠勤</label>
                       <label style="margin-left:10px;"><input type="checkbox" id="create-check-early" onchange="toggleExtraTimeRow('create', 'early')"> 早退</label>
                     </div>
-                    <div>
-                      <label><input type="checkbox" id="create-check-paid-am" onchange="toggleExtraTimeRow('create', 'paid-am')"> 午前休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-pm" onchange="toggleExtraTimeRow('create', 'paid-pm')"> 午後休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-paid-full" onchange="toggleExtraTimeRow('create', 'paid-full')"> 有給</label>
+                    <div style="margin-top: 8px;">
+                      <label><input type="checkbox" id="create-check-comp-am" onchange="toggleExtraTimeRow('create', 'comp-am')"> 午前代休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-comp-pm" onchange="toggleExtraTimeRow('create', 'comp-pm')"> 午後代休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="create-check-comp-full" onchange="toggleExtraTimeRow('create', 'comp-full')"> 代休</label>
                     </div>
                   </td>
                 </tr>
@@ -581,11 +597,27 @@
                     <select class="form-select-sm" id="edit-paid-pm-start-h"></select> : <select class="form-select-sm" id="edit-paid-pm-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-pm-end-h"></select> : <select class="form-select-sm" id="edit-paid-pm-end-m"></select>
                   </td>
                 </tr>
-                <tr id="edit-row-paid-full" class="hidden">
-                  <th>有給</th>
+                <tr id="edit-row-comp-am" class="hidden">
+                  <th>午前代休</th>
                   <td class="time-select-group">
-                    <select class="form-select-sm" id="edit-paid-full-start-h"></select> : <select class="form-select-sm" id="edit-paid-full-start-m"></select> 〜 <select class="form-select-sm" id="edit-paid-full-end-h"></select> : <select class="form-select-sm" id="edit-paid-full-end-m"></select>
+                    <select class="form-select-sm" id="edit-comp-am-start-h"></select> : <select class="form-select-sm" id="edit-comp-am-start-m"></select> 〜 <select class="form-select-sm" id="edit-comp-am-end-h"></select> : <select class="form-select-sm" id="edit-comp-am-end-m"></select>
                   </td>
+                </tr>
+                <tr id="edit-row-comp-pm" class="hidden">
+                  <th>午後代休</th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-comp-pm-start-h"></select> : <select class="form-select-sm" id="edit-comp-pm-start-m"></select> 〜 <select class="form-select-sm" id="edit-comp-pm-end-h"></select> : <select class="form-select-sm" id="edit-comp-pm-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-comp-full" class="hidden">
+                  <th>代休</th>
+                  <td class="time-select-group">
+                    <select class="form-select-sm" id="edit-comp-full-start-h"></select> : <select class="form-select-sm" id="edit-comp-full-start-m"></select> 〜 <select class="form-select-sm" id="edit-comp-full-end-h"></select> : <select class="form-select-sm" id="edit-comp-full-end-m"></select>
+                  </td>
+                </tr>
+                <tr id="edit-row-comp-date" class="hidden">
+                  <th>代休取得日</th>
+                  <td><input type="text" class="form-input" id="edit-comp-date" style="width:150px;" placeholder="例) 10/25"></td>
                 </tr>
                 <tr>
                   <th>直行直帰</th>
@@ -603,10 +635,10 @@
                       <label style="margin-left:10px;"><input type="checkbox" id="edit-check-absence" onchange="toggleExtraTimeRow('edit', 'absence')"> 欠勤</label>
                       <label style="margin-left:10px;"><input type="checkbox" id="edit-check-early" onchange="toggleExtraTimeRow('edit', 'early')"> 早退</label>
                     </div>
-                    <div>
-                      <label><input type="checkbox" id="edit-check-paid-am" onchange="toggleExtraTimeRow('edit', 'paid-am')"> 午前休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-pm" onchange="toggleExtraTimeRow('edit', 'paid-pm')"> 午後休</label>
-                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-paid-full" onchange="toggleExtraTimeRow('edit', 'paid-full')"> 有給</label>
+                    <div style="margin-top: 8px;">
+                      <label><input type="checkbox" id="edit-check-comp-am" onchange="toggleExtraTimeRow('edit', 'comp-am')"> 午前代休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-comp-pm" onchange="toggleExtraTimeRow('edit', 'comp-pm')"> 午後代休</label>
+                      <label style="margin-left:10px;"><input type="checkbox" id="edit-check-comp-full" onchange="toggleExtraTimeRow('edit', 'comp-full')"> 代休</label>
                     </div>
                   </td>
                 </tr>
