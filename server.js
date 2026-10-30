@@ -82,9 +82,9 @@ app.get('/api/employees', (req, res) => {
 });
 
 app.post('/api/employees', (req, res) => {
-  const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date, shop_id, login_id } = req.body;
-  const sql = `INSERT INTO employees (name, kana, gender, email, department, role, show_attendance, join_date, retire_date, shop_id, login_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  const values = [name, kana, gender, email, department, role, show_attendance, join_date || null, retire_date || null, shop_id || 'shop_01', login_id || null];
+  const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date, shop_id, login_id, holiday_rule } = req.body;
+  const sql = `INSERT INTO employees (name, kana, gender, email, department, role, show_attendance, join_date, retire_date, shop_id, login_id, holiday_rule) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const values = [name, kana, gender, email, department, role, show_attendance, join_date || null, retire_date || null, shop_id || 'shop_01', login_id || null, holiday_rule || '通常社員'];
   
   db.query(sql, values, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -93,13 +93,13 @@ app.post('/api/employees', (req, res) => {
 });
 
 app.put('/api/employees/:id', (req, res) => {
-  const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date, shop_id, login_id } = req.body;
-  const sql = `UPDATE employees SET name=?, kana=?, gender=?, email=?, department=?, role=?, show_attendance=?, join_date=?, retire_date=?, shop_id=?, login_id=? WHERE id=?`;
+  const { name, kana, gender, email, department, role, show_attendance, join_date, retire_date, shop_id, login_id, holiday_rule } = req.body;
+  const sql = `UPDATE employees SET name=?, kana=?, gender=?, email=?, department=?, role=?, show_attendance=?, join_date=?, retire_date=?, shop_id=?, login_id=?, holiday_rule=? WHERE id=?`;
   
   const cleanJoinDate = (join_date && join_date.trim() !== '' && join_date !== '-') ? join_date : null;
   const cleanRetireDate = (retire_date && retire_date.trim() !== '' && retire_date !== '-') ? retire_date : null;
 
-  const values = [name, kana, gender, email, department, role, show_attendance, cleanJoinDate, cleanRetireDate, shop_id || 'shop_01', login_id || null, req.params.id];
+  const values = [name, kana, gender, email, department, role, show_attendance, cleanJoinDate, cleanRetireDate, shop_id || 'shop_01', login_id || null, holiday_rule || '通常社員', req.params.id];
   
   db.query(sql, values, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
