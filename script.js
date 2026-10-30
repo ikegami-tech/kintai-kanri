@@ -1633,6 +1633,10 @@ function showEmployeeDetail(identifier) {
   const shopNameEl = document.getElementById('val-shop-name');
   if (shopNameEl) shopNameEl.textContent = SHOP_LIST[emp.shop_id || 'shop_01'] || 'TH国分寺';
 
+  // ★ここに追加（休日ルールの表示）
+  const holidayRuleEl = document.getElementById('val-holiday-rule');
+  if (holidayRuleEl) holidayRuleEl.textContent = emp.holidayRule || '通常社員';
+
   document.getElementById('val-role').textContent = emp.role;
   document.getElementById('val-attendance').textContent = emp.show_attendance ? 'あり' : 'なし';
   document.getElementById('val-join-date').textContent = emp.joinDate;
