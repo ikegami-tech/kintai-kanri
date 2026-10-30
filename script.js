@@ -1028,7 +1028,9 @@ async function submitRecordCreate() {
 
   let memoParts = ['管理者修正'];
   if (cbTrainDelay && cbTrainDelay.checked) memoParts.push('【電車遅延】');
-  if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
+  
+  await fetchPublicHolidays(dateVal.split('-')[0]); // 祝日データを取得
+  if (isHolidayForEmployee(emp, dateVal)) { // ★その人のルールで判定
     memoParts.push('休日出勤');
   }
   if (directMemoList.length > 0) {
@@ -1235,7 +1237,8 @@ async function submitRecordEdit() {
     memoParts.push('【翌日】');
   }
 
-  if (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]) {
+  await fetchPublicHolidays(dateVal.split('-')[0]); // 祝日データを取得
+  if (isHolidayForEmployee(emp, dateVal)) { // ★その人のルールで判定
     if (!existingMemo.includes('休日出勤')) {
       memoParts.push('休日出勤');
     }
@@ -2652,6 +2655,7 @@ let overtimeSortKey = 'overtimeHours';
 let overtimeSortAsc = false;
 
 async function fetchOvertimeData(year, month, selectedDept) {
+  await fetchPublicHolidays(year); // ★追加: 集計対象の年の祝日データを取得
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
   
   let attendancesData = [];
@@ -2758,7 +2762,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
         addDay = 1;
       }
 
-      const isHolidaySetting = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[att.work_date]);
+      const isHolidaySetting = isHolidayForEmployee(emp, att.work_date); // ★その人のルールで休日か判定
       const isHoliday = isHolidaySetting || (att.memo && att.memo.includes('休日出勤'));
 
       if (addDay > 0) {
@@ -4220,8 +4224,8 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
 
   if (existingMemo.includes('管理者修正')) finalMemoParts.push('管理者修正');
   
-  // ★ 土日判定を削除し、休日設定されている日のみ「休日出勤」を自動付与する
-  const isHolidaySetting = typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal];
+  await fetchPublicHolidays(year); // 祝日データを取得
+  const isHolidaySetting = isHolidayForEmployee(tcSelectedEmp, dateVal); // ★その人のルールで判定
   if (isHolidaySetting || existingMemo.includes('休日出勤')) {
     if (!finalMemoParts.includes('休日出勤')) finalMemoParts.push('休日出勤');
   }
