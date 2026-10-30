@@ -883,6 +883,16 @@
                   </tr>
                   <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="edit-shop-id" onchange="updateDepartmentOptions('edit-shop-id', 'edit-dept-id')"></select></td></tr>
                   <tr>
+                    <th>休日ルール</th>
+                    <td>
+                      <select class="form-select" id="edit-holiday-rule">
+                        <option value="通常社員">通常社員（定休のみ休み）</option>
+                        <option value="祝日休みの社員">祝日休みの社員（定休＋祝日が休み）</option>
+                        <option value="パート（休日出勤なし）">パート・特定社員（休日出勤なし）</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>
                       <label><input type="radio" name="role" value="一般"> 一般</label>
@@ -938,6 +948,16 @@
                     </td>
                   </tr>
                   <tr><th>店舗 <span class="badge-req">必須</span></th><td><select class="form-select" id="new-shop-id" required onchange="updateDepartmentOptions('new-shop-id', 'new-dept-id')"></select></td></tr>
+                  <tr>
+                    <th>休日ルール</th>
+                    <td>
+                      <select class="form-select" id="new-holiday-rule">
+                        <option value="通常社員">通常社員（定休のみ休み）</option>
+                        <option value="祝日休みの社員">祝日休みの社員（定休＋祝日が休み）</option>
+                        <option value="パート（休日出勤なし）">パート・特定社員（休日出勤なし）</option>
+                      </select>
+                    </td>
+                  </tr>
                   <tr>
                     <th>権限 <span class="badge-req">必須</span></th>
                     <td>

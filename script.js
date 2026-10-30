@@ -1,4 +1,36 @@
 // ==========================================
+// 祝日自動判定用キャッシュと関数
+// ==========================================
+let publicHolidaysCache = {}; 
+
+async function fetchPublicHolidays(year) {
+  if (publicHolidaysCache[year]) return; 
+  try {
+    const res = await fetch(`https://holidays-jp.github.io/api/v1/${year}/date.json`);
+    if (res.ok) {
+      const data = await res.json();
+      publicHolidaysCache = { ...publicHolidaysCache, ...data }; 
+    }
+  } catch (error) {
+    console.error('祝日データの取得に失敗しました:', error);
+  }
+}
+
+function isHolidayForEmployee(emp, dateVal) {
+  const rule = emp.holidayRule || '通常社員'; 
+  const isManualHoliday = (typeof holidaySettingsMap !== 'undefined' && holidaySettingsMap[dateVal]);
+  const isPublicHoliday = !!publicHolidaysCache[dateVal]; 
+
+  if (rule === 'パート（休日出勤なし）') {
+    return false; 
+  } else if (rule === '祝日休みの社員') {
+    return isManualHoliday || isPublicHoliday; 
+  } else {
+    return isManualHoliday; 
+  }
+}
+
+// ==========================================
 // 店舗マスタ定義 & グローバル状態
 // ==========================================
 let SHOP_LIST = {}; 
@@ -1689,6 +1721,9 @@ function openEditEmployee() {
   document.getElementById('edit-join-date').value = (emp.joinDate && emp.joinDate !== '-') ? emp.joinDate.replace(/\//g, '-') : '';
   document.getElementById('edit-retire-date').value = (emp.retireDate && emp.retireDate !== '-') ? emp.retireDate.replace(/\//g, '-') : '';
 
+  const holidayRuleSelect = document.getElementById('edit-holiday-rule');
+  if (holidayRuleSelect) holidayRuleSelect.value = emp.holidayRule || '通常社員';
+
   location.hash = `#/employee-edit?id=${emp.id}`;
 }
 
@@ -1730,7 +1765,8 @@ async function saveEmployeeEdit(event) {
     show_attendance: attEl ? (attEl.value === 'あり' ? 1 : 0) : 1,
     join_date: document.getElementById('edit-join-date').value ? document.getElementById('edit-join-date').value.replace(/\//g, '-') : null,
     retire_date: document.getElementById('edit-retire-date').value ? document.getElementById('edit-retire-date').value.replace(/\//g, '-') : null,
-    shop_id: shopSelect ? shopSelect.value : (currentEmp ? currentEmp.shop_id : 'shop_01')
+    shop_id: shopSelect ? shopSelect.value : (currentEmp ? currentEmp.shop_id : 'shop_01'),
+    holiday_rule: document.getElementById('edit-holiday-rule') ? document.getElementById('edit-holiday-rule').value : '通常社員'
   };
 
   try {
@@ -1826,7 +1862,8 @@ async function saveNewEmployee(event) {
     show_attendance: form.querySelector('input[name="new_attendance_display"]:checked').value === 'あり' ? 1 : 0,
     join_date: inputs[3].value ? inputs[3].value.replace(/\//g, '-') : null,
     retire_date: inputs[4].value ? inputs[4].value.replace(/\//g, '-') : null,
-    shop_id: shopSelect ? shopSelect.value : 'shop_01'
+    shop_id: shopSelect ? shopSelect.value : 'shop_01',
+    holiday_rule: document.getElementById('new-holiday-rule') ? document.getElementById('new-holiday-rule').value : '通常社員'
   };
 
   try {
@@ -3056,7 +3093,8 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
         empType: '正社員',
         office: emp.department || 'NEXT',
         joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
-        shop_id: emp.shop_id || 'shop_01'
+        shop_id: emp.shop_id || 'shop_01',
+        holidayRule: emp.holiday_rule || '通常社員'
       }));
   } catch (error) {
     console.error('API取得エラー:', error);
