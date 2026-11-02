@@ -1922,15 +1922,40 @@ async function renderDashboard() {
   if (dateEl) dateEl.textContent = dateStr;
 
   const todayKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const currentViewDateObj = new Date(year, month - 1, day);
 
-  // ★修正: データ未ロード時はAPIから取得して全体で保持（currentEmployeeList）する
   let empList = currentEmployeeList;
   if (!empList || empList.length === 0) {
     empList = await fetchEmployeesAPI('ALL', '');
     currentEmployeeList = empList;
   }
-  // ★追加: 労基法対象外のためダッシュボードの出勤管理からも除外
-  empList = empList.filter(emp => emp.office !== '社長' && emp.office !== '次長');
+
+  // ★追加: 労基法対象外に加え、表示日が入社日前・退職日後の従業員を除外
+  empList = empList.filter(emp => {
+    if (emp.office === '社長' || emp.office === '次長') return false;
+
+    // 入社日前なら除外
+    if (emp.joinDate && emp.joinDate !== '-') {
+      const cleanJoinDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const jDate = new Date(cleanJoinDate);
+      if (!isNaN(jDate)) {
+        jDate.setHours(0, 0, 0, 0);
+        if (currentViewDateObj < jDate) return false;
+      }
+    }
+
+    // 退職日の翌日以降なら除外
+    if (emp.retireDate && emp.retireDate !== '-') {
+      const cleanRetireDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const rDate = new Date(cleanRetireDate);
+      if (!isNaN(rDate)) {
+        rDate.setHours(0, 0, 0, 0);
+        if (currentViewDateObj > rDate) return false;
+      }
+    }
+
+    return true;
+  });
 
   let attendancesData = [];
   try {
@@ -1940,11 +1965,9 @@ async function renderDashboard() {
     console.error('ダッシュボード用データ取得エラー:', error);
   }
 
-  // ★修正: 1日の打刻履歴、および「未退勤（日跨ぎ）」のデータも含めて保持する
   const todayAttendanceMap = {};
   attendancesData.forEach(a => {
     const isActive = a.clock_in && (!a.clock_out || a.clock_out.trim() === '' || a.clock_out === '--:--');
-    // 今日のデータ、または未退勤のデータであれば追加する
     if (a.work_date === todayKey || isActive) {
       if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
       todayAttendanceMap[a.employee_id].push(a);
@@ -1962,13 +1985,10 @@ async function renderDashboard() {
     if (atts.length === 0) {
       notStarted.push({ name: emp.name, timeStr: '-' });
     } else {
-      // ★ 1件でも「未退勤」のデータがあれば出勤中とする
       const activeAtt = atts.find(a => a.clock_in && !a.clock_out);
-      
       if (activeAtt) {
         working.push({ name: emp.name, timeStr: `${formatTime(activeAtt.clock_in)} -` });
       } else {
-        // 全ての打刻が退勤済みなら、最後の打刻を表示して「退勤済」とする
         const lastAtt = atts[atts.length - 1];
         if (lastAtt.clock_in && lastAtt.clock_out) {
           finished.push({ name: emp.name, timeStr: `${formatTime(lastAtt.clock_in)} - ${formatTime(lastAtt.clock_out)}` });
@@ -2048,28 +2068,24 @@ async function renderMatrixTable() {
     const dateStr = att.work_date;
     
     if (!summaryMap[att.employee_id]) {
-      // countedDates という配列を追加して、カウント済みの日付を記録するようにします
       summaryMap[att.employee_id] = { days: 0, workMins: 0, countedDates: [] };
     }
 
-    // ★労基法準拠: 実出勤日のみカウント（有給・欠勤等の打刻なし日は除外）
     if (att.clock_in && !summaryMap[att.employee_id].countedDates.includes(dateStr)) {
       summaryMap[att.employee_id].days += 1;
       summaryMap[att.employee_id].countedDates.push(dateStr);
     }
 
-    // ★労基法準拠: 実労働時間のみを集計（有休などのみなし時間は労働時間から除外）
     if (att.clock_in && att.clock_out) {
       const [inH, inM] = att.clock_in.split(':').map(Number);
       const [outH, outM] = att.clock_out.split(':').map(Number);
       let actualStart = inH * 60 + inM;
       let actualEnd = outH * 60 + outM;
-      if (actualEnd < actualStart && outH < 12) actualEnd += 24 * 60; // 翌日跨ぎ対応
+      if (actualEnd < actualStart && outH < 12) actualEnd += 24 * 60;
 
       let stayMinutes = actualEnd - actualStart;
       if (stayMinutes < 0) stayMinutes = 0;
 
-      // 法定休憩の控除（労働基準法第34条: 6時間超〜8時間以下は45分 / 8時間超は60分）
       let breakMins = 0;
       if (stayMinutes > 480) {
         breakMins = 60;
@@ -2090,7 +2106,6 @@ async function renderMatrixTable() {
   });
 
   let tbodyHtml = '';
-  // ★修正: マトリクス表では削除済みデータも含めて最新を取得し、対象月以前のデータであれば表示対象にする
   let rawEmpList = currentEmployeeList;
   try {
     const token = localStorage.getItem('authToken');
@@ -2120,11 +2135,23 @@ async function renderMatrixTable() {
     }
   } catch(e) {}
 
-  // ★削除した月（退職月）の「翌月以降」であれば、マトリクス表から自動的に非表示（除外）にする
+  // ★従業員のフィルタリング（役職・退職日・入社日の判定）
   const empList = rawEmpList.filter(emp => {
-    // ★追加: 労基法対象外のため「社長」「次長」は月表示から除外
     if (emp.office === '社長' || emp.office === '次長') {
       return false;
+    }
+
+    // ★追加: 入社月より前の月であれば、月表示から非表示にする
+    if (emp.joinDate && emp.joinDate !== '-') {
+      const cleanJoinDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const jDate = new Date(cleanJoinDate);
+      if (!isNaN(jDate)) {
+        const joinMonthStart = new Date(jDate.getFullYear(), jDate.getMonth(), 1);
+        const currentViewMonth = new Date(year, month - 1, 1);
+        if (currentViewMonth < joinMonthStart) {
+          return false;
+        }
+      }
     }
 
     if (emp.status === '削除' || (emp.retireDate && emp.retireDate !== '-')) {
@@ -2132,10 +2159,8 @@ async function renderMatrixTable() {
         const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
         const rDate = new Date(cleanDate);
         if (!isNaN(rDate)) {
-          // 削除（退職）の翌月1日を取得
           const nextMonthOfRetire = new Date(rDate.getFullYear(), rDate.getMonth() + 1, 1);
           const currentViewMonth = new Date(year, month - 1, 1);
-          // 表示しようとしている月が「削除翌月以降」なら表示しない（消す）
           if (currentViewMonth >= nextMonthOfRetire) {
             return false;
           }
@@ -2148,29 +2173,37 @@ async function renderMatrixTable() {
   empList.forEach(emp => {
     tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
     
+    // 退職日のパース
     let retireDateObj = null;
     if (emp.retireDate && emp.retireDate !== '-') {
       const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
       retireDateObj = new Date(cleanDate);
-      if (!isNaN(retireDateObj)) {
-        retireDateObj.setHours(0, 0, 0, 0);
-      } else {
-        retireDateObj = null;
-      }
+      if (!isNaN(retireDateObj)) retireDateObj.setHours(0, 0, 0, 0);
+      else retireDateObj = null;
+    }
+
+    // ★追加: 入社日のパース（当月内の入社前セルを制御するため）
+    let joinDateObj = null;
+    if (emp.joinDate && emp.joinDate !== '-') {
+      const cleanDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      joinDateObj = new Date(cleanDate);
+      if (!isNaN(joinDateObj)) joinDateObj.setHours(0, 0, 0, 0);
+      else joinDateObj = null;
     }
 
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDateObj = new Date(year, month - 1, i);
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
-      const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj);
-      const hasRetireDate = retireDateObj !== null; // ★ 退職日が設定されているか
+      const isBeforeJoin = joinDateObj && (currentDateObj < joinDateObj); // ★入社日前か
+      const isAfterRetire = retireDateObj && (currentDateObj > retireDateObj); // 退職日後か
+      const hasRetireDate = retireDateObj !== null;
+      const isOutOfTerm = isBeforeJoin || isAfterRetire; // 契約期間外
       
-      let tdClass = isAfterRetire ? 'cell-readonly cell-retired' : (hasRetireDate ? 'cell-readonly' : 'cell-click');
+      let tdClass = isOutOfTerm ? 'cell-readonly cell-retired' : (hasRetireDate ? 'cell-readonly' : 'cell-click');
       
       let cellData = '';
       if (attendanceMap[emp.id] && attendanceMap[emp.id][dateKey]) {
-        // メモだけ（出退勤時刻なし）のデータも表示対象に含める
         const validRecords = attendanceMap[emp.id][dateKey].filter(att => att.clock_in || att.clock_out || att.memo);
 
         validRecords.sort((a, b) => {
@@ -2181,50 +2214,36 @@ async function renderMatrixTable() {
         });
 
         cellData = validRecords.map((att, idx) => {
-          // ★修正: メモに【翌日】フラグがあれば +24時間 して「35:〇〇」の形式で表示する
           const formatDisplayTime = (timeStr, isOutTime = false) => {
             if (!timeStr) return '';
             const hm = timeStr.substring(0, 5);
             let [h, m] = hm.split(':').map(Number);
-            
-            // 退勤時刻で、かつメモに【翌日】があれば+24時間する
-            if (isOutTime && att.memo && att.memo.includes('【翌日】') && h < 24) {
-              h += 24;
-            }
-            
+            if (isOutTime && att.memo && att.memo.includes('【翌日】') && h < 24) h += 24;
             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
           };
 
           let inText = formatDisplayTime(att.clock_in, false);
           let outText = formatDisplayTime(att.clock_out, true);
 
-          // ★修正: 代休系の時間はセル表示から除外し、有給・午前休・午後休のみ時間表示する
           if (att.memo) {
             const amMatch = att.memo.match(/【午前休】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/);
             const pmMatch = att.memo.match(/【午後休】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/);
             const fullMatch = att.memo.match(/【有給】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/);
             
             if (fullMatch) {
-              inText = fullMatch[1];
-              outText = fullMatch[2];
+              inText = fullMatch[1]; outText = fullMatch[2];
             } else if (amMatch && pmMatch) {
-              inText = amMatch[1];
-              outText = pmMatch[2];
+              inText = amMatch[1]; outText = pmMatch[2];
             } else if (amMatch) {
-              inText = amMatch[1];
-              outText = amMatch[2];
+              inText = amMatch[1]; outText = amMatch[2];
             } else if (pmMatch) {
-              inText = pmMatch[1];
-              outText = pmMatch[2];
+              inText = pmMatch[1]; outText = pmMatch[2];
             } else if (att.memo.includes('【有給】')) {
-              inText = '09:00';
-              outText = '18:00';
+              inText = '09:00'; outText = '18:00';
             } else if (att.memo.includes('【午前休】')) {
-              inText = '09:00';
-              outText = '14:00';
+              inText = '09:00'; outText = '14:00';
             } else if (att.memo.includes('【午後休】')) {
-              inText = '13:00';
-              outText = '18:00';
+              inText = '13:00'; outText = '18:00';
             }
           }
           
@@ -2232,7 +2251,6 @@ async function renderMatrixTable() {
           if (inText || outText) {
              timeText = `${inText || '-'}<br>${outText || '-'}`;
           } else {
-             // 遅刻・欠勤・早退の時間を抽出して表示する（代休は除外）
              let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|早退)】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
              if (extMatch) {
                  timeText = `${extMatch[1]}<br>${extMatch[2]}`;
@@ -2243,7 +2261,6 @@ async function renderMatrixTable() {
 
           let memoHtml = '';
           if (att.memo) {
-            // 透明文字が入っている場合も除外して編集済スタイルを適用
             if (att.memo.includes('管理者修正') && !timeText.includes('visibility: hidden')) {
                timeText = `<span class="time-edited">${timeText}</span>`;
             }
@@ -2255,9 +2272,9 @@ async function renderMatrixTable() {
             if (hasDirectOut) directTags.push('直帰');
 
             let cleanMemo = att.memo
-              .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+              .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
               .replace(/\[.*?\]/g, '')
-              .replace(/管理者修正|【翌日】/g, ''); // ★修正: 見えないフラグ【翌日】をメモから消去する
+              .replace(/管理者修正|【翌日】/g, '');
 
             if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
                 const parts = cleanMemo.split('直帰');
@@ -2269,13 +2286,9 @@ async function renderMatrixTable() {
             }
 
             let otherMemo = cleanMemo.trim();
-
             let tooltipParts = [];
-            if (directTags.length > 0) {
-              tooltipParts.push(directTags.join('・'));
-            }
+            if (directTags.length > 0) tooltipParts.push(directTags.join('・'));
             if (otherMemo) {
-              // ★修正: 代休系の時間も吹き出しから隠す
               let displayMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退|午前休|午後休|代休|午前代休|午後代休)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
               tooltipParts.push(displayMemo);
             }
@@ -2288,23 +2301,20 @@ async function renderMatrixTable() {
           const safeMemo = (att.memo || '').replace(/\n/g, '\\n').replace(/'/g, "\\'");
           const borderStyle = idx !== validRecords.length - 1 ? 'border-bottom: 1px dashed #e0e6ed;' : '';
           
-          // ★ 退職日が設定されている従業員は過去も含めて全セル編集不可にする
-          const blockOnClick = hasRetireDate 
+          const blockOnClick = (hasRetireDate || isBeforeJoin) 
             ? '' 
             : `onclick="openEditMenu(event, '${emp.name}', '${month}/${i}', ${att.id}, '${att.clock_in || ''}', '${att.clock_out || ''}', '${safeMemo}')"`;
 
-          // ★修正: pointer-events: auto; を追加し、セルがクリック不可でもアイコンのホバー(吹き出し)は反応するようにする
           return `<div style="padding:4px 0; position:relative; pointer-events: auto; ${borderStyle}" ${blockOnClick}>${timeText}${memoHtml}</div>`;
         }).join('');
       }
 
-      if (isAfterRetire && cellData) {
+      if (isOutOfTerm && cellData) {
         cellData = `<div class="retired-time-box">${cellData}</div>`;
       }
       
-      if (hasRetireDate) {
-        // ★ 退職日が設定されている場合、セル全体の新規作成アクションも無効化
-        const bgStyle = isAfterRetire ? 'background-color: #f4f7f9; cursor: not-allowed;' : 'cursor: default;';
+      if (hasRetireDate || isBeforeJoin) {
+        const bgStyle = isOutOfTerm ? 'background-color: #f4f7f9; cursor: not-allowed;' : 'cursor: default;';
         tbodyHtml += `<td class="${tdClass}" style="${bgStyle}">${cellData}</td>`;
       } else {
         tbodyHtml += `<td class="${tdClass}" onclick="openCellMenu(event, '${emp.name}', '${month}/${i}')">${cellData}</td>`;
@@ -2359,10 +2369,36 @@ async function renderDailyTable() {
   }
 
   const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+  const currentViewDateObj = new Date(year, month - 1, date);
 
   let rawEmpListForDaily = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
-  // ★追加: 労基法対象外のため「社長」「次長」を日表示から除外
-  const empList = rawEmpListForDaily.filter(emp => emp.office !== '社長' && emp.office !== '次長');
+  
+  // ★追加: 労基法対象外に加え、入社日前・退職日後の従業員を除外
+  const empList = rawEmpListForDaily.filter(emp => {
+    if (emp.office === '社長' || emp.office === '次長') return false;
+
+    // ★入社日前なら非表示
+    if (emp.joinDate && emp.joinDate !== '-') {
+      const cleanJoinDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const jDate = new Date(cleanJoinDate);
+      if (!isNaN(jDate)) {
+        jDate.setHours(0, 0, 0, 0);
+        if (currentViewDateObj < jDate) return false;
+      }
+    }
+
+    // 退職日の翌日以降なら非表示
+    if (emp.retireDate && emp.retireDate !== '-') {
+      const cleanRetireDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const rDate = new Date(cleanRetireDate);
+      if (!isNaN(rDate)) {
+        rDate.setHours(0, 0, 0, 0);
+        if (currentViewDateObj > rDate) return false;
+      }
+    }
+
+    return true;
+  });
 
   let attendancesData = [];
   try {
@@ -2372,7 +2408,6 @@ async function renderDailyTable() {
     console.error('日表示データ取得エラー:', error);
   }
 
-  // 当日の打刻データを配列として取得する（1日に複数回の打刻に対応）
   const todayAttendanceMap = {};
   attendancesData.filter(a => a.work_date === dateKey).forEach(a => {
     if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
@@ -2402,7 +2437,6 @@ async function renderDailyTable() {
       `;
     }
 
-    // 時間順にソート
     atts.sort((a, b) => {
       if (!a.clock_in && !b.clock_in) return 0;
       if (!a.clock_in) return 1;
@@ -2410,7 +2444,6 @@ async function renderDailyTable() {
       return a.clock_in.localeCompare(b.clock_in);
     });
 
-    // 最新の打刻状態からステータスドットを判定
     const latestAtt = atts[atts.length - 1];
     let statusDotClass = 'dot-finished';
     if (latestAtt && latestAtt.clock_in && !latestAtt.clock_out) {
@@ -2423,7 +2456,6 @@ async function renderDailyTable() {
     for (let idx = 0; idx < atts.length; idx++) {
       const att = atts[idx];
       
-      // ★修正: フォーマット時、【翌日】フラグがあれば+24する
       const formatInTime = (t) => t ? t.substring(0, 5) : '';
       const formatOutTime = (t, memo) => {
         if (!t) return '';
@@ -2435,33 +2467,25 @@ async function renderDailyTable() {
       let displayIn = att && att.clock_in ? formatInTime(att.clock_in) : '';
       let displayOut = att && att.clock_out ? formatOutTime(att.clock_out, att.memo) : '';
 
-      // ★修正: 代休系の時間は表示から除外し、有給・午前休・午後休のみ時間表示する
       if (att && att.memo) {
         const amMatch = att.memo.match(/【午前休】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/);
         const pmMatch = att.memo.match(/【午後休】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/);
         const fullMatch = att.memo.match(/【有給】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/);
         
         if (fullMatch) {
-          displayIn = fullMatch[1];
-          displayOut = fullMatch[2];
+          displayIn = fullMatch[1]; displayOut = fullMatch[2];
         } else if (amMatch && pmMatch) {
-          displayIn = amMatch[1];
-          displayOut = pmMatch[2];
+          displayIn = amMatch[1]; displayOut = pmMatch[2];
         } else if (amMatch) {
-          displayIn = amMatch[1];
-          displayOut = amMatch[2];
+          displayIn = amMatch[1]; displayOut = amMatch[2];
         } else if (pmMatch) {
-          displayIn = pmMatch[1];
-          displayOut = pmMatch[2];
+          displayIn = pmMatch[1]; displayOut = pmMatch[2];
         } else if (att.memo.includes('【有給】')) {
-          displayIn = '09:00';
-          displayOut = '18:00';
+          displayIn = '09:00'; displayOut = '18:00';
         } else if (att.memo.includes('【午前休】')) {
-          displayIn = '09:00';
-          displayOut = '14:00';
+          displayIn = '09:00'; displayOut = '14:00';
         } else if (att.memo.includes('【午後休】')) {
-          displayIn = '13:00';
-          displayOut = '18:00';
+          displayIn = '13:00'; displayOut = '18:00';
         }
       }
 
@@ -2483,7 +2507,6 @@ async function renderDailyTable() {
 
       let memoHtml = '';
       if (att && att.memo) {
-        // 透明文字が入っている場合も除外して編集済スタイルを適用
         if (att.memo.includes('管理者修正') && !timeStr.includes('visibility: hidden')) {
           timeStr = `<span class="time-edited">${timeStr}</span>`;
         }
@@ -2495,9 +2518,9 @@ async function renderDailyTable() {
         if (hasDirectOut) directTags.push('直帰');
 
         let cleanMemo = att.memo
-          .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
+          .replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '')
           .replace(/\[.*?\]/g, '')
-          .replace(/管理者修正|【翌日】/g, ''); // ★ここでも【翌日】を消す
+          .replace(/管理者修正|【翌日】/g, '');
 
         if (cleanMemo.includes('直行') && cleanMemo.includes('直帰')) {
           const parts = cleanMemo.split('直帰');
@@ -2509,7 +2532,6 @@ async function renderDailyTable() {
         }
 
         let otherMemo = cleanMemo.trim();
-        // ★修正: 代休系の時間も吹き出しから隠す
         otherMemo = otherMemo.replace(/(【(?:有給|遅刻|欠勤|早退|午前休|午後休|代休|午前代休|午後代休)】)\s*\d{2}:\d{2}〜\d{2}:\d{2}/g, '$1');
 
         let tooltipParts = [];
@@ -2536,7 +2558,7 @@ async function renderDailyTable() {
 
       const inAddress = inCoords ? await reverseGeocode(inCoords) : '位置情報未取得';
       const outAddress = outCoords ? await reverseGeocode(outCoords) : '位置情報未取得';
-      const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
+      const rawMemoForModal = att && att.memo ? att.memo.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim() : '';
 
       const emptySpacer = '<div style="width: 46px; height: 46px; flex-shrink: 0;"></div>';
       const centerSpacer = '<div style="flex-grow: 1;"></div>';
@@ -2547,7 +2569,7 @@ async function renderDailyTable() {
         const inBadgeText = isDirectIn ? '📍直行' : '📍地図';
         const inClass = isDirectIn ? 'direct-style' : '';
         const inBadgeClass = isDirectIn ? 'direct-badge' : '';
-        const inFullTime = `${month}/${date} ${formatInTime(att.clock_in)}`; // ★ formatTime を formatInTime に変更
+        const inFullTime = `${month}/${date} ${formatInTime(att.clock_in)}`;
         const targetInLoc = inCoords || '位置情報未取得';
 
         const html = `
@@ -2567,7 +2589,7 @@ async function renderDailyTable() {
         const outBadgeText = isDirectOut ? '📍直帰' : '📍地図';
         const outClass = isDirectOut ? 'direct-style' : '';
         const outBadgeClass = isDirectOut ? 'direct-badge' : '';
-        const outFullTime = `${month}/${date} ${formatOutTime(att.clock_out, att.memo)}`; // ★ formatTime を formatOutTime に変更
+        const outFullTime = `${month}/${date} ${formatOutTime(att.clock_out, att.memo)}`;
         const targetOutLoc = outCoords || '位置情報未取得';
 
         const html = `
@@ -2583,7 +2605,6 @@ async function renderDailyTable() {
       }
 
       const borderStyle = idx !== atts.length - 1 ? 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 6px;' : '';
-
       timeAndMemoList.push(`<div style="${borderStyle}">${timeStr} ${memoHtml}</div>`);
 
       const mapBoxHtml = (att && (att.clock_in || att.clock_out)) 
@@ -2655,7 +2676,7 @@ let overtimeSortKey = 'overtimeHours';
 let overtimeSortAsc = false;
 
 async function fetchOvertimeData(year, month, selectedDept) {
-  await fetchPublicHolidays(year); // ★追加: 集計対象の年の祝日データを取得
+  await fetchPublicHolidays(year);
   const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
   
   let attendancesData = [];
@@ -2666,8 +2687,35 @@ async function fetchOvertimeData(year, month, selectedDept) {
     console.error('残業集計用データ取得エラー:', error);
   }
 
-  // ★追加: 労基法対象外のため「社長」「次長」を集計表から除外
-  let filteredEmps = empList.filter(emp => emp.office !== '社長' && emp.office !== '次長');
+  // ★追加: 労基法対象外に加え、入社月より前・退職月翌月以降の従業員を除外
+  let filteredEmps = empList.filter(emp => {
+    if (emp.office === '社長' || emp.office === '次長') return false;
+
+    // ★入社月より前の月なら除外
+    if (emp.joinDate && emp.joinDate !== '-') {
+      const cleanJoinDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const jDate = new Date(cleanJoinDate);
+      if (!isNaN(jDate)) {
+        const joinMonthStart = new Date(jDate.getFullYear(), jDate.getMonth(), 1);
+        const currentViewMonth = new Date(year, month - 1, 1);
+        if (currentViewMonth < joinMonthStart) return false;
+      }
+    }
+
+    // 退職月翌月以降なら除外
+    if (emp.retireDate && emp.retireDate !== '-') {
+      const cleanRetireDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const rDate = new Date(cleanRetireDate);
+      if (!isNaN(rDate)) {
+        const nextMonthOfRetire = new Date(rDate.getFullYear(), rDate.getMonth() + 1, 1);
+        const currentViewMonth = new Date(year, month - 1, 1);
+        if (currentViewMonth >= nextMonthOfRetire) return false;
+      }
+    }
+
+    return true;
+  });
+
   if (selectedDept !== 'ALL') {
     filteredEmps = filteredEmps.filter(emp => emp.office === selectedDept);
   }
@@ -2678,12 +2726,10 @@ async function fetchOvertimeData(year, month, selectedDept) {
     let totalWorkMins = 0, totalOvertimeMins = 0;
     let paidDays = 0, absenceMins = 0, lateMins = 0, earlyMins = 0;
 
-    // 同一日の重複出勤カウントを防止する記録配列
     let countedWeekdayDates = [];
     let countedWeekendDates = [];
 
     myAttendances.forEach(att => {
-      // 基準の勤務時間（9:00 〜 18:00 = 540分 〜 1080分）
       const BASE_START = 540;
       const BASE_END = 1080;
 
@@ -2696,7 +2742,6 @@ async function fetchOvertimeData(year, month, selectedDept) {
         let actualEnd = BASE_END;
         let timeFound = false;
 
-        // ①出勤・退勤時間が直接記録されている場合
         if (att.clock_in) {
             const [sh, sm] = att.clock_in.split(':').map(Number);
             actualStart = sh * 60 + sm;
@@ -2709,7 +2754,6 @@ async function fetchOvertimeData(year, month, selectedDept) {
             timeFound = true;
         }
 
-        // ②出退勤時間がなく、メモ側に時間が指定されている場合（手入力）
         if (!timeFound) {
             const match = att.memo.match(/【(?:遅刻|欠勤|早退|有給|午前休|午後休)】(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
             if (match) {
@@ -2726,43 +2770,38 @@ async function fetchOvertimeData(year, month, selectedDept) {
             const hasLate = att.memo.includes('【遅刻】');
             const hasAbsence = att.memo.includes('【欠勤】');
             const hasEarly = att.memo.includes('【早退】');
-            const hasTrainDelay = att.memo.includes('【電車遅延】'); // ★追加
+            const hasTrainDelay = att.memo.includes('【電車遅延】');
 
-            // 出勤側の遅刻・欠勤の計算（9時以降の出勤）
             if (actualStart > BASE_START) {
                 if (hasAbsence && hasLate) {
                     const hourStart = Math.floor(actualStart / 60) * 60;
                     absenceMins += (hourStart - BASE_START);
-                    if (!hasTrainDelay) lateMins += (actualStart - hourStart); // ★電車遅延なら遅刻除外
+                    if (!hasTrainDelay) lateMins += (actualStart - hourStart);
                 } else if (hasAbsence) {
                     absenceMins += (actualStart - BASE_START);
                 } else if (hasLate) {
-                    if (!hasTrainDelay) lateMins += (actualStart - BASE_START); // ★電車遅延なら遅刻除外
+                    if (!hasTrainDelay) lateMins += (actualStart - BASE_START);
                 } else if (!hasTrainDelay && !att.memo.includes('【有給】') && !att.memo.includes('【午前休】')) {
-                    // ★追加: 電車遅延・有給・午前休等の正当な理由がなく9:00を過ぎた場合は、自動で遅刻時間に加算
                     lateMins += (actualStart - BASE_START);
                 }
             }
 
-            // 退勤側の早退の計算（18時より前の退勤）
             if (actualEnd < BASE_END) {
                 if (hasEarly) {
                     earlyMins += (BASE_END - actualEnd);
                 }
             }
         } else if (att.memo.includes('【欠勤】')) {
-            // 時間指定がない全休のケース（1日分 = 8時間 = 480分）
             absenceMins += 480; 
         }
       }
 
-      // ★労基法準拠: 実打刻（出勤）がある日のみを出勤日数としてカウント
       let addDay = 0;
       if (att.clock_in) {
         addDay = 1;
       }
 
-      const isHolidaySetting = isHolidayForEmployee(emp, att.work_date); // ★その人のルールで休日か判定
+      const isHolidaySetting = isHolidayForEmployee(emp, att.work_date);
       const isHoliday = isHolidaySetting || (att.memo && att.memo.includes('休日出勤'));
 
       if (addDay > 0) {
@@ -2779,7 +2818,6 @@ async function fetchOvertimeData(year, month, selectedDept) {
         }
       }
 
-      // 労働時間・残業時間の計算 (打刻がない場合はここで抜ける)
       if (!att.clock_in || !att.clock_out) return;
 
       const [inH, inM] = att.clock_in.split(':').map(Number);
@@ -2792,7 +2830,6 @@ async function fetchOvertimeData(year, month, selectedDept) {
       let stayMinutes = outMinutes - inMinutes;
       if (stayMinutes < 0) stayMinutes = 0;
 
-      // 法定休憩の控除（6時間超〜8時間以下: 45分 / 8時間超: 60分）
       let breakMins = 0;
       if (stayMinutes > 480) {
         breakMins = 60;
@@ -2823,7 +2860,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
     return {
       id: emp.id,
       name: emp.name,
-      kana: emp.kana || '', // ★ 名前ソート用にフリガナ（kana）を追加
+      kana: emp.kana || '',
       dept: emp.office,
       weekdayDays,
       weekendDays,
@@ -3770,7 +3807,6 @@ function renderTcEmpList() {
 
   let list = currentEmployeeList.length > 0 ? currentEmployeeList : [];
 
-  // ★修正: タイムゾーンのズレを防ぐため、今日の日付を YYYY-MM-DD 形式の文字列で取得する
   const todayDate = new Date();
   const yyyy = todayDate.getFullYear();
   const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
@@ -3778,20 +3814,30 @@ function renderTcEmpList() {
   const todayStr = `${yyyy}-${mm}-${dd}`;
 
   list = list.filter(emp => {
+    // ★追加: 入社日前なら打刻リストに表示しない
+    if (emp.joinDate && emp.joinDate !== '-') {
+      const cleanJoinDate = String(emp.joinDate)
+        .replace(/[年月]/g, '-')
+        .replace(/日/g, '')
+        .replace(/\//g, '-');
+      const parts = cleanJoinDate.split('-');
+      if (parts.length === 3) {
+        const jStr = `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+        if (todayStr < jStr) return false;
+      }
+    }
+
     // 退職者の除外
     if (emp.retireDate && emp.retireDate !== '-') {
       const cleanRetireDate = String(emp.retireDate)
         .replace(/[年月]/g, '-')
         .replace(/日/g, '')
         .replace(/\//g, '-');
-      
-      // 文字列同士での比較 (例: "2026-10-12" > "2026-10-11" であれば除外)
       if (todayStr > cleanRetireDate) {
         return false;
       }
     }
 
-    // ★追加: 所属が「社長」または「次長」の従業員は打刻アプリ一覧に表示しない
     if (emp.office === '社長' || emp.office === '次長') {
       return false;
     }
