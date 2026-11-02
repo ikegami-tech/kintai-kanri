@@ -1854,49 +1854,100 @@ td:hover .memo-icon::before {
 }
 
 /* ==================================================
-   印刷用スタイル設定
+   印刷用スタイル設定（全行を綺麗に印刷する対応版）
    ================================================== */
 @media print {
   @page {
-    size: landscape;
+    size: A4 portrait; /* A4 縦向きを指定 */
     margin: 10mm;
   }
 
+  /* 印刷に不要なUI（サイドバー、ヘッダー、ボタン類、モーダル背景など）をすべて非表示 */
   .sidebar,
   .header,
   .month-btn-group,
   .btn-print,
   .toast,
-  .modal-overlay {
+  .modal-overlay,
+  .monthly-header-bar .month-selector,
+  .overtime-table-type,
+  .overtime-dept-filter {
     display: none !important;
+  }
+
+  /* メインコンテンツエリアのスクロール制限を解除し、全内容を展開する */
+  body, html {
+    height: auto !important;
+    overflow: visible !important;
+    background-color: white !important;
   }
 
   .main-wrapper {
     margin-left: 0 !important;
     width: 100% !important;
+    overflow: visible !important;
   }
 
   .content-area {
     padding: 0 !important;
     overflow: visible !important;
+    height: auto !important;
   }
 
-  .matrix-scroll-wrapper {
-    overflow: visible !important;
-    border: none !important;
-  }
-
+  /* 残業集計表・マトリクス表の枠や余白を印刷用にリセット */
   .monthly-container,
   #page-overtime {
     border: none !important;
     padding: 0 !important;
     box-shadow: none !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* スクロールを解除し、表全体をそのまま表示させる */
+  .matrix-scroll-wrapper,
+  .overtime-table-wrapper {
+    overflow: visible !important;
+    border: none !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* 表の途中でページが不自然に切れないようにする設定 */
+  table {
+    page-break-inside: auto;
+  }
+  
+  tr {
+    page-break-inside: avoid; /* 行の途中でページを分割させない */
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group; /* ページを跨いでもすべてのページにヘッダー（項目名）を表示する */
+  }
+
+  tfoot {
+    display: table-footer-group; /* 合計行などが分断されないようにする */
+  }
+
+  /* 表の文字サイズや余白の最適化 */
+  .overtime-table th,
+  .overtime-table td {
+    padding: 8px !important; /* 画面より少し詰めて1ページに多く入るように調整 */
+    font-size: 11pt !important;
   }
 
   .monthly-matrix-table th, 
   .monthly-matrix-table td {
     font-size: 8pt !important;
     padding: 2px !important;
+  }
+  
+  /* スティッキー固定（画面用）を解除 */
+  .overtime-table th,
+  .col-emp-name {
+    position: static !important;
   }
 }
 
