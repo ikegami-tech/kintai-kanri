@@ -2087,10 +2087,8 @@ async function renderMatrixTable() {
       if (stayMinutes < 0) stayMinutes = 0;
 
       let breakMins = 0;
-      if (stayMinutes > 480) {
-        breakMins = 60;
-      } else if (stayMinutes > 360) {
-        breakMins = 45;
+      if (stayMinutes > 360) {
+        breakMins = 60; // 労使協定に基づき、6時間超えで一律60分控除
       }
 
       let netWorkMins = stayMinutes - breakMins;
@@ -2831,10 +2829,8 @@ async function fetchOvertimeData(year, month, selectedDept) {
       if (stayMinutes < 0) stayMinutes = 0;
 
       let breakMins = 0;
-      if (stayMinutes > 480) {
-        breakMins = 60;
-      } else if (stayMinutes > 360) {
-        breakMins = 45;
+      if (stayMinutes > 360) {
+        breakMins = 60; // 労使協定に基づき、6時間超えで一律60分控除
       }
 
       let workMinutes = stayMinutes - breakMins;
