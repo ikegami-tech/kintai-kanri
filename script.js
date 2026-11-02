@@ -2993,8 +2993,11 @@ async function renderOvertimeTable() {
   const sumLate = sortedData.reduce((sum, emp) => sum + emp.lateMins, 0);
   const sumEarly = sortedData.reduce((sum, emp) => sum + emp.earlyMins, 0);
 
+  // ★ tfoot を使わず、tbody の最後に直接合計行を追加する
+  const tbodyEl = document.getElementById('overtime-tbody');
+  
   if (tableType === 'overtime') {
-    document.getElementById('overtime-tfoot').innerHTML = `
+    tbodyEl.innerHTML += `
       <tr class="summary-row">
         <td style="text-align:left;">合計 (${count}名)</td>
         <td>${sumWeekday}日</td>
@@ -3011,7 +3014,7 @@ async function renderOvertimeTable() {
       </tr>
     `;
   } else {
-    document.getElementById('overtime-tfoot').innerHTML = `
+    tbodyEl.innerHTML += `
       <tr class="summary-row">
         <td style="text-align:left;">合計 (${count}名)</td>
         <td>${sumWeekday}日</td>
@@ -3034,6 +3037,9 @@ async function renderOvertimeTable() {
       </tr>
     `;
   }
+  
+  // tfoot に残っている古い中身は空にしておく
+  document.getElementById('overtime-tfoot').innerHTML = '';
 }
 
 function sortOvertime(key) {

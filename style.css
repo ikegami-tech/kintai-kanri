@@ -1923,12 +1923,9 @@ td:hover .memo-icon::before {
     page-break-after: auto;
   }
 
+  /* 2ページ目以降もヘッダー（項目名）を引き継いで表示する */
   thead {
-    display: table-header-group; /* ページを跨いでもすべてのページにヘッダー（項目名）を表示する */
-  }
-
-  tfoot {
-    display: table-footer-group; /* 合計行などが分断されないようにする */
+    display: table-header-group; 
   }
 
   /* 表の文字サイズや余白の最適化 */
@@ -1946,7 +1943,8 @@ td:hover .memo-icon::before {
   
   /* スティッキー固定（画面用）を解除 */
   .overtime-table th,
-  .col-emp-name {
+  .col-emp-name,
+  .monthly-matrix-table thead th {
     position: static !important;
   }
 }
