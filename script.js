@@ -2247,7 +2247,7 @@ async function renderMatrixTable() {
           
           let timeText = '';
           if (inText || outText) {
-             timeText = `${inText || '-'}<br>${outText || '-'}`;
+             timeText = `${inText || ''}<br>${outText || ''}`;
           } else {
              let extMatch = att.memo ? att.memo.match(/【(?:遅刻|欠勤|早退)】\s*(\d{2}:\d{2})〜(\d{2}:\d{2})/) : null;
              if (extMatch) {
