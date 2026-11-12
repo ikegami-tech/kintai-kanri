@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'; // ★修正: useIsFocusedを追加
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { COLORS } from '../constants/theme';
+import { CONFIG } from '../constants/config';
 
 const screenWidth = Dimensions.get('window').width;
 const cardWidth = (screenWidth - 10) / 4;

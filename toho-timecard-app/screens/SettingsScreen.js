@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
+import { CONFIG } from '../constants/config'; // ★追加
 
 export default function SettingsScreen() {
   const [user, setUser] = useState(null);

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
+import { CONFIG } from '../constants/config'; // ★追加
 
 export default function HistoryScreen({ route, navigation }) {
   const empId = route.params?.empId;

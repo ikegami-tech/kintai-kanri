@@ -12,12 +12,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   AppState,
-  useWindowDimensions, // ★追加: 画面サイズ取得用
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { COLORS } from '../constants/theme';
+import { CONFIG } from '../constants/config'; // ★追加
 
 export default function TimeClockScreen({ route, navigation }) {
   const { width } = useWindowDimensions();
@@ -29,11 +30,9 @@ export default function TimeClockScreen({ route, navigation }) {
   const [time, setTime] = useState(new Date());
   const [loading, setLoading] = useState(false);
 
-  // 追加：ボタンのグレーアウト制御用ステート
   const [isWorking, setIsWorking] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
 
-  // 直行・直帰メール用ステート
   const [mailModalVisible, setMailModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState('mail'); 
   const [actionType, setActionType] = useState(''); 
@@ -48,15 +47,12 @@ export default function TimeClockScreen({ route, navigation }) {
   const [tplNameInput, setTplNameInput] = useState('');
   const [tplBodyInput, setTplBodyInput] = useState('');
 
-  // ★追加: 本日のTOHO SSスケジュール用ステート
   const [dailySchedules, setDailySchedules] = useState([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState(null);
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
 
-  // ★追加: 事前に取得したGPS座標を入れておくステート
   const [currentCoords, setCurrentCoords] = useState(null);
 
-  // ★追加: アプリ起動時、または別アプリ等から戻ってきた時に自動でGPSを取得する
   useEffect(() => {
     let isMounted = true;
 
@@ -71,10 +67,9 @@ export default function TimeClockScreen({ route, navigation }) {
         }
         if (permission.status !== 'granted') return;
 
-        // 画面が開かれたタイミングで裏で位置情報を取得しておく
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
-          timeout: 5000, // 5秒でタイムアウト
+          timeout: 5000, 
         });
         
         if (location && location.coords && isMounted) {
@@ -85,13 +80,11 @@ export default function TimeClockScreen({ route, navigation }) {
       }
     };
 
-    // 画面を開いた時の初回取得
     fetchLocation();
 
-    // バックグラウンドからアプリに戻ってきた時の検知
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'active') {
-        fetchLocation(); // アクティブになった瞬間に再度最新のGPSを取得する
+        fetchLocation(); 
       }
     });
 
@@ -101,13 +94,11 @@ export default function TimeClockScreen({ route, navigation }) {
     };
   }, []);
 
-  // リアルタイム時計
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-// 追加：画面を開いた時に「現在出勤中か」を判定する
   useEffect(() => {
     let isMounted = true;
     const fetchTodayStatus = async () => {
@@ -127,7 +118,7 @@ export default function TimeClockScreen({ route, navigation }) {
         const mm = String(now.getMonth() + 1).padStart(2, '0');
 
         let allData = [];
-        // ★ shop_id の指定を外して全データ取得するか、トークン付きで確実に取得
+        // ★修正: CONFIG.apiUrl に変更
         const res = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
           cache: 'no-store',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -141,6 +132,7 @@ export default function TimeClockScreen({ route, navigation }) {
           let prevM = now.getMonth();
           let prevY = yyyy;
           if (prevM === 0) { prevM = 12; prevY--; }
+          // ★修正: CONFIG.apiUrl に変更
           const resPrev = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
             cache: 'no-store',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -151,10 +143,8 @@ export default function TimeClockScreen({ route, navigation }) {
           }
         }
 
-        // 該当従業員の打刻データを抽出
         const empAtts = Array.isArray(allData) ? allData.filter(a => Number(a.employee_id) === Number(empId)) : [];
         
-        // ★未退勤判定：clock_inがあり、clock_outが存在しない(null, "", undefined)データを探す
         const activeAtt = empAtts.find(a => {
           const hasIn = a.clock_in && String(a.clock_in).trim() !== '' && a.clock_in !== '--:--';
           const noOut = !a.clock_out || String(a.clock_out).trim() === '' || a.clock_out === '--:--';
@@ -182,24 +172,20 @@ export default function TimeClockScreen({ route, navigation }) {
     return `${hh}:${mm}:${ss}`;
   };
 
-const getGpsCoords = async () => {
+  const getGpsCoords = async () => {
     try {
-      // ① 端末自体のGPS（位置情報サービス）がONになっているか確認
       const enabled = await Location.hasServicesEnabledAsync();
       if (!enabled) {
         Alert.alert('エラー', '端末の位置情報（GPS）がOFFになっています。端末の設定からONにしてください。');
         return null;
       }
 
-      // ② まず現在のアプリ権限ステータスを確認
       let permission = await Location.getForegroundPermissionsAsync();
       
-      // 権限が確定していない場合はリクエストダイアログを出す
       if (permission.status !== 'granted' && permission.canAskAgain) {
         permission = await Location.requestForegroundPermissionsAsync();
       }
 
-      // 最終的に権限が「granted（許可）」になっていない場合は完全にブロック
       if (permission.status !== 'granted') {
         Alert.alert(
           'エラー', 
@@ -208,7 +194,6 @@ const getGpsCoords = async () => {
         return null;
       }
 
-      // ③ 実際に位置情報を取得
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeout: 10000
@@ -228,9 +213,9 @@ const getGpsCoords = async () => {
     }
   };
 
-  // ★追加: 本日のTOHO SSスケジュールを取得する関数
   const fetchDailySchedules = async (targetEmpId) => {
     try {
+      // ★修正: CONFIG.apiUrl に変更
       const res = await fetch(`${CONFIG.apiUrl}/daily-schedules?employee_id=${targetEmpId}`);
       if (res.ok) {
         const data = await res.json();
@@ -243,21 +228,19 @@ const getGpsCoords = async () => {
     return [];
   };
 
-  // ★追加: 選択した予定をメール本文の項目に自動反映する関数
   const applyScheduleToMailBody = (schedule, currentBody, type) => {
     if (!schedule) return currentBody;
     let newBody = currentBody;
     const timeText = schedule.start_time || '';
     
-    // ★修正: タイトルから「@〇〇」の部分を場所として抽出し、本文から分離する
     let rawTitle = schedule.title || '';
     let contentText = rawTitle;
     let locationText = '';
 
     const atIndex = rawTitle.lastIndexOf('@');
     if (atIndex !== -1) {
-      locationText = rawTitle.substring(atIndex + 1).trim(); // @より後ろを場所として抽出
-      contentText = rawTitle.substring(0, atIndex).trim();   // @より前を業務内容（タイトル）とする
+      locationText = rawTitle.substring(atIndex + 1).trim(); 
+      contentText = rawTitle.substring(0, atIndex).trim();   
     }
 
     if (type === '直行') {
@@ -273,7 +256,6 @@ const getGpsCoords = async () => {
     return newBody;
   };
 
-  // ★追加: スケジュール選択ハンドラー
   const handleSelectSchedule = (sch) => {
     setSelectedScheduleId(sch ? sch.id : null);
     if (!sch) return;
@@ -288,6 +270,7 @@ const getGpsCoords = async () => {
 
     let loadedTemplates = [];
     try {
+      // ★修正: CONFIG.apiUrl に変更
       const res = await fetch(`${CONFIG.apiUrl}/mail-templates?employee_id=${empId}&type=${encodeURIComponent(type)}`);
       if (res.ok) {
         loadedTemplates = await res.json();
@@ -352,6 +335,7 @@ const getGpsCoords = async () => {
           name: templates[0].name,
           body: templates[0].body,
         };
+        // ★修正: CONFIG.apiUrl に変更
         await fetch(`${CONFIG.apiUrl}/mail-templates`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -367,6 +351,7 @@ const getGpsCoords = async () => {
         body: tplBodyInput.trim(),
       };
 
+      // ★修正: CONFIG.apiUrl に変更
       const res = await fetch(`${CONFIG.apiUrl}/mail-templates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -425,7 +410,6 @@ const getGpsCoords = async () => {
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     setMailSubject(`${type} ${lastName}`);
 
-    // ★追加: モーダルを開く前に当日のスケジュールを取得・初期化
     setSelectedScheduleId(null);
     setScheduleDropdownOpen(false);
     await fetchDailySchedules(empId);
@@ -435,7 +419,7 @@ const getGpsCoords = async () => {
     setMailModalVisible(true);
   };
 
-const submitAttendance = async (type, bodyText) => {
+  const submitAttendance = async (type, bodyText) => {
     if (!empId) {
       Alert.alert('エラー', '従業員情報が正しく取得できていません。一覧から選び直してください。');
       return;
@@ -444,17 +428,14 @@ const submitAttendance = async (type, bodyText) => {
     try {
       setLoading(true);
 
-      // ★追加：SettingsScreenで設定した「位置情報を必須にする」状態を読み込む
       const requireGpsStr = await AsyncStorage.getItem('@require_gps');
-      // 設定が存在しない場合はデフォルトで true（必須）とする
       const isGpsRequired = requireGpsStr !== 'false';
 
-      // ★修正：アプリ側の設定（トグルスイッチ）がOFFの場合はエラーにして弾く
       if (!isGpsRequired) {
         setLoading(false);
         setMailModalVisible(false);
         Alert.alert('エラー', 'アプリの設定で位置情報がOFFになっているため打刻できません。設定画面から位置情報をONにしてください。');
-        return; // ここで処理を終了し、打刻させない
+        return; 
       }
 
       let currentShopId = 'shop_01';
@@ -468,18 +449,15 @@ const submitAttendance = async (type, bodyText) => {
         console.warn('店舗ID取得エラー:', e);
       }
 
-      // ★修正: 事前に自動取得しておいたGPS(currentCoords)を優先して使う。
-      // 万が一間に合わなかった場合だけ、その場で取得する。
       let coords = currentCoords;
       if (!coords) {
         coords = await getGpsCoords();
       }
 
-      // ★修正：位置情報が取得できなかった場合は、一切の打刻通信を行わずに処理を強制終了する
       if (!coords || typeof coords !== 'string' || coords.trim() === '') {
         setLoading(false);
         setMailModalVisible(false);
-        return; // エラーアラートは getGpsCoords 内で表示済みのため、ここで処理を止める
+        return; 
       }
 
       const now = new Date();
@@ -491,13 +469,13 @@ const submitAttendance = async (type, bodyText) => {
       const minutes = String(now.getMinutes()).padStart(2, '0');
 
       let existingAtt = null;
-      let targetWorkDate = workDate; // 保存対象の「日付」
+      let targetWorkDate = workDate; 
 
       try {
-        // ★修正: トークンを取得してヘッダーに付与する
         const token = await AsyncStorage.getItem('@auth_token');
 
         let allData = [];
+        // ★修正: CONFIG.apiUrl に変更
         const checkRes = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
           cache: 'no-store',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -510,6 +488,7 @@ const submitAttendance = async (type, bodyText) => {
           let prevM = now.getMonth();
           let prevY = yyyy;
           if (prevM === 0) { prevM = 12; prevY--; }
+          // ★修正: CONFIG.apiUrl に変更
           const checkResPrev = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
             cache: 'no-store',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -523,10 +502,8 @@ const submitAttendance = async (type, bodyText) => {
         const myAtts = Array.isArray(allData) ? allData.filter(a => Number(a.employee_id) === Number(empId)) : [];
           
         if (type === '出勤' || type === '直行') {
-          // 出勤・直行の場合：本日の未退勤データがあればそれを取得
           existingAtt = myAtts.find(a => a.work_date === workDate && a.clock_in && (!a.clock_out || a.clock_out === '' || a.clock_out === '--:--'));
         } else {
-          // ★退勤・直帰の場合：全打刻の中から「未退勤（clock_inがありclock_outが空）」の出勤レコードを直接探す
           const activeAtt = myAtts.find(a => {
             const hasIn = a.clock_in && String(a.clock_in).trim() !== '' && a.clock_in !== '--:--';
             const noOut = !a.clock_out || String(a.clock_out).trim() === '' || a.clock_out === '--:--';
@@ -535,9 +512,8 @@ const submitAttendance = async (type, bodyText) => {
 
           if (activeAtt) {
             existingAtt = activeAtt;
-            targetWorkDate = activeAtt.work_date; // 出勤した日付のレコードに退勤時間を上書き記録
+            targetWorkDate = activeAtt.work_date; 
           } else {
-            // 万が一未退勤が見つからない場合は本日のデータを探す
             existingAtt = myAtts.find(a => a.work_date === workDate);
           }
         }
@@ -545,10 +521,9 @@ const submitAttendance = async (type, bodyText) => {
         console.warn('既存打刻の確認失敗:', checkErr);
       }
 
-let clockInVal = existingAtt ? existingAtt.clock_in : null;
+      let clockInVal = existingAtt ? existingAtt.clock_in : null;
       let clockOutVal = existingAtt ? existingAtt.clock_out : null;
 
-      // ★修正: DB側で時間が切り捨てられるため、ここでは+24時間の計算は行わない
       const timeVal = `${String(hours).padStart(2, '0')}:${minutes}:00`;
 
       if (type === '出勤' || type === '直行') {
@@ -576,12 +551,10 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
       if (existingMemo.includes('管理者修正')) memoParts.push('管理者修正');
       if (existingMemo.includes('休日出勤')) memoParts.push('休日出勤');
 
-      // ★修正: 翌日フラグは、余計な置換処理の影響を受けないよう別の変数で持っておく
       let isNextDay = false;
       if ((type === '退勤' || type === '直帰') && existingAtt && targetWorkDate && targetWorkDate !== workDate) {
         isNextDay = true;
       }
-      // もともと付いていた場合も維持する
       if (existingMemo.includes('【翌日】')) {
         isNextDay = true;
       }
@@ -589,7 +562,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
       if (inLoc) memoParts.push(`[IN_LOC:${inLoc}]`);
       if (outLoc) memoParts.push(`[OUT_LOC:${outLoc}]`);
 
-      // 既存のメモから不要なタグを掃除
       let cleanExistingMemo = existingMemo
         .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
         .replace(/管理者修正|休日出勤|【翌日】/g, '')
@@ -602,7 +574,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         memoParts.push(cleanExistingMemo);
       }
 
-      // ★修正: 最後に合体させる時だけ【翌日】フラグを足す
       if (isNextDay) memoParts.push('【翌日】');
 
       const payload = {
@@ -619,6 +590,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         mail_from_name: empName,
       };
 
+      // ★修正: CONFIG.apiUrl に変更
       const response = await fetch(`${CONFIG.apiUrl}/attendances`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -627,14 +599,12 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
 
       if (!response.ok) throw new Error('打刻処理に失敗しました');
 
-      // ★追加: 出勤・直行の場合は出勤中(true)、退勤・直帰の場合は退勤済(false)にステートを即時更新
       if (type === '出勤' || type === '直行') {
         setIsWorking(true);
       } else if (type === '退勤' || type === '直帰') {
         setIsWorking(false);
       }
 
-      // ★修正: 打刻完了アラートを廃止し、そのままホーム画面に戻る
       navigation.goBack();
 
     } catch (error) {
@@ -648,19 +618,16 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 画面上部バー */}
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnBox}>
           <Text style={styles.backBtn}>＜ 従業員選択へ</Text>
         </TouchableOpacity>
         <Text style={styles.empTitle}>{empName} 様</Text>
-        {/* 履歴ボタンを削除し、レイアウトを保つためのダミー要素に変更 */}
         <View style={styles.backBtnBox}>
           <Text style={[styles.backBtn, { color: 'transparent' }]}>履歴</Text>
         </View>
       </View>
 
-      {/* 中央：リアルタイム時計 */}
       <View style={styles.clockContainer}>
         <Text style={styles.clockDateStr}>
           {time.getFullYear()}年{time.getMonth() + 1}月{time.getDate()}日
@@ -668,7 +635,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         <Text style={styles.clockText}>{formatTime(time)}</Text>
       </View>
 
-      {/* 下部：スマレジ風 4等分フラットボタン（グレーアウト制御を追加） */}
       <View style={[styles.actionGridSquare, { height: isTablet ? width / 5.5 : 80 }]}>
         <TouchableOpacity 
           style={[styles.actionBtnSquare, (isWorking || statusLoading) && styles.btnDisabled]} 
@@ -713,7 +679,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         </TouchableOpacity>
       </View>
 
-      {/* ローディング表示 */}
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
@@ -721,17 +686,14 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         </View>
       )}
 
-      {/* 直行・直帰用 メール確認 / テンプレ編集 共通モーダル */}
       <Modal visible={mailModalVisible} animationType="slide" transparent={true}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
               <View style={styles.modalContent}>
                 {modalMode === 'mail' ? (
-                  /* --- 1. メール確認・送信画面 --- */
                   <>
                     <Text style={styles.modalTitle}>{actionType}連絡メールの確認</Text>
-
                     <ScrollView
                       style={styles.modalBodyScroll}
                       keyboardShouldPersistTaps="handled"
@@ -755,7 +717,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                             onChangeText={setMailSubject}
                           />
 
-                          {/* ★TOHO SS 本日の予定選択プルダウン */}
                           {dailySchedules.length > 0 && (
                             <View style={styles.scheduleSection}>
                               <Text style={styles.scheduleSectionTitle}>📅 本日の予定 (TOHO SS):</Text>
@@ -810,7 +771,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                             textAlignVertical="top"
                           />
 
-                          {/* テンプレート切り替えボタンセクション */}
                           <View style={styles.templateSection}>
                             <Text style={styles.templateSectionTitle}>テンプレート切り替え:</Text>
                             <View style={styles.templateList}>
@@ -829,7 +789,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                                 );
                               })}
                             </View>
-
                             <View style={styles.tplActionRow}>
                               <TouchableOpacity
                                 style={styles.tplActionBtn}
@@ -837,7 +796,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                               >
                                 <Text style={styles.tplActionBtnText}>✏️ 編集</Text>
                               </TouchableOpacity>
-
                               <TouchableOpacity
                                 style={styles.tplActionBtn}
                                 onPress={() => openTemplateEditModal('add')}
@@ -849,7 +807,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                         </View>
                       </TouchableWithoutFeedback>
                     </ScrollView>
-
                     <View style={styles.modalFooter}>
                       <TouchableOpacity
                         style={styles.cancelBtn}
@@ -857,7 +814,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                       >
                         <Text style={styles.cancelBtnText}>キャンセル</Text>
                       </TouchableOpacity>
-
                       <TouchableOpacity
                         style={styles.submitBtn}
                         onPress={() => submitAttendance(actionType, mailBody)}
@@ -867,12 +823,10 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                     </View>
                   </>
                 ) : (
-                  /* --- 2. テンプレート編集・追加画面 --- */
                   <>
                     <Text style={styles.modalTitle}>
                       {tplEditMode === 'edit' ? 'テンプレートの編集' : '新規テンプレート追加'}
                     </Text>
-
                     <ScrollView
                       style={styles.modalBodyScroll}
                       keyboardShouldPersistTaps="handled"
@@ -887,7 +841,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                             onChangeText={setTplNameInput}
                             placeholder="例) テンプレ1"
                           />
-
                           <Text style={styles.inputLabel}>本文内容</Text>
                           <TextInput
                             style={[styles.textInputMulti, { height: 140 }]}
@@ -900,7 +853,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                         </View>
                       </TouchableWithoutFeedback>
                     </ScrollView>
-
                     <View style={styles.modalFooter}>
                       <TouchableOpacity
                         style={styles.cancelBtn}
@@ -908,7 +860,6 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
                       >
                         <Text style={styles.cancelBtnText}>戻る</Text>
                       </TouchableOpacity>
-
                       <TouchableOpacity
                         style={styles.submitBtn}
                         onPress={saveTemplate}

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants/theme';
+import { CONFIG } from '../constants/config'; // ★追加
 
 export default function LoginScreen({ navigation }) {
   const [loginId, setLoginId] = useState('');
