@@ -15,7 +15,7 @@ module.exports = {
       supportsTablet: true,
       // ステージングの時はIDの末尾に .staging をつける
       bundleIdentifier: IS_STAGING ? "com.tohonext.timecard.staging" : "com.tohonext.timecard",
-      buildNumber: "14",
+      buildNumber: "16",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
