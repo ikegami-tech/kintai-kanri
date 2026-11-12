@@ -145,7 +145,7 @@ export default function EmployeeSelectScreen({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('@auth_token');
 
-      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${shopId}`, {
+      const response = await fetch(`${CONFIG.apiUrl}/employees?shop_id=${shopId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -209,7 +209,7 @@ export default function EmployeeSelectScreen({ navigation }) {
 
       let allData = [];
       const res = await fetch(
-        `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${shopId}`,
+        `${CONFIG.apiUrl}/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${shopId}`,
         { 
           cache: 'no-store',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -225,7 +225,7 @@ export default function EmployeeSelectScreen({ navigation }) {
         let prevY = yyyy;
         if (prevM === 0) { prevM = 12; prevY--; }
         const resPrev = await fetch(
-          `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${shopId}`,
+          `${CONFIG.apiUrl}/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${shopId}`,
           { 
             cache: 'no-store',
             headers: { 'Authorization': `Bearer ${token}` }

@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/login', {
+      const response = await fetch(`${CONFIG.apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ loginId, password })

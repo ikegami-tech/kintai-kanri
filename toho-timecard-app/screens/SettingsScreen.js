@@ -118,7 +118,7 @@ export default function SettingsScreen() {
   const loadTemplates = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates?employee_id=${user.id}&type=${encodeURIComponent(tplType)}`);
+      const res = await fetch(`${CONFIG.apiUrl}/mail-templates?employee_id=${user.id}&type=${encodeURIComponent(tplType)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.length > 0) {
@@ -151,7 +151,7 @@ export default function SettingsScreen() {
         name: tplNameInput.trim(),
         body: tplBodyInput.trim()
       };
-      const res = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+      const res = await fetch(`${CONFIG.apiUrl}/mail-templates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

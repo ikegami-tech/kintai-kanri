@@ -30,7 +30,7 @@ export default function HistoryScreen({ route, navigation }) {
     try {
       setLoading(true);
       const res = await fetch(
-        `https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`,
+        `${CONFIG.apiUrl}/attendances/monthly?year=${year}&month=${month}`,
         { cache: 'no-store' }
       );
 

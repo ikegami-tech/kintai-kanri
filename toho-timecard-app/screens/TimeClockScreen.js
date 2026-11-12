@@ -128,7 +128,7 @@ export default function TimeClockScreen({ route, navigation }) {
 
         let allData = [];
         // ★ shop_id の指定を外して全データ取得するか、トークン付きで確実に取得
-        const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
+        const res = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
           cache: 'no-store',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -141,7 +141,7 @@ export default function TimeClockScreen({ route, navigation }) {
           let prevM = now.getMonth();
           let prevY = yyyy;
           if (prevM === 0) { prevM = 12; prevY--; }
-          const resPrev = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
+          const resPrev = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
             cache: 'no-store',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -231,7 +231,7 @@ const getGpsCoords = async () => {
   // ★追加: 本日のTOHO SSスケジュールを取得する関数
   const fetchDailySchedules = async (targetEmpId) => {
     try {
-      const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/daily-schedules?employee_id=${targetEmpId}`);
+      const res = await fetch(`${CONFIG.apiUrl}/daily-schedules?employee_id=${targetEmpId}`);
       if (res.ok) {
         const data = await res.json();
         setDailySchedules(data);
@@ -288,7 +288,7 @@ const getGpsCoords = async () => {
 
     let loadedTemplates = [];
     try {
-      const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates?employee_id=${empId}&type=${encodeURIComponent(type)}`);
+      const res = await fetch(`${CONFIG.apiUrl}/mail-templates?employee_id=${empId}&type=${encodeURIComponent(type)}`);
       if (res.ok) {
         loadedTemplates = await res.json();
       }
@@ -352,7 +352,7 @@ const getGpsCoords = async () => {
           name: templates[0].name,
           body: templates[0].body,
         };
-        await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+        await fetch(`${CONFIG.apiUrl}/mail-templates`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(defaultPayload),
@@ -367,7 +367,7 @@ const getGpsCoords = async () => {
         body: tplBodyInput.trim(),
       };
 
-      const res = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+      const res = await fetch(`${CONFIG.apiUrl}/mail-templates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -498,7 +498,7 @@ const submitAttendance = async (type, bodyText) => {
         const token = await AsyncStorage.getItem('@auth_token');
 
         let allData = [];
-        const checkRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
+        const checkRes = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${yyyy}&month=${mm}&shop_id=${currentShopId}`, {
           cache: 'no-store',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -510,7 +510,7 @@ const submitAttendance = async (type, bodyText) => {
           let prevM = now.getMonth();
           let prevY = yyyy;
           if (prevM === 0) { prevM = 12; prevY--; }
-          const checkResPrev = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
+          const checkResPrev = await fetch(`${CONFIG.apiUrl}/attendances/monthly?year=${prevY}&month=${String(prevM).padStart(2, '0')}&shop_id=${currentShopId}`, {
             cache: 'no-store',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -619,7 +619,7 @@ let clockInVal = existingAtt ? existingAtt.clock_in : null;
         mail_from_name: empName,
       };
 
-      const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+      const response = await fetch(`${CONFIG.apiUrl}/attendances`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
