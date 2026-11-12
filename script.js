@@ -1,4 +1,12 @@
 // ==========================================
+// 環境別 API接続先URLの自動切り替え
+// ==========================================
+const IS_PRODUCTION = window.location.hostname === 'kintai.thnsys.com';
+const API_BASE_URL = IS_PRODUCTION
+  ? 'https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api'
+  : API_BASE_URL + '';
+
+// ==========================================
 // 祝日自動判定用キャッシュと関数
 // ==========================================
 let publicHolidaysCache = {}; 
@@ -39,7 +47,7 @@ let currentSelectedShopId = 'shop_01'; // 現在表示中の店舗ID
 // データベースから店舗一覧を取得して自動更新する関数
 async function loadShopListFromDB() {
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops');
+    const response = await fetch(API_BASE_URL + '/shops');
     if (response.ok) {
       const shops = await response.json();
       SHOP_LIST = {}; // 一旦リセット
@@ -206,7 +214,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
   const loginPw = document.getElementById('login-pw').value;
   
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/login', {
+    const response = await fetch(API_BASE_URL + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ loginId, password: loginPw })
@@ -731,7 +739,7 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
   
   try {
     const token = localStorage.getItem('authToken');
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_BASE_URL}/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) return;
     const allData = await res.json();
     const targetRecord = allData.find(a => a.employee_id === empId && a.work_date === targetDateVal);
@@ -753,7 +761,7 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
       newMemo = appendText;
     }
 
-    await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+    await fetch(API_BASE_URL + '/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: recordId, employee_id: empId, work_date: targetDateVal, clock_in: clockIn, clock_out: clockOut, memo: newMemo, shop_id: shopId })
@@ -1077,7 +1085,7 @@ async function submitRecordCreate() {
   };
 
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+    const response = await fetch(API_BASE_URL + '/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1137,7 +1145,7 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
 
   try {
     const token = localStorage.getItem('authToken');
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, {
+    const res = await fetch(`${API_BASE_URL}/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) return;
@@ -1180,7 +1188,7 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
     };
 
     // 取得日のデータを上書き保存
-    await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+    await fetch(API_BASE_URL + '/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1332,7 +1340,7 @@ async function submitRecordEdit() {
       await Promise.all(removePromises);
     }
 
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+    const response = await fetch(API_BASE_URL + '/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1404,7 +1412,7 @@ async function submitRecordDelete() {
   }
 
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/record/${currentRecordId}`, {
+    const response = await fetch(`${API_BASE_URL}/attendances/record/${currentRecordId}`, {
       method: 'DELETE'
     });
 
@@ -1486,7 +1494,7 @@ async function submitRecordMemo() {
   };
 
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+    const response = await fetch(API_BASE_URL + '/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1580,7 +1588,7 @@ async function executeEmpAction() {
       const isCurrentlyStopped = statusBadge && !statusBadge.classList.contains('hidden');
       const newStatus = isCurrentlyStopped ? '利用中' : '利用停止';
 
-      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/employees/${currentEmpTargetId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -1591,7 +1599,7 @@ async function executeEmpAction() {
       showToast(`従業員『${currentEmpTargetName}』のステータスを更新しました。`);
       
     } else if (currentEmpAction === 'delete') {
-      const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}`, {
+      const response = await fetch(`${API_BASE_URL}/employees/${currentEmpTargetId}`, {
         method: 'DELETE'
       });
 
@@ -1777,7 +1785,7 @@ async function saveEmployeeEdit(event) {
   };
 
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees/${currentEmpTargetId}`, {
+    const response = await fetch(`${API_BASE_URL}/employees/${currentEmpTargetId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1874,7 +1882,7 @@ async function saveNewEmployee(event) {
   };
 
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees', {
+    const response = await fetch(API_BASE_URL + '/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1959,7 +1967,7 @@ async function renderDashboard() {
 
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('ダッシュボード用データ取得エラー:', error);
@@ -2053,7 +2061,7 @@ async function renderMatrixTable() {
 
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) {
       attendancesData = await response.json();
     }
@@ -2107,7 +2115,7 @@ async function renderMatrixTable() {
   let rawEmpList = currentEmployeeList;
   try {
     const token = localStorage.getItem('authToken');
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`, {
+    const res = await fetch(`${API_BASE_URL}/employees?shop_id=${currentSelectedShopId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
@@ -2400,7 +2408,7 @@ async function renderDailyTable() {
 
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('日表示データ取得エラー:', error);
@@ -2640,7 +2648,7 @@ async function renderExtraCategoryTable(pagePath, tagKeyword) {
   const month = now.getMonth() + 1;
 
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (!response.ok) throw new Error('データ取得失敗');
     const data = await response.json();
 
@@ -2679,7 +2687,7 @@ async function fetchOvertimeData(year, month, selectedDept) {
   
   let attendancesData = [];
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (response.ok) attendancesData = await response.json();
   } catch (error) {
     console.error('残業集計用データ取得エラー:', error);
@@ -3088,7 +3096,7 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   try {
     const token = localStorage.getItem('authToken'); // ★追加: 保存したトークンを読み込む
 
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/employees?shop_id=${currentSelectedShopId}`, {
+    const response = await fetch(`${API_BASE_URL}/employees?shop_id=${currentSelectedShopId}`, {
       // ★追加: ヘッダーにトークンをセットしてリクエストを送る
       headers: {
         'Authorization': `Bearer ${token}`
@@ -3432,7 +3440,7 @@ async function sendPwSetupEmail(emailAddress) {
   }
   
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
+    const response = await fetch(API_BASE_URL + '/auth/send-setup-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: emailAddress })
@@ -3482,7 +3490,7 @@ document.getElementById('password-setup-form').addEventListener('submit', async 
   btn.disabled = true;
 
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/setup-password', {
+    const response = await fetch(API_BASE_URL + '/auth/setup-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email, password: pw1 })
@@ -3656,7 +3664,7 @@ document.getElementById('password-request-form').addEventListener('submit', asyn
   const email = document.getElementById('request-email').value.trim();
 
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/auth/send-setup-email', {
+    const response = await fetch(API_BASE_URL + '/auth/send-setup-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email, type: 'reset' })
@@ -3776,7 +3784,7 @@ async function loadTcEmpList() {
 
   tcTodayAttendances = {};
   try {
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    const res = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
     if (res.ok) {
       const data = await res.json();
       
@@ -4019,7 +4027,7 @@ async function openTcMailModal(actionType) {
   if (scheduleSelect) {
     scheduleSelect.innerHTML = '<option value="">-- スケジュールを選択して本文に反映 --</option>';
     try {
-      const schRes = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/daily-schedules?employee_id=${tcSelectedEmp.id}`);
+      const schRes = await fetch(`${API_BASE_URL}/daily-schedules?employee_id=${tcSelectedEmp.id}`);
       if (schRes.ok) {
         tcDailySchedules = await schRes.json();
         tcDailySchedules.forEach(s => {
@@ -4039,7 +4047,7 @@ async function openTcMailModal(actionType) {
 
 async function loadTcUserTemplates(employeeId, actionType) {
   try {
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates?employee_id=${employeeId}&type=${encodeURIComponent(actionType)}`);
+    const res = await fetch(`${API_BASE_URL}/mail-templates?employee_id=${employeeId}&type=${encodeURIComponent(actionType)}`);
     if (res.ok) {
       tcUserTemplates = await res.json();
     } else {
@@ -4058,7 +4066,7 @@ async function loadTcUserTemplates(employeeId, actionType) {
       : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。${footerText}`;
 
     try {
-      const createRes = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+      const createRes = await fetch(API_BASE_URL + '/mail-templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -4161,7 +4169,7 @@ async function saveTcTemplate() {
   };
 
   try {
-    const res = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/mail-templates', {
+    const res = await fetch(API_BASE_URL + '/mail-templates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -4351,7 +4359,7 @@ async function saveTcAttendance(actionType, mailBodyText, mailData = null) {
   };
 
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+    const response = await fetch(API_BASE_URL + '/attendances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -4379,7 +4387,7 @@ async function renderShops() {
   tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">読み込み中...</td></tr>';
   
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops');
+    const response = await fetch(API_BASE_URL + '/shops');
     if (!response.ok) throw new Error('店舗データの取得に失敗しました');
     const shops = await response.json();
     
@@ -4430,7 +4438,7 @@ async function submitCreateShop() {
   const id = `shop_${String(nextNum).padStart(2, '0')}`;
   
   try {
-    const response = await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops', {
+    const response = await fetch(API_BASE_URL + '/shops', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, name })
@@ -4451,7 +4459,7 @@ async function deleteShop(id, name) {
   if (!confirm(`店舗「${name}」を削除してもよろしいですか？`)) return;
   
   try {
-    const response = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/shops/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/shops/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('店舗の削除に失敗しました');
@@ -4487,7 +4495,7 @@ async function removeCompensatoryDateMemo(empId, compDateInput, leaveDateVal, sh
 
   try {
     const token = localStorage.getItem('authToken');
-    const res = await fetch(`https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_BASE_URL}/attendances/monthly?year=${compY}&month=${parseInt(compM, 10)}&shop_id=${shopId}`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) return;
     const allData = await res.json();
     const targetRecord = allData.find(a => a.employee_id === empId && a.work_date === targetDateVal);
@@ -4499,7 +4507,7 @@ async function removeCompensatoryDateMemo(empId, compDateInput, leaveDateVal, sh
 
       // メモに変更があった場合（消すものがあった場合）のみ、上書き保存を実行
       if (newMemo !== targetRecord.memo.trim()) {
-        await fetch('https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api/attendances', {
+        await fetch(API_BASE_URL + '/attendances', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
