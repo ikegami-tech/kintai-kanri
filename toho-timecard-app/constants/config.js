@@ -10,8 +10,7 @@ const ENV_CONFIG = {
   },
   staging: {
     // ★ステージング環境（テスト用）のAPI URL。
-    // バックエンド側でテスト環境ができるまでは、ひとまず本番と同じURLにしておきます。
-    apiUrl: 'https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api',
+    apiUrl: 'https://lsfii4b9m7.execute-api.ap-northeast-1.amazonaws.com/default/kintai_staging',
   },
   production: {
     apiUrl: 'https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api',
