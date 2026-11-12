@@ -4,7 +4,7 @@
 const IS_PRODUCTION = window.location.hostname === 'kintai.thnsys.com';
 const API_BASE_URL = IS_PRODUCTION
   ? 'https://ehc00bp6rb.execute-api.ap-northeast-1.amazonaws.com/api'
-  : API_BASE_URL + '';
+  : 'https://lsfii4b9m7.execute-api.ap-northeast-1.amazonaws.com/default/kintai_staging';
 
 // ==========================================
 // 祝日自動判定用キャッシュと関数
