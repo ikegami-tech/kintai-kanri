@@ -1,7 +1,8 @@
 // eas.jsonで設定した環境変数を受け取る
 const IS_STAGING = process.env.APP_ENV === 'staging';
 
-export default {
+// ★修正: export default ではなく module.exports = を使用する
+module.exports = {
   expo: {
     // ステージングの時は名前の末尾に (stg) をつける
     name: IS_STAGING ? "勤怠管理(stg)" : "勤怠管理",
@@ -29,7 +30,8 @@ export default {
     extra: {
       eas: {
         projectId: "d972d5fa-7dcd-4a1a-bb17-4c641677cd26"
-      }
+      },
+      appEnv: process.env.APP_ENV || 'development'
     },
     plugins: [
       "expo-status-bar"
