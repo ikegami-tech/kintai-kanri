@@ -1,12 +1,35 @@
+import os
+import sys
 import json
 import time
+import traceback
 import unicodedata
 import re
-from datetime import date
+from datetime import date, datetime
 from collections import Counter
 import pyotp
 import pymysql
 from playwright.sync_api import sync_playwright
+
+# タスクスケジューラ実行時の作業フォルダと文字コードを固定
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(BASE_DIR)
+LOG_FILE = os.path.join(BASE_DIR, "sync_log.txt")
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+def write_log(message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{timestamp}] {message}"
+    print(line, flush=True)
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
 
 # ==================== 設定情報 ====================
 # 全社共通の認証情報（指定がない店舗で使われます）
@@ -102,6 +125,8 @@ def fetch_toho_data(shop):
                 "--disable-gpu",
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
+                "--no-first-run",
+                "--no-default-browser-check",
                 "--window-size=1920,1080"
             ]
         )
@@ -110,9 +135,14 @@ def fetch_toho_data(shop):
             http_credentials={
                 "username": COMMON_BASIC_USER,
                 "password": COMMON_BASIC_PASS
-            }
+            },
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            locale="ja-JP",
+            timezone_id="Asia/Tokyo"
         )
         page = context.new_page()
+        page.set_default_timeout(60000)
 
         def handle_response(response):
             url = response.url
@@ -133,56 +163,66 @@ def fetch_toho_data(shop):
 
         page.on("response", handle_response)
 
-        target_url = f"https://toho-ss.jp/es/login/{shop_path}"
-        print(f"[Step 1] {shop_name} ({target_url}) にアクセス中...")
-        page.goto(target_url)
-
-        print(f"[Step 2] アカウント ({login_id}) でログイン...")
-        page.locator('input[type="text"], input[name*="user"], input[name*="login"]').first.fill(login_id)
-        page.locator('input[type="password"]').fill(login_pass)
-        page.click('button[type="submit"], input[type="submit"], .btn')
-
-        page.wait_for_url("**/estate/users/mfa**", timeout=15000)
-        page.wait_for_timeout(1000)
-
-        print("[Step 3] TOTP認証を処理中...")
-        totp_select = page.locator('div:has-text("アプリ認証")').locator('text="選択"').first
-        if totp_select.is_visible():
-            totp_select.click()
-        else:
-            page.locator('text="選択"').first.click()
-
-        page.wait_for_timeout(1500)
-
-        current_code = totp.now()
-        inputs = page.locator('input').all()
-        if len(inputs) >= 6:
-            for i in range(6):
-                inputs[i].fill(current_code[i])
-                page.wait_for_timeout(50)
-        else:
-            page.locator('input').first.click()
-            page.keyboard.type(current_code, delay=100)
-
-        page.locator('button:has-text("確認"), input[value="確認"]').first.click()
-
-        print("[Step 4] トップ画面遷移中...")
-        page.wait_for_url("**/estate/home**", timeout=20000)
-        page.wait_for_timeout(2000)
-
-        print(f"[Step 5] {shop_name} のスケジュールデータをロード中...")
         try:
-            page.get_by_text("全員", exact=True).click()
-            with page.expect_response(lambda response: "calendar-api/get-schedule" in response.url, timeout=15000):
-                pass 
+            target_url = f"https://toho-ss.jp/es/login/{shop_path}"
+            write_log(f"[Step 1] {shop_name} ({target_url}) にアクセス中...")
+            page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
+
+            write_log(f"[Step 2] アカウント ({login_id}) でログイン...")
+            page.locator('input[type="text"], input[name*="user"], input[name*="login"]').first.fill(login_id)
+            page.locator('input[type="password"]').fill(login_pass)
+            page.click('button[type="submit"], input[type="submit"], .btn')
+
+            page.wait_for_url("**/estate/users/mfa**", timeout=30000)
+            page.wait_for_timeout(1000)
+
+            write_log("[Step 3] TOTP認証を処理中...")
+            totp_select = page.locator('div:has-text("アプリ認証")').locator('text="選択"').first
+            if totp_select.is_visible():
+                totp_select.click()
+            else:
+                page.locator('text="選択"').first.click()
+
+            page.wait_for_timeout(1500)
+
+            current_code = totp.now()
+            inputs = page.locator('input').all()
+            if len(inputs) >= 6:
+                for i in range(6):
+                    inputs[i].fill(current_code[i])
+                    page.wait_for_timeout(50)
+            else:
+                page.locator('input').first.click()
+                page.keyboard.type(current_code, delay=100)
+
+            page.locator('button:has-text("確認"), input[value="確認"]').first.click()
+
+            write_log("[Step 4] トップ画面遷移中...")
+            page.wait_for_url("**/estate/home**", timeout=30000)
+            page.wait_for_timeout(2000)
+
+            write_log(f"[Step 5] {shop_name} のスケジュールデータをロード中...")
+            try:
+                page.get_by_text("全員", exact=True).click()
+                with page.expect_response(lambda response: "calendar-api/get-schedule" in response.url, timeout=20000):
+                    pass 
+            except Exception as e:
+                write_log(f"API待機中にタイムアウトまたはエラーが発生: {e}")
+
+            page.wait_for_timeout(3000)
+
         except Exception as e:
-            print(f"API待機中にタイムアウトまたはエラーが発生: {e}")
-            pass
-
-        page.wait_for_timeout(3000)
-
-        context.close()
-        browser.close()
+            write_log(f"❌ {shop_name} の取得中にエラー発生: {e}")
+            try:
+                err_img = os.path.join(BASE_DIR, f"error_{shop_path}.png")
+                page.screenshot(path=err_img)
+                write_log(f"エラー時のスクリーンショットを保存しました: {err_img} (URL: {page.url})")
+            except Exception:
+                pass
+            raise
+        finally:
+            context.close()
+            browser.close()
 
     return fetched_schedules, fetched_users
 
@@ -190,10 +230,10 @@ def sync_to_db(schedules, users, target_date_str=None):
     if not target_date_str:
         target_date_str = date.today().strftime('%Y-%m-%d')
 
-    print(f"[Step 6] データベースへの同期を開始します（対象日: {target_date_str}）")
+    write_log(f"[Step 6] データベースへの同期を開始します（対象日: {target_date_str}）")
 
     if not schedules:
-        print("⚠️ スケジュールデータが取得できなかったため、同期をスキップします。")
+        write_log("⚠️ スケジュールデータが取得できなかったため、同期をスキップします。")
         return
 
     toho_user_map = {str(u.get("id")): u.get("title", "") for u in users if u.get("id")}
@@ -285,22 +325,40 @@ def sync_to_db(schedules, users, target_date_str=None):
                     success_count += 1
 
         connection.commit()
-        print(f"🎉 {success_count} 件のスケジュールをDBへ登録・更新しました")
+        write_log(f"🎉 {success_count} 件のスケジュールをDBへ登録・更新しました")
         if skipped_names:
-            print(f"⚠️ スキップされた氏名: {set(skipped_names)}")
+            write_log(f"⚠️ スキップされた氏名: {set(skipped_names)}")
 
     finally:
         connection.close()
 
 if __name__ == "__main__":
-    print("=== 全社SS スケジュール自動同期バッチ開始 ===")
-    
+    write_log("=== 全社SS スケジュール自動同期バッチ開始 ===")
+    has_error = False
+
     for shop in TARGET_SHOPS:
-        print(f"\n{'='*50}")
-        schedules, users = fetch_toho_data(shop)
-        print(f"取得データ: スケジュール {len(schedules)} 件 / ユーザー {len(users)} 件")
-        
-        sync_to_db(schedules, users)
-        
-    print(f"\n{'='*50}")
-    print("=== 全店舗のスケジュール同期が完了しました ===")
+        write_log(f"{'='*50}")
+        shop_success = False
+        # スリープ復帰直後のネットワーク待ちを考慮し、最大3回までリトライ
+        for attempt in range(1, 4):
+            try:
+                schedules, users = fetch_toho_data(shop)
+                write_log(f"取得データ: スケジュール {len(schedules)} 件 / ユーザー {len(users)} 件")
+                sync_to_db(schedules, users)
+                shop_success = True
+                break
+            except Exception as e:
+                write_log(f"⚠️ {shop['name']} 試行 {attempt}/3 回目失敗: {e}")
+                if attempt < 3:
+                    write_log("10秒待機して再試行します...")
+                    time.sleep(10)
+                else:
+                    write_log(traceback.format_exc())
+                    has_error = True
+
+    write_log(f"{'='*50}")
+    if has_error:
+        write_log("❌ 一部の店舗で同期エラーが発生しました")
+        sys.exit(1)
+    else:
+        write_log("=== 全店舗のスケジュール同期が完了しました ===")

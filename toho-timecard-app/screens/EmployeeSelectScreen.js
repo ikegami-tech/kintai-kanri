@@ -86,7 +86,7 @@ export default function EmployeeSelectScreen({ navigation }) {
   const { width: currentWidth, height: currentHeight } = useWindowDimensions();
   // ★横向き判定
   const isLandscape = currentWidth > currentHeight;
-  const isTablet = currentWidth >= 600 || currentHeight >= 600;
+  const isTablet = Math.min(currentWidth, currentHeight) >= 600;
 
   // ★横向き時は左側バー（幅72px）の分を引いた幅でカードを均等割り
   const availableWidth = isLandscape ? currentWidth - 72 : currentWidth;
@@ -378,8 +378,8 @@ export default function EmployeeSelectScreen({ navigation }) {
           <View style={styles.timeBadgePlaceholder} />
         )}
         
-        {/* ★正方形の中でアイコンが綺麗に中央に配置されるよう flex: 1 を追加し、さらに拡大 */}
-        <View style={[{ transform: [{ scale: isTablet ? 2.5 : 1 }] }, isTablet && { flex: 1, justifyContent: 'center' }]}>
+        {/* ★正方形の中でアイコンが綺麗に中央に配置されるよう flex: 1 を追加 */}
+        <View style={[{ transform: [{ scale: isTablet ? (isLandscape ? 2.2 : 1.6) : 1 }] }, isTablet && { flex: 1, justifyContent: 'center' }]}>
           <SmaregiFaceIcon isWorking={isWorking} />
         </View>
 
