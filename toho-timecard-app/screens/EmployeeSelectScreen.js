@@ -21,6 +21,7 @@ import { useFocusEffect, useIsFocused } from '@react-navigation/native'; // â˜…ä
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { CONFIG } from '../constants/config';
+import { COLORS } from '../constants/theme';
 
 const screenWidth = Dimensions.get('window').width;
 const cardWidth = (screenWidth - 10) / 4;
