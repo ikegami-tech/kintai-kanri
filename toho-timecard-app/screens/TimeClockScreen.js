@@ -344,9 +344,6 @@ export default function TimeClockScreen({ route, navigation }) {
     }
 
     try {
-      setLoadingMsg('テンプレートを保存中...'); // ★追加
-      setLoading(true);
-
       if (tplEditMode === 'add' && templates.length === 1 && templates[0].id === 'default') {
         const defaultPayload = {
           id: null,
@@ -382,13 +379,11 @@ export default function TimeClockScreen({ route, navigation }) {
 
       await loadTemplatesAndSetBody(actionType, actionTimeStr);
       setModalMode('mail');
-      setLoading(false);
 
       Alert.alert('完了', tplEditMode === 'edit' ? 'テンプレートを更新しました。' : '新しいテンプレートを追加しました。');
 
     } catch (e) {
       console.error('テンプレート保存エラー:', e);
-      setLoading(false);
       Alert.alert('エラー', 'テンプレートの保存に失敗しました。');
     }
   };
