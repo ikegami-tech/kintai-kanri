@@ -982,11 +982,13 @@ function closeRecordModal(modalId) {
 // 【API通信実装】実績の新規登録処理
 async function submitRecordCreate() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+         || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
 
   if (!emp) {
     currentEmployeeList = await fetchEmployeesAPI('ALL', '');
-    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+       || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
   }
 
   if (!emp) {
@@ -1202,11 +1204,13 @@ async function syncCompensatoryDateMemo(empId, compDateInput, leaveDateVal, shop
 // 【API通信実装】実績の編集更新処理
 async function submitRecordEdit() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+         || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
 
   if (!emp) {
     currentEmployeeList = await fetchEmployeesAPI('ALL', '');
-    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+       || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
   }
 
   if (!emp) {
@@ -1385,10 +1389,12 @@ async function submitRecordDelete() {
 
   // ★追加: 削除を実行する前に、現在紐付いている代休取得日の同期を解除する
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+         || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
   if (!emp) {
     currentEmployeeList = await fetchEmployeesAPI('ALL', '');
-    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+       || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
   }
   
   if (emp && currentCellElement) {
@@ -1429,12 +1435,14 @@ async function submitRecordDelete() {
 
 async function submitRecordMemo() {
   const normalizedCurrentName = currentEmpName ? currentEmpName.replace(/\s+/g, '') : '';
-  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+  let emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+         || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
   
   // ★追加: キャッシュにない場合は最新データを再取得して探す安全装置
   if (!emp) {
     currentEmployeeList = await fetchEmployeesAPI('ALL', '');
-    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
+    emp = currentEmployeeList.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName)
+       || allEmployeesCache.find(e => e.name && e.name.replace(/\s+/g, '') === normalizedCurrentName);
   }
   
   if (!emp) return alert('従業員データが見つかりません。画面を再読み込みして再度お試しください。');
@@ -1621,9 +1629,11 @@ async function executeEmpAction() {
 function showEmployeeDetail(identifier) {
   let emp;
   if (typeof identifier === 'number' || !isNaN(Number(identifier))) {
-    emp = currentEmployeeList.find(e => Number(e.id) === Number(identifier));
+    emp = currentEmployeeList.find(e => Number(e.id) === Number(identifier))
+       || allEmployeesCache.find(e => Number(e.id) === Number(identifier));
   } else {
-    emp = currentEmployeeList.find(e => e.name === identifier);
+    emp = currentEmployeeList.find(e => e.name === identifier)
+       || allEmployeesCache.find(e => e.name === identifier);
   }
   
   // ★修正: データが存在しない場合は警告を表示し、強制的に従業員一覧へ戻す
@@ -2385,9 +2395,26 @@ async function renderDailyTable() {
   const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
   const currentViewDateObj = new Date(year, month - 1, date);
 
-  let rawEmpListForDaily = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
-  
-  // ★追加: 労基法対象外に加え、入社日前・退職日後の従業員を除外
+  if (allEmployeesCache.length === 0) {
+    await fetchEmployeesAPI('ALL', '');
+  }
+  let rawEmpListForDaily = allEmployeesCache;
+
+  let attendancesData = [];
+  try {
+    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+    if (response.ok) attendancesData = await response.json();
+  } catch (error) {
+    console.error('日表示データ取得エラー:', error);
+  }
+
+  const todayAttendanceMap = {};
+  attendancesData.filter(a => a.work_date === dateKey).forEach(a => {
+    if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
+    todayAttendanceMap[a.employee_id].push(a);
+  });
+
+  // ★追加: 労基法対象外に加え、入社日前・退職日後・当日実績なしの削除済み従業員を除外
   const empList = rawEmpListForDaily.filter(emp => {
     if (emp.office === '社長' || emp.office === '次長') return false;
 
@@ -2411,21 +2438,13 @@ async function renderDailyTable() {
       }
     }
 
+    // 削除済みユーザーは当日実績がある場合のみ表示
+    if (emp.status === '削除') {
+      const hasTodayRecord = todayAttendanceMap[emp.id] && todayAttendanceMap[emp.id].length > 0;
+      if (!hasTodayRecord) return false;
+    }
+
     return true;
-  });
-
-  let attendancesData = [];
-  try {
-    const response = await fetch(`${API_BASE_URL}/attendances/monthly?year=${year}&month=${month}&shop_id=${currentSelectedShopId}`, { cache: 'no-store', headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
-    if (response.ok) attendancesData = await response.json();
-  } catch (error) {
-    console.error('日表示データ取得エラー:', error);
-  }
-
-  const todayAttendanceMap = {};
-  attendancesData.filter(a => a.work_date === dateKey).forEach(a => {
-    if (!todayAttendanceMap[a.employee_id]) todayAttendanceMap[a.employee_id] = [];
-    todayAttendanceMap[a.employee_id].push(a);
   });
 
   const tbody = document.getElementById('daily-tbody');
@@ -3215,6 +3234,7 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
   return result;
 }
 
+let allEmployeesCache = [];
 let currentEmployeeList = [];
 
 async function renderEmployees() {
