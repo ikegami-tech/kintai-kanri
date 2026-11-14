@@ -13,6 +13,8 @@ import {
   Keyboard,
   AppState,
   useWindowDimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,6 +54,7 @@ export default function TimeClockScreen({ route, navigation }) {
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
 
   const [currentCoords, setCurrentCoords] = useState(null);
+  const [isModalScrolling, setIsModalScrolling] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -687,192 +690,203 @@ export default function TimeClockScreen({ route, navigation }) {
       )}
 
       <Modal visible={mailModalVisible} animationType="slide" transparent={true}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-              <View style={styles.modalContent}>
-                {modalMode === 'mail' ? (
-                  <>
-                    <Text style={styles.modalTitle}>{actionType}連絡メールの確認</Text>
-                    <ScrollView
-                      style={styles.modalBodyScroll}
-                      keyboardShouldPersistTaps="handled"
-                      keyboardDismissMode="on-drag"
-                    >
-                      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-                        <View>
-                          <Text style={styles.inputLabel}>宛先</Text>
-                          <TextInput
-                            style={styles.textInputSingle}
-                            value={mailTo}
-                            onChangeText={setMailTo}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                          />
+              <View style={StyleSheet.absoluteFill} />
+            </TouchableWithoutFeedback>
 
-                          <Text style={styles.inputLabel}>件名</Text>
-                          <TextInput
-                            style={styles.textInputSingle}
-                            value={mailSubject}
-                            onChangeText={setMailSubject}
-                          />
+            <View style={styles.modalContent}>
+              {modalMode === 'mail' ? (
+                <>
+                  <Text style={styles.modalTitle}>{actionType}連絡メールの確認</Text>
+                  <ScrollView
+                    style={styles.modalBodyScroll}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                    onScrollBeginDrag={() => {
+                      setIsModalScrolling(true);
+                      Keyboard.dismiss();
+                    }}
+                    onScrollEndDrag={() => {
+                      setTimeout(() => setIsModalScrolling(false), 150);
+                    }}
+                    onMomentumScrollEnd={() => {
+                      setIsModalScrolling(false);
+                    }}
+                  >
+                    <View pointerEvents={isModalScrolling ? 'none' : 'auto'}>
+                      <Text style={styles.inputLabel}>宛先</Text>
+                      <TextInput
+                        style={styles.textInputSingle}
+                        value={mailTo}
+                        onChangeText={setMailTo}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
 
-                          {dailySchedules.length > 0 && (
-                            <View style={styles.scheduleSection}>
-                              <Text style={styles.scheduleSectionTitle}>📅 本日の予定 (TOHO SS):</Text>
-                              <TouchableOpacity
-                                style={styles.dropdownHeader}
-                                onPress={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
-                                activeOpacity={0.7}
-                              >
-                                <Text style={styles.dropdownHeaderText} numberOfLines={1}>
-                                  {(() => {
-                                    const selected = dailySchedules.find(s => s.id === selectedScheduleId);
-                                    if (!selected) return '-- スケジュールを選択してください --';
-                                    const badge = selected.start_time ? `[${selected.start_time}] ` : '';
-                                    return `${badge}${selected.title || '無題'}`;
-                                  })()}
-                                </Text>
-                                <Text style={styles.dropdownArrow}>{scheduleDropdownOpen ? '▲' : '▼'}</Text>
-                              </TouchableOpacity>
+                      <Text style={styles.inputLabel}>件名</Text>
+                      <TextInput
+                        style={styles.textInputSingle}
+                        value={mailSubject}
+                        onChangeText={setMailSubject}
+                      />
 
-                              {scheduleDropdownOpen && (
-                                <View style={styles.dropdownList}>
-                                  {dailySchedules.map((sch) => {
-                                    const isSelected = selectedScheduleId === sch.id;
-                                    const timeBadge = sch.start_time ? `[${sch.start_time}] ` : '';
-                                    return (
-                                      <TouchableOpacity
-                                        key={String(sch.id)}
-                                        style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                                        onPress={() => {
-                                          handleSelectSchedule(sch);
-                                          setScheduleDropdownOpen(false);
-                                        }}
-                                      >
-                                        <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
-                                          {timeBadge}{sch.title || '無題の予定'}
-                                        </Text>
-                                      </TouchableOpacity>
-                                    );
-                                  })}
-                                </View>
-                              )}
-                            </View>
-                          )}
+                      {dailySchedules.length > 0 && (
+                        <View style={styles.scheduleSection}>
+                          <Text style={styles.scheduleSectionTitle}>📅 本日の予定 (TOHO SS):</Text>
+                          <TouchableOpacity
+                            style={styles.dropdownHeader}
+                            onPress={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.dropdownHeaderText} numberOfLines={1}>
+                              {(() => {
+                                const selected = dailySchedules.find(s => s.id === selectedScheduleId);
+                                if (!selected) return '-- スケジュールを選択してください --';
+                                const badge = selected.start_time ? `[${selected.start_time}] ` : '';
+                                return `${badge}${selected.title || '無題'}`;
+                              })()}
+                            </Text>
+                            <Text style={styles.dropdownArrow}>{scheduleDropdownOpen ? '▲' : '▼'}</Text>
+                          </TouchableOpacity>
 
-                          <Text style={styles.inputLabel}>メール本文（必要に応じて調整してください）</Text>
-                          <TextInput
-                            style={styles.textInputMulti}
-                            value={mailBody}
-                            onChangeText={setMailBody}
-                            multiline={true}
-                            numberOfLines={8}
-                            textAlignVertical="top"
-                          />
-
-                          <View style={styles.templateSection}>
-                            <Text style={styles.templateSectionTitle}>テンプレート切り替え:</Text>
-                            <View style={styles.templateList}>
-                              {templates.map((tpl) => {
-                                const isActive = tpl.id === activeTemplateId;
+                          {scheduleDropdownOpen && (
+                            <View style={styles.dropdownList}>
+                              {dailySchedules.map((sch) => {
+                                const isSelected = selectedScheduleId === sch.id;
+                                const timeBadge = sch.start_time ? `[${sch.start_time}] ` : '';
                                 return (
                                   <TouchableOpacity
-                                    key={String(tpl.id)}
-                                    style={[styles.tplBtn, isActive && styles.tplBtnActive]}
-                                    onPress={() => handleSelectTemplate(tpl)}
+                                    key={String(sch.id)}
+                                    style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                                    onPress={() => {
+                                      handleSelectSchedule(sch);
+                                      setScheduleDropdownOpen(false);
+                                    }}
                                   >
-                                    <Text style={[styles.tplBtnText, isActive && styles.tplBtnTextActive]}>
-                                      {tpl.name}
+                                    <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
+                                      {timeBadge}{sch.title || '無題の予定'}
                                     </Text>
                                   </TouchableOpacity>
                                 );
                               })}
                             </View>
-                            <View style={styles.tplActionRow}>
-                              <TouchableOpacity
-                                style={styles.tplActionBtn}
-                                onPress={() => openTemplateEditModal('edit')}
-                              >
-                                <Text style={styles.tplActionBtnText}>✏️ 編集</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={styles.tplActionBtn}
-                                onPress={() => openTemplateEditModal('add')}
-                              >
-                                <Text style={styles.tplActionBtnText}>＋ テンプレ追加</Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
+                          )}
                         </View>
-                      </TouchableWithoutFeedback>
-                    </ScrollView>
-                    <View style={styles.modalFooter}>
-                      <TouchableOpacity
-                        style={styles.cancelBtn}
-                        onPress={() => setMailModalVisible(false)}
-                      >
-                        <Text style={styles.cancelBtnText}>キャンセル</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.submitBtn}
-                        onPress={() => submitAttendance(actionType, mailBody)}
-                      >
-                        <Text style={styles.submitBtnText}>送信＆打刻</Text>
-                      </TouchableOpacity>
+                      )}
+
+                      <Text style={styles.inputLabel}>メール本文（必要に応じて調整してください）</Text>
+                      <TextInput
+                        style={styles.textInputMulti}
+                        value={mailBody}
+                        onChangeText={setMailBody}
+                        multiline={true}
+                        scrollEnabled={false}
+                        textAlignVertical="top"
+                      />
+
+                      <View style={styles.templateSection}>
+                        <Text style={styles.templateSectionTitle}>テンプレート切り替え:</Text>
+                        <View style={styles.templateList}>
+                          {templates.map((tpl) => {
+                            const isActive = tpl.id === activeTemplateId;
+                            return (
+                              <TouchableOpacity
+                                key={String(tpl.id)}
+                                style={[styles.tplBtn, isActive && styles.tplBtnActive]}
+                                onPress={() => handleSelectTemplate(tpl)}
+                              >
+                                <Text style={[styles.tplBtnText, isActive && styles.tplBtnTextActive]}>
+                                  {tpl.name}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                        <View style={styles.tplActionRow}>
+                          <TouchableOpacity
+                            style={styles.tplActionBtn}
+                            onPress={() => openTemplateEditModal('edit')}
+                          >
+                            <Text style={styles.tplActionBtnText}>✏️ 編集</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.tplActionBtn}
+                            onPress={() => openTemplateEditModal('add')}
+                          >
+                            <Text style={styles.tplActionBtnText}>＋ テンプレ追加</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.modalTitle}>
-                      {tplEditMode === 'edit' ? 'テンプレートの編集' : '新規テンプレート追加'}
-                    </Text>
-                    <ScrollView
-                      style={styles.modalBodyScroll}
-                      keyboardShouldPersistTaps="handled"
-                      keyboardDismissMode="on-drag"
+                  </ScrollView>
+                  <View style={styles.modalFooter}>
+                    <TouchableOpacity
+                      style={styles.cancelBtn}
+                      onPress={() => setMailModalVisible(false)}
                     >
-                      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-                        <View>
-                          <Text style={styles.inputLabel}>ボタン名</Text>
-                          <TextInput
-                            style={styles.textInputSingle}
-                            value={tplNameInput}
-                            onChangeText={setTplNameInput}
-                            placeholder="例) テンプレ1"
-                          />
-                          <Text style={styles.inputLabel}>本文内容</Text>
-                          <TextInput
-                            style={[styles.textInputMulti, { height: 140 }]}
-                            value={tplBodyInput}
-                            onChangeText={setTplBodyInput}
-                            multiline={true}
-                            numberOfLines={6}
-                            textAlignVertical="top"
-                          />
-                        </View>
-                      </TouchableWithoutFeedback>
-                    </ScrollView>
-                    <View style={styles.modalFooter}>
-                      <TouchableOpacity
-                        style={styles.cancelBtn}
-                        onPress={() => setModalMode('mail')}
-                      >
-                        <Text style={styles.cancelBtnText}>戻る</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.submitBtn}
-                        onPress={saveTemplate}
-                      >
-                        <Text style={styles.submitBtnText}>保存</Text>
-                      </TouchableOpacity>
+                      <Text style={styles.cancelBtnText}>キャンセル</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.submitBtn}
+                      onPress={() => submitAttendance(actionType, mailBody)}
+                    >
+                      <Text style={styles.submitBtnText}>送信＆打刻</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.modalTitle}>
+                    {tplEditMode === 'edit' ? 'テンプレートの編集' : '新規テンプレート追加'}
+                  </Text>
+                  <ScrollView
+                    style={styles.modalBodyScroll}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                  >
+                    <View>
+                      <Text style={styles.inputLabel}>ボタン名</Text>
+                      <TextInput
+                        style={styles.textInputSingle}
+                        value={tplNameInput}
+                        onChangeText={setTplNameInput}
+                        placeholder="例) テンプレ1"
+                      />
+                      <Text style={styles.inputLabel}>本文内容</Text>
+                      <TextInput
+                        style={[styles.textInputMulti, { minHeight: 140 }]}
+                        value={tplBodyInput}
+                        onChangeText={setTplBodyInput}
+                        multiline={true}
+                        scrollEnabled={false}
+                        textAlignVertical="top"
+                      />
                     </View>
-                  </>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
+                  </ScrollView>
+                  <View style={styles.modalFooter}>
+                    <TouchableOpacity
+                      style={styles.cancelBtn}
+                      onPress={() => setModalMode('mail')}
+                    >
+                      <Text style={styles.cancelBtnText}>戻る</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.submitBtn}
+                      onPress={saveTemplate}
+                    >
+                      <Text style={styles.submitBtnText}>保存</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
-        </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1018,7 +1032,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textMain,
     backgroundColor: COLORS.bgMain,
-    height: 140,
+    minHeight: 140,
   },
   /* テンプレートボタンエリアスタイル */
   templateSection: {
