@@ -13,6 +13,7 @@ import {
   Keyboard,
   AppState,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,6 +30,7 @@ export default function TimeClockScreen({ route, navigation }) {
 
   const [time, setTime] = useState(new Date());
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(''); // ★追加: ローディング中のテキスト用
 
   const [isWorking, setIsWorking] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -342,6 +344,7 @@ export default function TimeClockScreen({ route, navigation }) {
     }
 
     try {
+      setLoadingMsg('テンプレートを保存中...'); // ★追加
       setLoading(true);
 
       if (tplEditMode === 'add' && templates.length === 1 && templates[0].id === 'default') {
@@ -443,6 +446,7 @@ export default function TimeClockScreen({ route, navigation }) {
     }
 
     try {
+      setLoadingMsg('位置情報を取得＆送信中...'); // ★追加
       setLoading(true);
 
       const requireGpsStr = await AsyncStorage.getItem('@require_gps');
@@ -699,7 +703,7 @@ export default function TimeClockScreen({ route, navigation }) {
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={styles.loadingText}>位置情報を取得＆送信中...</Text>
+          <Text style={styles.loadingText}>{loadingMsg}</Text>
         </View>
       )}
 
