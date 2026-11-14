@@ -2141,13 +2141,13 @@ async function renderMatrixTable() {
     }
   } catch(e) {}
 
-  // ★従業員のフィルタリング（役職・退職日・入社日の判定）
+  // ★従業員のフィルタリング（役職・退職日・入社日・削除済み判定）
   const empList = rawEmpList.filter(emp => {
     if (emp.office === '社長' || emp.office === '次長') {
       return false;
     }
 
-    // ★追加: 入社月より前の月であれば、月表示から非表示にする
+    // 入社月より前の月であれば、月表示から非表示にする
     if (emp.joinDate && emp.joinDate !== '-') {
       const cleanJoinDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
       const jDate = new Date(cleanJoinDate);
@@ -2160,24 +2160,32 @@ async function renderMatrixTable() {
       }
     }
 
-    if (emp.status === '削除' || (emp.retireDate && emp.retireDate !== '-')) {
-      if (emp.retireDate && emp.retireDate !== '-') {
-        const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
-        const rDate = new Date(cleanDate);
-        if (!isNaN(rDate)) {
-          const nextMonthOfRetire = new Date(rDate.getFullYear(), rDate.getMonth() + 1, 1);
-          const currentViewMonth = new Date(year, month - 1, 1);
-          if (currentViewMonth >= nextMonthOfRetire) {
-            return false;
-          }
+    if (emp.retireDate && emp.retireDate !== '-') {
+      const cleanDate = emp.retireDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
+      const rDate = new Date(cleanDate);
+      if (!isNaN(rDate)) {
+        const nextMonthOfRetire = new Date(rDate.getFullYear(), rDate.getMonth() + 1, 1);
+        const currentViewMonth = new Date(year, month - 1, 1);
+        if (currentViewMonth >= nextMonthOfRetire) {
+          return false;
         }
       }
     }
+
+    // ★削除済みユーザーは、該当月に勤怠実績（打刻・有給・メモ等）が存在する場合のみ表示する
+    if (emp.status === '削除') {
+      const hasRecordsInMonth = attendancesData.some(a => Number(a.employee_id) === Number(emp.id));
+      if (!hasRecordsInMonth) {
+        return false;
+      }
+    }
+
     return true;
   });
 
   empList.forEach(emp => {
-    tbodyHtml += `<tr><td class="col-emp-name">${emp.name}</td>`;
+    const deletedBadge = emp.status === '削除' ? ' <span style="font-size:10px; color:#94a3b8; font-weight:normal;">(削除済)</span>' : '';
+    tbodyHtml += `<tr><td class="col-emp-name">${emp.name}${deletedBadge}</td>`;
     
     // 退職日のパース
     let retireDateObj = null;
@@ -2683,7 +2691,10 @@ let overtimeSortAsc = false;
 
 async function fetchOvertimeData(year, month, selectedDept) {
   await fetchPublicHolidays(year);
-  const empList = currentEmployeeList.length > 0 ? currentEmployeeList : await fetchEmployeesAPI('ALL', '');
+  if (allEmployeesCache.length === 0) {
+    await fetchEmployeesAPI('ALL', '');
+  }
+  const empList = allEmployeesCache;
   
   let attendancesData = [];
   try {
@@ -2693,11 +2704,11 @@ async function fetchOvertimeData(year, month, selectedDept) {
     console.error('残業集計用データ取得エラー:', error);
   }
 
-  // ★追加: 労基法対象外に加え、入社月より前・退職月翌月以降の従業員を除外
+  // ★追加: 労基法対象外に加え、入社月より前・退職月翌月以降・実績なしの削除済み従業員を除外
   let filteredEmps = empList.filter(emp => {
     if (emp.office === '社長' || emp.office === '次長') return false;
 
-    // ★入社月より前の月なら除外
+    // 入社月より前の月なら除外
     if (emp.joinDate && emp.joinDate !== '-') {
       const cleanJoinDate = emp.joinDate.replace(/[年月]/g, '/').replace(/日/g, '').replace(/-/g, '/');
       const jDate = new Date(cleanJoinDate);
@@ -2717,6 +2728,12 @@ async function fetchOvertimeData(year, month, selectedDept) {
         const currentViewMonth = new Date(year, month - 1, 1);
         if (currentViewMonth >= nextMonthOfRetire) return false;
       }
+    }
+
+    // ★削除済みユーザーは、該当月に勤怠データが存在する場合のみ集計表に表示する
+    if (emp.status === '削除') {
+      const hasRecordsInMonth = attendancesData.some(a => Number(a.employee_id) === Number(emp.id));
+      if (!hasRecordsInMonth) return false;
     }
 
     return true;
@@ -3131,26 +3148,29 @@ async function fetchEmployeesAPI(initialFilter, nameFilter) {
       console.error('APIレスポンスが配列ではありません:', dbData);
       return [];
     }
-    result = dbData
-      // ★追加: 従業員一覧画面等では「削除」済みのユーザーを除外する
-      .filter(emp => emp.status !== '削除')
-      .map(emp => ({
-        id: emp.id,
-        name: emp.name,
-        kana: emp.kana,
-        gender: emp.gender || '未選択',
-        email: emp.email || '',
-        show_attendance: emp.show_attendance,
-        retireDate: emp.retire_date ? new Date(emp.retire_date).toLocaleDateString('ja-JP') : '-',
-        role: emp.role || '一般',
-        roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
-        status: emp.status || '利用中',
-        empType: '正社員',
-        office: emp.department || 'NEXT',
-        joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
-        shop_id: emp.shop_id || 'shop_01',
-        holidayRule: emp.holiday_rule || '通常社員'
-      }));
+    const mappedAll = dbData.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      kana: emp.kana,
+      gender: emp.gender || '未選択',
+      email: emp.email || '',
+      show_attendance: emp.show_attendance,
+      retireDate: emp.retire_date ? new Date(emp.retire_date).toLocaleDateString('ja-JP') : '-',
+      role: emp.role || '一般',
+      roleClass: emp.role === 'システム管理者' ? 'badge-admin' : 'badge-regular',
+      status: emp.status || '利用中',
+      empType: '正社員',
+      office: emp.department || 'NEXT',
+      joinDate: emp.join_date ? new Date(emp.join_date).toLocaleDateString('ja-JP') : '-',
+      shop_id: emp.shop_id || 'shop_01',
+      holidayRule: emp.holiday_rule || '通常社員'
+    }));
+
+    // ★削除済みを含む全従業員を保持（月表示・集計表の過去データ表示用）
+    allEmployeesCache = mappedAll;
+
+    // 従業員一覧・打刻アプリ・ダッシュボード用には「削除」済みユーザーを除外
+    result = mappedAll.filter(emp => emp.status !== '削除');
   } catch (error) {
     console.error('API取得エラー:', error);
     return [];

@@ -108,7 +108,7 @@ app.put('/api/employees/:id', (req, res) => {
 });
 
 app.delete('/api/employees/:id', (req, res) => {
-  const sql = 'DELETE FROM employees WHERE id = ?';
+  const sql = "UPDATE employees SET status = '削除' WHERE id = ?";
   db.query(sql, [req.params.id], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: '削除成功' });
@@ -150,9 +150,9 @@ app.get('/api/attendances/monthly', (req, res) => {
 
     let sql = `
       SELECT 
-        a.id, a.employee_id, e.name AS employee_name, DATE_FORMAT(a.work_date, '%Y-%m-%d') AS work_date, DATE_FORMAT(a.clock_in, '%H:%i') AS clock_in, DATE_FORMAT(a.clock_out, '%H:%i') AS clock_out, a.memo, a.shop_id
+        a.id, a.employee_id, COALESCE(e.name, '削除済み従業員') AS employee_name, DATE_FORMAT(a.work_date, '%Y-%m-%d') AS work_date, DATE_FORMAT(a.clock_in, '%H:%i') AS clock_in, DATE_FORMAT(a.clock_out, '%H:%i') AS clock_out, a.memo, a.shop_id
       FROM attendances a
-      JOIN employees e ON a.employee_id = e.id
+      LEFT JOIN employees e ON a.employee_id = e.id
       WHERE a.work_date BETWEEN ? AND ?
     `;
     const params = [startDate, endDate];
@@ -162,7 +162,7 @@ app.get('/api/attendances/monthly', (req, res) => {
       params.push(shop_id);
     }
 
-    sql += ` ORDER BY e.kana ASC, a.work_date ASC`;
+    sql += ` ORDER BY COALESCE(e.kana, '') ASC, a.work_date ASC`;
 
     db.query(sql, params, (err, results) => {
       if (err) {
@@ -258,7 +258,7 @@ app.post('/api/auth/setup-password', async (req, res) => {
   const { email, password } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const sql = 'UPDATE employees SET password = ? WHERE email = ?';
+    const sql = "UPDATE employees SET password = ? WHERE email = ? AND (status IS NULL OR status != '削除')";
     db.query(sql, [hashedPassword, email], (err, result) => {
       if (err) return res.status(500).json({ error: 'データベースの更新に失敗しました' });
       if (result.affectedRows === 0) return res.status(404).json({ error: '従業員が見つかりません' });
@@ -272,8 +272,8 @@ app.post('/api/auth/setup-password', async (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   const { loginId, password } = req.body;
   
-  // ログインID または メールアドレスで検索
-  const sql = 'SELECT id, name, email, login_id, role, password, shop_id FROM employees WHERE login_id = ? OR email = ?';
+  // ログインID または メールアドレスで検索（削除済みアカウントは除外）
+  const sql = "SELECT id, name, email, login_id, role, password, shop_id FROM employees WHERE (login_id = ? OR email = ?) AND (status IS NULL OR status != '削除')";
   db.query(sql, [loginId, loginId], async (err, results) => {
     if (err) return res.status(500).json({ error: 'データベースの照合に失敗しました' });
     if (results.length === 0) return res.status(401).json({ error: 'ログインIDまたはパスワードが間違っています' });
