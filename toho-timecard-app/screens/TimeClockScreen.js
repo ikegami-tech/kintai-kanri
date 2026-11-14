@@ -13,8 +13,6 @@ import {
   Keyboard,
   AppState,
   useWindowDimensions,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -55,6 +53,22 @@ export default function TimeClockScreen({ route, navigation }) {
 
   const [currentCoords, setCurrentCoords] = useState(null);
   const [isModalScrolling, setIsModalScrolling] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -690,35 +704,31 @@ export default function TimeClockScreen({ route, navigation }) {
       )}
 
       <Modal visible={mailModalVisible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-              <View style={StyleSheet.absoluteFill} />
-            </TouchableWithoutFeedback>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
 
-            <View style={styles.modalContent}>
-              {modalMode === 'mail' ? (
-                <>
-                  <Text style={styles.modalTitle}>{actionType}連絡メールの確認</Text>
-                  <ScrollView
-                    style={styles.modalBodyScroll}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                    onScrollBeginDrag={() => {
-                      setIsModalScrolling(true);
-                      Keyboard.dismiss();
-                    }}
-                    onScrollEndDrag={() => {
-                      setTimeout(() => setIsModalScrolling(false), 150);
-                    }}
-                    onMomentumScrollEnd={() => {
-                      setIsModalScrolling(false);
-                    }}
-                  >
-                    <View pointerEvents={isModalScrolling ? 'none' : 'auto'}>
+          <View style={[styles.modalContent, isKeyboardVisible && styles.modalContentKeyboardOpen]}>
+            {modalMode === 'mail' ? (
+              <>
+                <View style={styles.modalHeaderRow}>
+                  <Text style={styles.modalTitleText}>{actionType}連絡メールの確認</Text>
+                  {isKeyboardVisible && (
+                    <TouchableOpacity
+                      style={styles.kbDoneBtn}
+                      onPress={() => Keyboard.dismiss()}
+                    >
+                      <Text style={styles.kbDoneBtnText}>完了</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <ScrollView
+                  style={styles.modalBodyScroll}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="none"
+                >
+                  <View>
                       <Text style={styles.inputLabel}>宛先</Text>
                       <TextInput
                         style={styles.textInputSingle}
@@ -886,7 +896,6 @@ export default function TimeClockScreen({ route, navigation }) {
               )}
             </View>
           </View>
-        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -990,11 +999,30 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: '80%',
+    maxHeight: '85%',
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 20,
     elevation: 5,
+  },
+  /* ★追加: キーボード表示中は高さを制限して画面上部に固定する */
+  modalContentKeyboardOpen: {
+    maxHeight: '55%',
+    marginTop: -80, 
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingBottom: 10,
+  },
+  modalTitleText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: COLORS.textMain,
   },
   modalTitle: {
     fontSize: 17,
@@ -1005,8 +1033,19 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     paddingBottom: 10,
   },
+  kbDoneBtn: {
+    backgroundColor: COLORS.primary || '#0073ea',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  kbDoneBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
   modalBodyScroll: {
-    maxHeight: 380,
+    flexShrink: 1,
   },
   inputLabel: {
     fontSize: 12,
