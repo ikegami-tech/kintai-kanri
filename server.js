@@ -368,6 +368,15 @@ app.post('/api/mail-templates', (req, res) => {
   }
 });
 
+// メールテンプレート削除API
+app.delete('/api/mail-templates/:id', (req, res) => {
+  const sql = 'DELETE FROM mail_templates WHERE id = ?';
+  db.query(sql, [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'テンプレートを削除しました' });
+  });
+});
+
 app.delete('/api/shops/:id', (req, res) => {
   db.query('DELETE FROM shops WHERE id = ?', [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });

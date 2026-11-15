@@ -169,6 +169,43 @@ export default function SettingsScreen() {
     }
   };
 
+  // ★追加：テンプレートの削除処理
+  const deleteTemplate = () => {
+    if (!selectedTpl || !selectedTpl.id || selectedTpl.id === 'default') {
+      Alert.alert('エラー', 'このテンプレートは削除できません。');
+      return;
+    }
+
+    Alert.alert(
+      'テンプレートの削除',
+      `「${selectedTpl.name}」を削除してもよろしいですか？\nこの操作は元に戻せません。`,
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除する',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const res = await fetch(`${CONFIG.apiUrl}/mail-templates/${selectedTpl.id}`, {
+                method: 'DELETE',
+              });
+              if (!res.ok) throw new Error('削除エラー');
+              
+              Alert.alert('完了', 'テンプレートを削除しました。');
+              setSelectedTpl(null);
+              await loadTemplates();
+            } catch (e) {
+              Alert.alert('エラー', '削除に失敗しました。');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const addNewTemplate = () => {
     setSelectedTpl({ id: null }); // nullは新規作成フラグ
     const nextNum = templates.length > 0 && templates[0].id !== 'default' ? templates.length + 1 : 1;
@@ -286,8 +323,14 @@ export default function SettingsScreen() {
                   textAlignVertical="top" 
                 />
                 <View style={styles.btnRow}>
+                  {/* ★追加: 初期状態(id:'default')や新規追加時以外のみ削除ボタンを表示 */}
+                  {selectedTpl && selectedTpl.id && selectedTpl.id !== 'default' && (
+                    <TouchableOpacity onPress={deleteTemplate} style={styles.deleteBtn} disabled={loading}>
+                      <Text style={styles.deleteBtnText}>削除</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity onPress={() => setSelectedTpl(null)} style={styles.cancelBtn}>
-                    <Text style={styles.cancelBtnText}>一覧に戻る</Text>
+                    <Text style={styles.cancelBtnText}>一覧へ</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={saveTemplateEdit} style={styles.primaryBtn} disabled={loading}>
                     <Text style={styles.primaryBtnText}>{loading ? '保存中...' : '保存して反映'}</Text>
@@ -355,5 +398,8 @@ const styles = StyleSheet.create({
   addTplBtnText: { fontSize: 13, fontWeight: 'bold', color: COLORS.primary || '#0073ea' },
   btnRow: { flexDirection: 'row', gap: 10 },
   cancelBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 6, borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center' },
-  cancelBtnText: { color: '#64748b', fontSize: 14, fontWeight: 'bold' }
+  cancelBtnText: { color: '#64748b', fontSize: 14, fontWeight: 'bold' },
+  // ★追加: 削除ボタンのスタイル
+  deleteBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#f87171', alignItems: 'center' },
+  deleteBtnText: { color: '#ef4444', fontSize: 14, fontWeight: 'bold' }
 });
