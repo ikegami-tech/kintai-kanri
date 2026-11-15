@@ -122,17 +122,13 @@ export default function SettingsScreen() {
       const res = await fetch(`${CONFIG.apiUrl}/mail-templates?employee_id=${user.id}&type=${encodeURIComponent(tplType)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.length > 0) {
-          setTemplates(data);
-        } else {
-          // まだ作成されていない場合はWeb版と同じデフォルト表示をセット
-          setTemplates([{ id: 'default', name: 'テンプレ1', body: getDefaultTemplateBody(tplType) }]);
-        }
+        setTemplates(data); // 0件の場合は空配列がセットされる
       } else {
-        setTemplates([{ id: 'default', name: 'テンプレ1', body: getDefaultTemplateBody(tplType) }]);
+        setTemplates([]);
       }
     } catch (e) {
       console.error('テンプレート取得エラー:', e);
+      setTemplates([]);
     }
   };
 
@@ -145,8 +141,7 @@ export default function SettingsScreen() {
     try {
       setLoading(true);
       const payload = {
-        // 'default'（初期表示用の未保存データ）を編集した場合は新規(null)として保存する
-        id: (selectedTpl && selectedTpl.id && selectedTpl.id !== 'default') ? selectedTpl.id : null,
+        id: (selectedTpl && selectedTpl.id) ? selectedTpl.id : null,
         employee_id: user.id,
         type: tplType,
         name: tplNameInput.trim(),
@@ -171,7 +166,7 @@ export default function SettingsScreen() {
 
   // ★追加：テンプレートの削除処理
   const deleteTemplate = () => {
-    if (!selectedTpl || !selectedTpl.id || selectedTpl.id === 'default') {
+    if (!selectedTpl || !selectedTpl.id) {
       Alert.alert('エラー', 'このテンプレートは削除できません。');
       return;
     }
@@ -285,22 +280,6 @@ export default function SettingsScreen() {
           </View>
 
           <ScrollView style={styles.modalBody}>
-            {user && user.role === 'システム管理者' && (
-              <View style={[styles.detailCard, { marginBottom: 16 }]}>
-                <Text style={styles.inputLabel}>デフォルト送信先メールアドレス</Text>
-                <TextInput 
-                  style={styles.textInput} 
-                  value={defaultEmail} 
-                  onChangeText={setDefaultEmail} 
-                  keyboardType="email-address" 
-                  autoCapitalize="none" 
-                />
-                <TouchableOpacity onPress={saveEmailSetting} style={styles.primaryBtn}>
-                  <Text style={styles.primaryBtnText}>送信先を保存</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
             <View style={styles.tabHeaderRow}>
               <TouchableOpacity onPress={() => { setTplType('直行'); setSelectedTpl(null); }} style={[styles.typeTab, tplType === '直行' && styles.typeTabActive]}>
                 <Text style={[styles.typeTabText, tplType === '直行' && styles.typeTabTextActive]}>直行</Text>
@@ -323,8 +302,8 @@ export default function SettingsScreen() {
                   textAlignVertical="top" 
                 />
                 <View style={styles.btnRow}>
-                  {/* ★追加: 初期状態(id:'default')や新規追加時以外のみ削除ボタンを表示 */}
-                  {selectedTpl && selectedTpl.id && selectedTpl.id !== 'default' && (
+                  {/* 新規追加時以外のみ削除ボタンを表示 */}
+                  {selectedTpl && selectedTpl.id && (
                     <TouchableOpacity onPress={deleteTemplate} style={styles.deleteBtn} disabled={loading}>
                       <Text style={styles.deleteBtnText}>削除</Text>
                     </TouchableOpacity>
