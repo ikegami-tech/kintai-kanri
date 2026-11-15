@@ -681,13 +681,6 @@ export default function TimeClockScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={styles.loadingText}>{loadingMsg}</Text>
-        </View>
-      )}
-
       <Modal visible={mailModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
