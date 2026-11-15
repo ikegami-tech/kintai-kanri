@@ -405,22 +405,8 @@ export default function TimeClockScreen({ route, navigation }) {
     setActionType(type);
     setActionTimeStr(hhmm);
 
-    try {
-      const savedEmail = await AsyncStorage.getItem('@default_mail_to');
-      let targetEmail = savedEmail || 'kintai@toho-next.com';
-
-      const userStr = await AsyncStorage.getItem('@logged_in_user');
-      if (userStr) {
-        const loggedInUser = JSON.parse(userStr);
-        if (loggedInUser.email && loggedInUser.email.includes('ikegami')) {
-          targetEmail = 'ikegami@toho-next.com'; 
-        }
-      }
-
-      setMailTo(targetEmail);
-    } catch (e) {
-      setMailTo('kintai@toho-next.com');
-    }
+    // ★宛先を本番用に完全固定
+    setMailTo('kintai@toho-next.com');
 
     const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
     setMailSubject(`${type} ${lastName}`);
@@ -728,15 +714,6 @@ export default function TimeClockScreen({ route, navigation }) {
                   keyboardDismissMode="none"
                 >
                   <View>
-                      <Text style={styles.inputLabel}>宛先</Text>
-                      <TextInput
-                        style={styles.textInputSingle}
-                        value={mailTo}
-                        onChangeText={setMailTo}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-
                       <Text style={styles.inputLabel}>件名</Text>
                       <TextInput
                         style={styles.textInputSingle}
