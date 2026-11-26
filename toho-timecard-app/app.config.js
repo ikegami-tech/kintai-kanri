@@ -7,7 +7,7 @@ module.exports = {
     // ステージングの時は名前の末尾に (stg) をつける
     name: IS_STAGING ? "勤怠管理(stg)" : "勤怠管理",
     slug: "toho-timecard-app",
-    version: "1.3.3",
+    version: "1.3.4",
     icon: "./assets/icon.png",
     orientation: "portrait",
     userInterfaceStyle: "light",

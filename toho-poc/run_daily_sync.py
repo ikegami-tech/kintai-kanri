@@ -334,16 +334,19 @@ def sync_to_db(schedules, users, target_date_str=None):
 
 if __name__ == "__main__":
     write_log("=== 全社SS スケジュール自動同期バッチ開始 ===")
-    # 実行時刻が15時以降なら「翌日」のスケジュールを、それ以前なら「当日」を取得する
+    from datetime import timedelta
+
     current_hour = datetime.now().hour
+    today_str = date.today().strftime('%Y-%m-%d')
+
+    # 15時以降は「当日＋翌日」、それ以前（朝）は「当日のみ」を対象日に設定する
     if current_hour >= 15:
-        from datetime import timedelta
-        target_date = date.today() + timedelta(days=1)
-        target_date_str = target_date.strftime('%Y-%m-%d')
-        write_log(f"午後（{current_hour}時台）の実行のため、翌日（{target_date_str}）のスケジュールを取得します。")
+        tomorrow_str = (date.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+        target_dates = [today_str, tomorrow_str]
+        write_log(f"午後（{current_hour}時台）の実行のため、当日（{today_str}）および 翌日（{tomorrow_str}）のスケジュールを取得します。")
     else:
-        target_date_str = date.today().strftime('%Y-%m-%d')
-        write_log(f"午前（{current_hour}時台）の実行のため、当日（{target_date_str}）のスケジュールを取得します。")
+        target_dates = [today_str]
+        write_log(f"午前（{current_hour}時台）の実行のため、当日（{today_str}）のスケジュールのみを取得します。")
 
     has_error = False
 
@@ -355,7 +358,8 @@ if __name__ == "__main__":
             try:
                 schedules, users = fetch_toho_data(shop)
                 write_log(f"取得データ: スケジュール {len(schedules)} 件 / ユーザー {len(users)} 件")
-                sync_to_db(schedules, users, target_date_str=target_date_str) # ここで渡す
+                for target_date_str in target_dates:
+                    sync_to_db(schedules, users, target_date_str=target_date_str)
                 shop_success = True
                 break
             except Exception as e:

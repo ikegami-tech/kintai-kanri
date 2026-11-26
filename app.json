@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "0dc9ce2d-1120-4dfb-a81c-af91b79ce58c"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.shimofuri.kintaikanri",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

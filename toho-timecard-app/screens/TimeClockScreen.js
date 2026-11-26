@@ -400,7 +400,14 @@ export default function TimeClockScreen({ route, navigation }) {
 
   const handleDirectClock = async (type) => {
     const now = new Date();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    let hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    // ★修正: 直行は9:00固定、直帰は18:00固定に変更
+    if (type === '直行') {
+      hhmm = '09:00';
+    } else if (type === '直帰') {
+      hhmm = '18:00';
+    }
 
     setActionType(type);
     setActionTimeStr(hhmm);

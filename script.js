@@ -570,15 +570,17 @@ async function openMapModal(empName, actionStr, addressStr, emailContent = '') {
     let targetText = emailContent || '';
     targetText = targetText.replace(/\[(?:IN|OUT)_LOC:[^\]]*\]/gi, '').trim();
 
-    if (targetText.includes('直行') && targetText.includes('直帰')) {
-      const parts = targetText.split('直帰');
+    targetText = targetText.replace(/管理者修正|休日出勤|【翌日】/g, '').trim();
+
+    if (targetText.includes('直行\n') && targetText.includes('直帰\n')) {
+      const parts = targetText.split(/(?:^|\n)直帰\n/);
       if (typeStr === '直行') {
-        targetText = parts[0].replace(/直行/g, '').replace(/管理者修正/g, '').replace(/休日出勤/g, '').trim();
+        targetText = parts[0].replace(/^直行\s*/, '').trim();
       } else {
-        targetText = parts[1] ? parts[1].replace(/直帰/g, '').replace(/管理者修正/g, '').replace(/休日出勤/g, '').trim() : '';
+        targetText = parts[1] ? parts[1].trim() : '';
       }
     } else {
-      targetText = targetText.replace(/直行/g, '').replace(/直帰/g, '').replace(/管理者修正/g, '').replace(/休日出勤/g, '').trim();
+      targetText = targetText.replace(/^(?:直行|直帰)\s*/, '').trim();
     }
 
     if (emailText) emailText.textContent = targetText || '※メール内容が登録されていません。';
@@ -3561,10 +3563,23 @@ function closeBrowserWindow() {
 }
 
 // ==========================================
-// 休日設定機能
+// 休日設定機能 (DB同期対応)
 // ==========================================
 let currentHolidayDate = new Date();
-let holidaySettingsMap = JSON.parse(localStorage.getItem('holidaySettingsMap')) || {};
+let holidaySettingsMap = {};
+
+async function loadHolidaySettingsFromDB() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/holidays?shop_id=${currentSelectedShopId}`, { cache: 'no-store' });
+    if (res.ok) {
+      const dates = await res.json();
+      holidaySettingsMap = {};
+      dates.forEach(d => { holidaySettingsMap[d] = true; });
+    }
+  } catch (e) {
+    console.error('休日設定の取得エラー:', e);
+  }
+}
 
 function changeHolidayMonth(offset) {
   if (offset === 0) {
@@ -3575,7 +3590,8 @@ function changeHolidayMonth(offset) {
   renderHolidayCalendar();
 }
 
-function renderHolidayCalendar() {
+async function renderHolidayCalendar() {
+  await loadHolidaySettingsFromDB();
   const year = currentHolidayDate.getFullYear();
   const month = currentHolidayDate.getMonth() + 1;
   document.getElementById('holiday-month-title').textContent = `${year}年 ${String(month).padStart(2, '0')}月度`;
@@ -3617,17 +3633,26 @@ function renderHolidayCalendar() {
   document.getElementById('holiday-tbody').innerHTML = html;
 }
 
-function toggleHoliday(dateStr, cellElement) {
-  const isCurrentlyHoliday = holidaySettingsMap[dateStr] || false;
-  holidaySettingsMap[dateStr] = !isCurrentlyHoliday;
-  
-  if (holidaySettingsMap[dateStr]) {
-    cellElement.classList.add('is-holiday');
-  } else {
-    cellElement.classList.remove('is-holiday');
+async function toggleHoliday(dateStr, cellElement) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/holidays/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shop_id: currentSelectedShopId, holiday_date: dateStr })
+    });
+    if (!res.ok) throw new Error('保存エラー');
+    const data = await res.json();
+
+    holidaySettingsMap[dateStr] = data.is_holiday;
+    if (data.is_holiday) {
+      cellElement.classList.add('is-holiday');
+    } else {
+      cellElement.classList.remove('is-holiday');
+    }
+  } catch (e) {
+    console.error('休日設定の保存エラー:', e);
+    alert('休日設定の保存に失敗しました。');
   }
-  
-  localStorage.setItem('holidaySettingsMap', JSON.stringify(holidaySettingsMap));
 }
 
 // ==========================================
