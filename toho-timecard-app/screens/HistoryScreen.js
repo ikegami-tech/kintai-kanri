@@ -7,45 +7,76 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants/theme';
-import { CONFIG } from '../constants/config'; // ★追加
+import { CONFIG } from '../constants/config';
 
-export default function HistoryScreen({ route, navigation }) {
-  const empId = route.params?.empId;
-  const empName = route.params?.empName || '従業員未選択';
+const SmileIcon = () => {
+  const color = COLORS.primary || '#0073ea';
+  return (
+    <View style={{ width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: color, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: 14, marginBottom: 3, alignItems: 'center' }}>
+        <View style={{ width: 5, height: 3, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderTopLeftRadius: 3, borderTopRightRadius: 3, borderColor: color }} />
+        <View style={{ width: 5, height: 3, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderTopLeftRadius: 3, borderTopRightRadius: 3, borderColor: color }} />
+      </View>
+      <View style={{ width: 10, height: 5, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomLeftRadius: 5, borderBottomRightRadius: 5, borderColor: color }} />
+    </View>
+  );
+};
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [attendances, setAttendances] = useState([]);
-  const [loading, setLoading] = useState(false);
+export default function HistoryScreen() {
+  const isFocused = useIsFocused();
+  const [targetDate, setTargetDate] = useState(new Date());
+  const [dailyRecords, setDailyRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
-  // 対象年月のデータ取得
-  const fetchMonthlyHistory = async (targetDate) => {
-    if (!empId) return;
+  const formatDateKey = (d) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
-    const year = targetDate.getFullYear();
-    const month = targetDate.getMonth() + 1;
-
+  const fetchDailyHistory = async (dateObj) => {
     try {
-      setLoading(true);
+      const token = await AsyncStorage.getItem('@auth_token');
+      const userStr = await AsyncStorage.getItem('@logged_in_user');
+      let shopId = 'shop_01';
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        shopId = user.shop_id || 'shop_01';
+      }
+
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dateKey = formatDateKey(dateObj);
+
       const res = await fetch(
-        `${CONFIG.apiUrl}/attendances/monthly?year=${year}&month=${month}`,
-        { cache: 'no-store' }
+        `${CONFIG.apiUrl}/attendances/monthly?year=${year}&month=${month}&shop_id=${shopId}`,
+        {
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       if (res.ok) {
         const data = await res.json();
-        // 該当従業員のデータのみ抽出して日付順にソート
-        const empData = data
-          .filter((item) => Number(item.employee_id) === Number(empId))
-          .sort((a, b) => b.work_date.localeCompare(a.work_date));
+        // 対象日の出勤打刻があるレコードのみ抽出し、出勤時間が早い順に並び替え
+        const filtered = (Array.isArray(data) ? data : [])
+          .filter((item) => item.work_date === dateKey && item.clock_in)
+          .sort((a, b) => (a.clock_in || '').localeCompare(b.clock_in || ''));
 
-        setAttendances(empData);
+        setDailyRecords(filtered);
       }
     } catch (error) {
-      console.error('履歴取得エラー:', error);
+      console.error('出勤履歴取得エラー:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -53,360 +84,215 @@ export default function HistoryScreen({ route, navigation }) {
   };
 
   useEffect(() => {
-    fetchMonthlyHistory(currentDate);
-  }, [currentDate, empId]);
+    if (isFocused) {
+      setLoading(true);
+      fetchDailyHistory(targetDate);
+    }
+  }, [isFocused, targetDate]);
 
-  // 月切り替え処理
-  const changeMonth = (offset) => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
-    setCurrentDate(newDate);
+  const changeDate = (offset) => {
+    const next = new Date(targetDate);
+    next.setDate(next.getDate() + offset);
+    setTargetDate(next);
   };
 
-  // 引っ張り更新（Pull to Refresh）
   const onRefresh = () => {
     setRefreshing(true);
-    fetchMonthlyHistory(currentDate);
+    fetchDailyHistory(targetDate);
   };
 
-  // 労働時間 & 出勤日数の自動集計計算
-  const calculateSummary = () => {
-    let daysCount = 0;
-    let totalWorkMinutes = 0;
-
-    attendances.forEach((att) => {
-      if (att.clock_in && att.clock_out) {
-        daysCount++;
-        const [inH, inM] = att.clock_in.split(':').map(Number);
-        const [outH, outM] = att.clock_out.split(':').map(Number);
-
-        let inMins = inH * 60 + inM;
-        if (inMins < 540) inMins = 540; // 9:00以前は9:00に補正
-
-        let outMins = outH * 60 + outM;
-        if (outMins < inMins && outH < 12) outMins += 24 * 60;
-
-        let stayMins = Math.max(0, outMins - inMins);
-        let workMins = stayMins;
-        if (stayMins > 360) {
-          workMins = Math.max(360, stayMins - 60); // 1時間休憩引き
-        }
-        totalWorkMinutes += workMins;
-      } else if (att.clock_in) {
-        daysCount++;
-      }
-    });
-
-    const totalHours = (Math.ceil(totalWorkMinutes / 6) / 10).toFixed(1);
-    return { daysCount, totalHours };
+  const formatOutTime = (clockOut, memo) => {
+    if (!clockOut) return '出勤中';
+    let [h, m] = clockOut.substring(0, 5).split(':').map(Number);
+    if (memo && memo.includes('【翌日】') && h < 24) h += 24;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
-  const summary = calculateSummary();
-
-  // カード項目のレンダリング
-  const renderItem = ({ item }) => {
-    const dateObj = new Date(item.work_date);
-    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-    const dayOfWeek = dateObj.getDay();
-    const dayStr = dayNames[dayOfWeek];
-
-    const isSun = dayOfWeek === 0;
-    const isSat = dayOfWeek === 6;
-
+  const renderItem = ({ item, index }) => {
+    const numStr = String(index + 1).padStart(2, '0');
     const clockInStr = item.clock_in ? item.clock_in.substring(0, 5) : '--:--';
-    const clockOutStr = item.clock_out ? item.clock_out.substring(0, 5) : '--:--';
-
-    const isDirectIn = item.memo && item.memo.includes('直行');
-    const isDirectOut = item.memo && item.memo.includes('直帰');
-
-    // システムタグなどを除いた純粋なメモ本文
-    const cleanMemo = (item.memo || '')
-      .replace(/\[(?:IN\vert{}OUT)_LOC:[^\]]*\]/gi, '')
-      .replace(/管理者修正|休日出勤|直行|直帰/g, '')
-      .trim();
 
     return (
-      <View style={styles.historyCard}>
-        <View style={styles.cardHeader}>
-          <View style={styles.dateBox}>
-            <Text style={[styles.dateText, isSun && styles.sunText, isSat && styles.satText]}>
-              {item.work_date.replace(/-/g, '/')} ({dayStr})
-            </Text>
-          </View>
-          <View style={styles.badgeGroup}>
-            {isDirectIn && <View style={styles.directBadge}><Text style={styles.badgeText}>📍直行</Text></View>}
-            {isDirectOut && <View style={styles.directBadge}><Text style={styles.badgeText}>📍直帰</Text></View>}
-          </View>
+      <TouchableOpacity
+        style={styles.rowItem}
+        activeOpacity={0.7}
+        onPress={() => setSelectedRecord(item)}
+      >
+        <Text style={styles.rowNum}>{numStr}</Text>
+        <View style={styles.iconBox}>
+          <SmileIcon />
         </View>
-
-        <View style={styles.timeRow}>
-          <View style={styles.timeBlock}>
-            <Text style={styles.timeLabel}>出勤</Text>
-            <Text style={styles.timeVal}>{clockInStr}</Text>
-          </View>
-          <Text style={styles.timeDivider}>～</Text>
-          <View style={styles.timeBlock}>
-            <Text style={styles.timeLabel}>退勤</Text>
-            <Text style={styles.timeVal}>{clockOutStr}</Text>
-          </View>
-        </View>
-
-        {cleanMemo !== '' && (
-          <View style={styles.memoBox}>
-            <Text style={styles.memoText}>📝 {cleanMemo}</Text>
-          </View>
-        )}
-      </View>
+        <Text style={styles.empName} numberOfLines={1}>
+          {item.employee_name || '従業員'}
+        </Text>
+        <Text style={styles.timeText}>{clockInStr}</Text>
+        <Text style={styles.chevron}>＞</Text>
+      </TouchableOpacity>
     );
   };
 
+  const headerDateLabel = `${targetDate.getMonth() + 1}/${targetDate.getDate()} の出勤`;
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* 画面ヘッダー */}
-      <View style={styles.headerBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnBox}>
-          <Text style={styles.backBtn}>＜ 戻る</Text>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      {/* 日付切り替えバー */}
+      <View style={styles.dateBar}>
+        <TouchableOpacity style={styles.dateArrowBtn} onPress={() => changeDate(-1)}>
+          <Text style={styles.dateArrowText}>＜</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{empName} 様の履歴</Text>
-      </View>
-
-      {/* 対象月切り替えヘッダー */}
-      <View style={styles.monthSelector}>
-        <TouchableOpacity style={styles.monthBtn} onPress={() => changeMonth(-1)}>
-          <Text style={styles.monthBtnText}>＜ 前月</Text>
-        </TouchableOpacity>
-        <Text style={styles.monthTitle}>
-          {currentDate.getFullYear()}年 {String(currentDate.getMonth() + 1).padStart(2, '0')}月
-        </Text>
-        <TouchableOpacity style={styles.monthBtn} onPress={() => changeMonth(1)}>
-          <Text style={styles.monthBtnText}>次月 ＞</Text>
+        <Text style={styles.dateBarTitle}>{headerDateLabel}</Text>
+        <TouchableOpacity style={styles.dateArrowBtn} onPress={() => changeDate(1)}>
+          <Text style={styles.dateArrowText}>＞</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 月間集計サマリーカード */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>出勤日数</Text>
-          <Text style={styles.summaryValue}>{summary.daysCount} <Text style={styles.summaryUnit}>日</Text></Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>合計勤務時間</Text>
-          <Text style={styles.summaryValue}>{summary.totalHours} <Text style={styles.summaryUnit}>時間</Text></Text>
-        </View>
-      </View>
-
-      {/* 打刻履歴リスト */}
+      {/* 出勤者リスト */}
       {loading && !refreshing ? (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>打刻履歴を読み込み中...</Text>
+          <ActivityIndicator size="large" color={COLORS.primary || '#0073ea'} />
         </View>
       ) : (
         <FlatList
-          data={attendances}
+          data={dailyRecords}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLORS.primary || '#0073ea']}
+            />
           }
           ListEmptyComponent={
             <View style={styles.centerBox}>
-              <Text style={styles.emptyText}>この月の打刻データはありません</Text>
+              <Text style={styles.emptyText}>この日の出勤記録はありません</Text>
             </View>
           }
         />
       )}
+
+      {/* 詳細確認モーダル（タップ時に出勤〜退勤時間を表示） */}
+      <Modal
+        visible={!!selectedRecord}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedRecord(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setSelectedRecord(null)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalCard}>
+                {selectedRecord && (
+                  <>
+                    <Text style={styles.modalName}>{selectedRecord.employee_name}</Text>
+                    <Text style={styles.modalDate}>
+                      {selectedRecord.work_date.replace(/-/g, '/')} の勤務実績
+                    </Text>
+
+                    <View style={styles.modalTimeRow}>
+                      <View style={styles.modalTimeBox}>
+                        <Text style={styles.modalTimeLabel}>出勤</Text>
+                        <Text style={styles.modalTimeVal}>
+                          {selectedRecord.clock_in ? selectedRecord.clock_in.substring(0, 5) : '--:--'}
+                        </Text>
+                      </View>
+                      <Text style={styles.modalTimeDivider}>〜</Text>
+                      <View style={styles.modalTimeBox}>
+                        <Text style={styles.modalTimeLabel}>退勤</Text>
+                        <Text
+                          style={[
+                            styles.modalTimeVal,
+                            !selectedRecord.clock_out && { color: COLORS.primary || '#0073ea' },
+                          ]}
+                        >
+                          {formatOutTime(selectedRecord.clock_out, selectedRecord.memo)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.modalCloseBtn}
+                      onPress={() => setSelectedRecord(null)}
+                    >
+                      <Text style={styles.modalCloseText}>閉じる</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bgMain || '#f4f7f9',
-  },
-  headerBar: {
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  dateBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor: COLORS.primaryDark || '#005bb5',
-  },
-  backBtnBox: {
-    paddingVertical: 4,
-    paddingRight: 8,
-  },
-  backBtn: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  monthSelector: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e6ed',
-  },
-  monthBtn: {
-    paddingVertical: 6,
+    backgroundColor: COLORS.primary || '#0073ea',
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#f0f4f8',
   },
-  monthBtnText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: COLORS.primary || '#0073ea',
-  },
-  monthTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  summaryCard: {
+  dateArrowBtn: { paddingHorizontal: 14, paddingVertical: 4 },
+  dateArrowText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
+  dateBarTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
+  rowItem: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 10,
+    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: '#e0e6ed',
-  },
-  summaryLabel: {
-    fontSize: 11,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary || '#0073ea',
-  },
-  summaryUnit: {
-    fontSize: 12,
-    color: '#333333',
-    fontWeight: 'normal',
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  historyCard: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
     backgroundColor: '#ffffff',
-    borderRadius: 10,
-    padding: 14,
-    marginTop: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  rowNum: { width: 28, fontSize: 15, color: '#334155', fontWeight: '500' },
+  iconBox: { marginRight: 12 },
+  empName: { flex: 1, fontSize: 16, color: '#1e293b', fontWeight: '500' },
+  timeText: { fontSize: 16, color: '#334155', marginRight: 10, fontVariant: ['tabular-nums'] },
+  chevron: { fontSize: 14, color: '#cbd5e1', fontWeight: 'bold' },
+  centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+  emptyText: { fontSize: 14, color: '#94a3b8' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    padding: 24,
   },
-  dateBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  sunText: { color: '#e74c3c' },
-  satText: { color: '#3498db' },
-  badgeGroup: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  directBadge: {
-    backgroundColor: '#e8f4fd',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+  modalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#ffffff',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#b3d8f8',
+    padding: 20,
+    alignItems: 'center',
   },
-  badgeText: {
-    fontSize: 11,
-    color: COLORS.primary || '#0073ea',
-    fontWeight: 'bold',
-  },
-  timeRow: {
+  modalName: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 4 },
+  modalDate: { fontSize: 13, color: '#64748b', marginBottom: 18 },
+  modalTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
+    width: '100%',
     backgroundColor: '#f8fafc',
-    paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
+    paddingVertical: 14,
+    marginBottom: 20,
   },
-  timeBlock: {
+  modalTimeBox: { alignItems: 'center', minWidth: 90 },
+  modalTimeLabel: { fontSize: 12, color: '#64748b', marginBottom: 4 },
+  modalTimeVal: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
+  modalTimeDivider: { fontSize: 18, color: '#94a3b8' },
+  modalCloseBtn: {
+    width: '100%',
+    backgroundColor: COLORS.primary || '#0073ea',
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  timeLabel: {
-    fontSize: 10,
-    color: '#888888',
-    marginBottom: 2,
-  },
-  timeVal: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  timeDivider: {
-    fontSize: 16,
-    color: '#aaaaaa',
-  },
-  memoBox: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f4f8',
-  },
-  memoText: {
-    fontSize: 12,
-    color: '#555555',
-  },
-  centerBox: {
-    padding: 30,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666666',
-    fontSize: 13,
-  },
-  emptyText: {
-    color: '#999999',
-    fontSize: 14,
-  },
+  modalCloseText: { color: '#ffffff', fontSize: 15, fontWeight: 'bold' },
 });

@@ -14,6 +14,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
   PanResponder,
+  AppState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -141,6 +142,22 @@ export default function EmployeeSelectScreen({ navigation }) {
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
   }, []);
+
+  // ★追加: バックグラウンドから復帰した時に待機画面を解除し、最新の打刻状況を再読み込みする
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        setIsIdle(false);
+        resetIdleTimer();
+        fetchTodayAttendances(currentShopId);
+      } else {
+        if (idleTimer.current) clearTimeout(idleTimer.current);
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [currentShopId]);
 
   const fetchEmployees = async (shopId) => {
     try {

@@ -1551,6 +1551,7 @@ td:hover .memo-icon::before {
   border-radius: 6px;
   width: 550px;
   max-width: 90%;
+  max-height: 90vh;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   display: flex;
   flex-direction: column;
@@ -1583,6 +1584,8 @@ td:hover .memo-icon::before {
 
 .record-modal-content {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .record-form-table {
