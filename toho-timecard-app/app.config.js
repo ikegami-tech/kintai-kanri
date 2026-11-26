@@ -7,7 +7,7 @@ module.exports = {
     // ステージングの時は名前の末尾に (stg) をつける
     name: IS_STAGING ? "勤怠管理(stg)" : "勤怠管理",
     slug: "toho-timecard-app",
-    version: "1.3.4",
+    version: "1.3.6",
     icon: "./assets/icon.png",
     orientation: "portrait",
     userInterfaceStyle: "light",
@@ -15,9 +15,10 @@ module.exports = {
       supportsTablet: true,
       // ステージングの時はIDの末尾に .staging をつける
       bundleIdentifier: IS_STAGING ? "com.tohonext.timecard.staging" : "com.tohonext.timecard",
-      buildNumber: "18",
+      buildNumber: "1",
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
+        ITSAppUsesNonExemptEncryption: false,
+        NSLocationWhenInUseUsageDescription: "出退勤の打刻時に、不正打刻を防止するため現在の位置情報を記録します。"
       }
     },
     android: {
