@@ -54,6 +54,8 @@ export default function TimeClockScreen({ route, navigation }) {
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
 
   const [currentCoords, setCurrentCoords] = useState(null);
+  const [noticeMenuOpen, setNoticeMenuOpen] = useState(false);
+  const NOTICE_TYPES = ['遅刻', '遅延', '欠勤', '早退'];
   const [isModalScrolling, setIsModalScrolling] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -263,12 +265,11 @@ export default function TimeClockScreen({ route, navigation }) {
     }
 
     if (type === '直行') {
-      if (timeText) newBody = newBody.replace(/(業務開始時間\s*[:：])([^\n]*)/g, `$1 ${timeText}`);
+      newBody = newBody.replace(/(業務開始時間\s*[:：])([^\n]*)/g, '$1 09:00');
       if (locationText) newBody = newBody.replace(/(開始場所\s*[:：])([^\n]*)/g, `$1 ${locationText}`);
       if (contentText) newBody = newBody.replace(/(業務内容\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
     } else if (type === '直帰') {
-      const endTimeText = schedule.end_time || schedule.start_time || '';
-      if (endTimeText) newBody = newBody.replace(/(業務終了時間\s*[:：])([^\n]*)/g, `$1 ${endTimeText}`);
+      newBody = newBody.replace(/(業務終了時間\s*[:：])([^\n]*)/g, '$1 18:00');
       if (locationText) newBody = newBody.replace(/(終了場所\s*[:：])([^\n]*)/g, `$1 ${locationText}`);
       if (contentText) newBody = newBody.replace(/(業務相手\s*[:：])([^\n]*)/g, `$1 ${contentText}`);
     }
@@ -281,11 +282,26 @@ export default function TimeClockScreen({ route, navigation }) {
     setMailBody((prev) => applyScheduleToMailBody(sch, prev, actionType));
   };
 
-  const loadTemplatesAndSetBody = async (type, hhmm) => {
+  const getDefaultBodyByType = (type, hhmm) => {
     const footer = '\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。';
-    const defaultTemplateBody = type === '直行'
-      ? `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：${hhmm}\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。${footer}`
-      : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：${hhmm}\nその他：\n\n以上にて直帰します。${footer}`;
+    if (type === '直行') {
+      return `おはようございます。\n\n業務開始時間：09:00\n開始場所：\n業務内容：\n打刻：${hhmm}\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。${footer}`;
+    } else if (type === '直帰') {
+      return `お疲れ様です。\n\n業務終了時間：18:00\n終了場所：\n業務相手：\n打刻：${hhmm}\nその他：\n\n以上にて直帰します。${footer}`;
+    } else if (type === '遅刻') {
+      return `おはようございます。\n\n体調不良のため、少し遅れての出社となります。\n（到着予定：〇〇時頃）\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    } else if (type === '遅延') {
+      return `おはようございます。\n\n〇〇線遅延の影響で、到着が9時を過ぎる可能性があります。\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    } else if (type === '欠勤') {
+      return `おはようございます。\n\n体調不良のため、本日お休みをいただきます。\n（課長報告済み）\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    } else if (type === '早退') {
+      return `お疲れ様です。\n\n体調不良のため、早退させていただきます。\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    }
+    return '';
+  };
+
+  const loadTemplatesAndSetBody = async (type, hhmm) => {
+    const defaultTemplateBody = getDefaultBodyByType(type, hhmm);
 
     let loadedTemplates = [];
     try {
@@ -312,6 +328,11 @@ export default function TimeClockScreen({ route, navigation }) {
     } else {
       bodyText = defaultTemplateBody;
     }
+    if (type === '直行') {
+      bodyText = bodyText.replace(/(業務開始時間\s*[:：])([^\n]*)/g, '$1 09:00');
+    } else if (type === '直帰') {
+      bodyText = bodyText.replace(/(業務終了時間\s*[:：])([^\n]*)/g, '$1 18:00');
+    }
     setMailBody(bodyText);
   };
 
@@ -320,6 +341,11 @@ export default function TimeClockScreen({ route, navigation }) {
     let bodyText = tpl.body || '';
     if (actionTimeStr) {
       bodyText = bodyText.replace(/(打刻\s*[:：])([^\n]*)/g, `$1 ${actionTimeStr}`);
+    }
+    if (actionType === '直行') {
+      bodyText = bodyText.replace(/(業務開始時間\s*[:：])([^\n]*)/g, '$1 09:00');
+    } else if (actionType === '直帰') {
+      bodyText = bodyText.replace(/(業務終了時間\s*[:：])([^\n]*)/g, '$1 18:00');
     }
     setMailBody(bodyText);
   };
@@ -388,6 +414,56 @@ export default function TimeClockScreen({ route, navigation }) {
     }
   };
 
+  const handleNoticeMail = async (type) => {
+    setNoticeMenuOpen(false);
+    const now = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    setActionType(type);
+    setActionTimeStr(hhmm);
+    setMailTo('kintai@toho-next.com');
+
+    const lastName = empName ? empName.split(/[\s ]+/)[0] : '';
+    setMailSubject(`${type} ${lastName}`);
+
+    setDailySchedules([]);
+    setSelectedScheduleId(null);
+    setScheduleDropdownOpen(false);
+
+    await loadTemplatesAndSetBody(type, hhmm);
+    setModalMode('mail');
+    setMailModalVisible(true);
+  };
+
+  const submitNoticeMail = async () => {
+    if (!mailBody.trim()) {
+      Alert.alert('エラー', 'メール本文を入力してください。');
+      return;
+    }
+    try {
+      setLoadingMsg('メールを送信中...');
+      setLoading(true);
+      const res = await fetch(`${CONFIG.apiUrl}/send-mail`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mail_to: mailTo,
+          mail_subject: mailSubject,
+          mail_body: mailBody,
+          mail_from_name: empName,
+        }),
+      });
+      if (!res.ok) throw new Error('送信エラー');
+      setMailModalVisible(false);
+      Alert.alert('送信完了', `${actionType}連絡メールを送信しました。`);
+    } catch (e) {
+      console.error('連絡メール送信エラー:', e);
+      Alert.alert('エラー', 'メールの送信に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSimpleClock = async (type) => {
     Alert.alert('打刻確認', `${type}します。よろしいですか？`, [
       { text: 'キャンセル', style: 'cancel' },
@@ -400,14 +476,7 @@ export default function TimeClockScreen({ route, navigation }) {
 
   const handleDirectClock = async (type) => {
     const now = new Date();
-    let hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    // ★修正: 直行は9:00固定、直帰は18:00固定に変更
-    if (type === '直行') {
-      hhmm = '09:00';
-    } else if (type === '直帰') {
-      hhmm = '18:00';
-    }
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     setActionType(type);
     setActionTimeStr(hhmm);
@@ -637,6 +706,34 @@ export default function TimeClockScreen({ route, navigation }) {
         </View>
       </View>
 
+      {/* 遅刻・遅延・欠勤・早退 連絡メールボタン＆プルダウン */}
+      <View style={styles.noticeMenuWrapper}>
+        <TouchableOpacity
+          style={styles.noticeIconBtn}
+          onPress={() => setNoticeMenuOpen(!noticeMenuOpen)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.noticeIconText}>✉️ 連絡メール {noticeMenuOpen ? '▲' : '▼'}</Text>
+        </TouchableOpacity>
+
+        {noticeMenuOpen && (
+          <View style={styles.noticeDropdown}>
+            {NOTICE_TYPES.map((t, idx) => (
+              <TouchableOpacity
+                key={t}
+                style={[
+                  styles.noticeDropdownItem,
+                  idx === NOTICE_TYPES.length - 1 && { borderBottomWidth: 0 },
+                ]}
+                onPress={() => handleNoticeMail(t)}
+              >
+                <Text style={styles.noticeDropdownText}>{t}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+
       <View style={styles.clockContainer}>
         <Text style={styles.clockDateStr}>
           {time.getFullYear()}年{time.getMonth() + 1}月{time.getDate()}日
@@ -819,9 +916,15 @@ export default function TimeClockScreen({ route, navigation }) {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.submitBtn}
-                      onPress={() => submitAttendance(actionType, mailBody)}
+                      onPress={() =>
+                        NOTICE_TYPES.includes(actionType)
+                          ? submitNoticeMail()
+                          : submitAttendance(actionType, mailBody)
+                      }
                     >
-                      <Text style={styles.submitBtnText}>送信＆打刻</Text>
+                      <Text style={styles.submitBtnText}>
+                        {NOTICE_TYPES.includes(actionType) ? 'メール送信' : '送信＆打刻'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -1196,5 +1299,50 @@ const styles = StyleSheet.create({
   dropdownItemTextActive: {
     color: COLORS.primary || '#0073ea',
     fontWeight: 'bold',
+  },
+  noticeMenuWrapper: {
+    position: 'relative',
+    zIndex: 50,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    alignItems: 'flex-start',
+  },
+  noticeIconBtn: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    borderRadius: 20,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  noticeIconText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  noticeDropdown: {
+    position: 'absolute',
+    top: 48,
+    left: 16,
+    width: 150,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    overflow: 'hidden',
+  },
+  noticeDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  noticeDropdownText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1e293b',
   },
 });

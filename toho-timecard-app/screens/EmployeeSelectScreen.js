@@ -143,13 +143,26 @@ export default function EmployeeSelectScreen({ navigation }) {
     };
   }, []);
 
+  // ★追加: 従業員一覧画面がアクティブな時だけ5分タイマーを動かし、別画面へ移動したら停止する
+  useEffect(() => {
+    if (isFocused) {
+      setIsIdle(false);
+      resetIdleTimer();
+    } else {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      setIsIdle(false);
+    }
+  }, [isFocused]);
+
   // ★追加: バックグラウンドから復帰した時に待機画面を解除し、最新の打刻状況を再読み込みする
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         setIsIdle(false);
-        resetIdleTimer();
-        fetchTodayAttendances(currentShopId);
+        if (isFocused) {
+          resetIdleTimer();
+          fetchTodayAttendances(currentShopId);
+        }
       } else {
         if (idleTimer.current) clearTimeout(idleTimer.current);
       }
@@ -157,7 +170,7 @@ export default function EmployeeSelectScreen({ navigation }) {
     return () => {
       subscription.remove();
     };
-  }, [currentShopId]);
+  }, [currentShopId, isFocused]);
 
   const fetchEmployees = async (shopId) => {
     try {

@@ -110,9 +110,20 @@ export default function SettingsScreen() {
 
   const getDefaultTemplateBody = (type) => {
     const footer = '\n\n--------------------\n※このメールは勤怠管理システムからの自動送信です。';
-    return type === '直行'
-      ? `おはようございます。\n\n業務開始時間：\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。${footer}`
-      : `お疲れ様です。\n\n業務終了時間：\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。${footer}`;
+    if (type === '直行') {
+      return `おはようございます。\n\n業務開始時間：09:00\n開始場所：\n業務内容：\n打刻：\nその他：\n\n以上にて直行します。\n本日もよろしくお願いします。${footer}`;
+    } else if (type === '直帰') {
+      return `お疲れ様です。\n\n業務終了時間：18:00\n終了場所：\n業務相手：\n打刻：\nその他：\n\n以上にて直帰します。${footer}`;
+    } else if (type === '遅刻') {
+      return `おはようございます。\n\n体調不良のため、少し遅れての出社となります。\n（到着予定：〇〇時頃）\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    } else if (type === '遅延') {
+      return `おはようございます。\n\n〇〇線遅延の影響で、到着が9時を過ぎる可能性があります。\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    } else if (type === '欠勤') {
+      return `おはようございます。\n\n体調不良のため、本日お休みをいただきます。\n（課長報告済み）\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    } else if (type === '早退') {
+      return `お疲れ様です。\n\n体調不良のため、早退させていただきます。\n\nご迷惑をおかけしますが、よろしくお願いいたします。${footer}`;
+    }
+    return '';
   };
 
   // APIからログイン中のユーザー専用のテンプレートを取得
@@ -215,8 +226,21 @@ export default function SettingsScreen() {
         {/* メール設定 */}
         <Text style={styles.sectionHeader}>メール設定</Text>
         <View style={styles.listGroup}>
-          <TouchableOpacity onPress={() => setActiveModal('mailTpl')} style={styles.listItem}>
+          <TouchableOpacity
+            onPress={() => { setTplType('直行'); setSelectedTpl(null); setActiveModal('mailTpl'); }}
+            style={styles.listItem}
+          >
             <Text style={styles.listTitle}>直行・直帰テンプレート設定</Text>
+            <View style={styles.listRight}>
+              <Text style={styles.listValue}>編集・追加</Text>
+              <Text style={styles.chevron}>＞</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { setTplType('遅刻'); setSelectedTpl(null); setActiveModal('noticeTpl'); }}
+            style={styles.listItem}
+          >
+            <Text style={styles.listTitle}>遅刻・遅延・欠勤・早退テンプレート設定</Text>
             <View style={styles.listRight}>
               <Text style={styles.listValue}>編集・追加</Text>
               <Text style={styles.chevron}>＞</Text>
@@ -269,24 +293,29 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {/* メールテンプレート設定モーダル */}
-      <Modal visible={activeModal === 'mailTpl'} animationType="slide" transparent={false}>
+      <Modal visible={activeModal === 'mailTpl' || activeModal === 'noticeTpl'} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => { setActiveModal(null); setSelectedTpl(null); }} style={styles.backBtnBox}>
               <Text style={styles.backBtn}>＜ 戻る</Text>
             </TouchableOpacity>
-            <Text style={styles.modalHeaderTitle}>メールテンプレート設定</Text>
+            <Text style={styles.modalHeaderTitle}>
+              {activeModal === 'noticeTpl' ? '遅刻・遅延・欠勤・早退テンプレ' : '直行・直帰テンプレート設定'}
+            </Text>
             <View style={styles.backBtnBox}/>
           </View>
 
           <ScrollView style={styles.modalBody}>
             <View style={styles.tabHeaderRow}>
-              <TouchableOpacity onPress={() => { setTplType('直行'); setSelectedTpl(null); }} style={[styles.typeTab, tplType === '直行' && styles.typeTabActive]}>
-                <Text style={[styles.typeTabText, tplType === '直行' && styles.typeTabTextActive]}>直行</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setTplType('直帰'); setSelectedTpl(null); }} style={[styles.typeTab, tplType === '直帰' && styles.typeTabActive]}>
-                <Text style={[styles.typeTabText, tplType === '直帰' && styles.typeTabTextActive]}>直帰</Text>
-              </TouchableOpacity>
+              {(activeModal === 'noticeTpl' ? ['遅刻', '遅延', '欠勤', '早退'] : ['直行', '直帰']).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => { setTplType(t); setSelectedTpl(null); }}
+                  style={[styles.typeTab, tplType === t && styles.typeTabActive]}
+                >
+                  <Text style={[styles.typeTabText, tplType === t && styles.typeTabTextActive]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             {selectedTpl ? (
