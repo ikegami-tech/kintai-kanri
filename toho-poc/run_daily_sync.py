@@ -259,6 +259,9 @@ def sync_to_db(schedules, users, target_date_str=None):
                 if last_name_counter[l_name] == 1:
                     unique_last_name_dict[l_name] = emp['id']
 
+            # ★追加: 対象日の既存スケジュールを一度リセット（複数件登録＆削除済み予定の掃除）
+            cursor.execute("DELETE FROM DailySchedules WHERE target_date = %s", (target_date_str,))
+
             success_count = 0
             skipped_names = []
 
@@ -314,12 +317,6 @@ def sync_to_db(schedules, users, target_date_str=None):
                     sql = """
                         INSERT INTO DailySchedules (target_date, employee_id, employee_name, start_time, end_time, schedule_type, title)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        ON DUPLICATE KEY UPDATE
-                            employee_name = VALUES(employee_name),
-                            start_time = VALUES(start_time),
-                            end_time = VALUES(end_time),
-                            schedule_type = VALUES(schedule_type),
-                            title = VALUES(title)
                     """
                     cursor.execute(sql, (target_date_str, emp_id, ind_name, start_time, end_time, schedule_type, title))
                     success_count += 1
